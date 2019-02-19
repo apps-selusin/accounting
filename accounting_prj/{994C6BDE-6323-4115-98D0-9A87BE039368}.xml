@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<configuration date="2019/02/19" author="e.World Technology Ltd.">
+  <project id="{994C6BDE-6323-4115-98D0-9A87BE039368}" file="" name="accounting_prj" product="PHPMaker" version="13.0" datetime="2019/02/19 21:18:35" languagefolder="phplang" userlevel="-2,&quot;Anonymous&quot;,0;">
+    <table id="akun" name="akun" caption="akun" userlevel="-2,&quot;Anonymous&quot;,0;" priv="1" />
+    <table id="grup" name="grup" caption="grup" userlevel="-2,&quot;Anonymous&quot;,0;" priv="1" />
+    <table id="gudang" name="gudang" caption="gudang" userlevel="-2,&quot;Anonymous&quot;,0;" priv="1" />
+    <table id="jurnal" name="jurnal" caption="jurnal" userlevel="-2,&quot;Anonymous&quot;,0;" priv="1" />
+    <table id="jurnald" name="jurnald" caption="jurnald" userlevel="-2,&quot;Anonymous&quot;,0;" priv="1" />
+    <table id="kelompok" name="kelompok" caption="kelompok" userlevel="-2,&quot;Anonymous&quot;,0;" priv="1" />
+    <table id="klasifikasi" name="klasifikasi" caption="klasifikasi" userlevel="-2,&quot;Anonymous&quot;,0;" priv="1" />
+    <table id="konversi" name="konversi" caption="konversi" userlevel="-2,&quot;Anonymous&quot;,0;" priv="1" />
+    <table id="kurs" name="kurs" caption="kurs" userlevel="-2,&quot;Anonymous&quot;,0;" priv="1" />
+    <table id="matauang" name="matauang" caption="matauang" userlevel="-2,&quot;Anonymous&quot;,0;" priv="1" />
+    <table id="pajak" name="pajak" caption="pajak" userlevel="-2,&quot;Anonymous&quot;,0;" priv="1" />
+    <table id="pengiriman" name="pengiriman" caption="pengiriman" userlevel="-2,&quot;Anonymous&quot;,0;" priv="1" />
+    <table id="periode" name="periode" caption="periode" userlevel="-2,&quot;Anonymous&quot;,0;" priv="1" />
+    <table id="person" name="person" caption="person" userlevel="-2,&quot;Anonymous&quot;,0;" priv="1" />
+    <table id="produk" name="produk" caption="produk" userlevel="-2,&quot;Anonymous&quot;,0;" priv="1" />
+    <table id="saldoawal" name="saldoawal" caption="saldoawal" userlevel="-2,&quot;Anonymous&quot;,0;" priv="1" />
+    <table id="satuan" name="satuan" caption="satuan" userlevel="-2,&quot;Anonymous&quot;,0;" priv="1" />
+    <table id="subgrup" name="subgrup" caption="subgrup" userlevel="-2,&quot;Anonymous&quot;,0;" priv="1" />
+    <table id="tipejurnal" name="tipejurnal" caption="tipejurnal" userlevel="-2,&quot;Anonymous&quot;,0;" priv="1" />
+    <table id="top" name="top" caption="top" userlevel="-2,&quot;Anonymous&quot;,0;" priv="1" />
+    <table id="tos" name="tos" caption="tos" userlevel="-2,&quot;Anonymous&quot;,0;" priv="1" />
+    <table id="type" name="type" caption="type" userlevel="-2,&quot;Anonymous&quot;,0;" priv="1" />
+  </project>
+</configuration>
