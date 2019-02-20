@@ -6,6 +6,7 @@ ob_start(); // Turn on output buffering
 <?php include_once ((EW_USE_ADODB) ? "adodb5/adodb.inc.php" : "ewmysql13.php") ?>
 <?php include_once "phpfn13.php" ?>
 <?php include_once "jurnalinfo.php" ?>
+<?php include_once "jurnaldgridcls.php" ?>
 <?php include_once "userfn13.php" ?>
 <?php
 
@@ -278,7 +279,7 @@ class cjurnal_list extends cjurnal {
 		$this->ExportXmlUrl = $this->PageUrl() . "export=xml";
 		$this->ExportCsvUrl = $this->PageUrl() . "export=csv";
 		$this->ExportPdfUrl = $this->PageUrl() . "export=pdf";
-		$this->AddUrl = "jurnaladd.php";
+		$this->AddUrl = "jurnaladd.php?" . EW_TABLE_SHOW_DETAIL . "=";
 		$this->InlineAddUrl = $this->PageUrl() . "a=add";
 		$this->GridAddUrl = $this->PageUrl() . "a=gridadd";
 		$this->GridEditUrl = $this->PageUrl() . "a=gridedit";
@@ -366,6 +367,14 @@ class cjurnal_list extends cjurnal {
 
 		// Process auto fill
 		if (@$_POST["ajax"] == "autofill") {
+
+			// Process auto fill for detail table 'jurnald'
+			if (@$_POST["grid"] == "fjurnaldgrid") {
+				if (!isset($GLOBALS["jurnald_grid"])) $GLOBALS["jurnald_grid"] = new cjurnald_grid;
+				$GLOBALS["jurnald_grid"]->Page_Init();
+				$this->Page_Terminate();
+				exit();
+			}
 			$results = $this->GetAutoFill(@$_POST["name"], @$_POST["q"]);
 			if ($results) {
 
@@ -941,17 +950,20 @@ class cjurnal_list extends cjurnal {
 	// Set up sort parameters
 	function SetUpSortOrder() {
 
+		// Check for Ctrl pressed
+		$bCtrl = (@$_GET["ctrl"] <> "");
+
 		// Check for "order" parameter
 		if (@$_GET["order"] <> "") {
 			$this->CurrentOrder = ew_StripSlashes(@$_GET["order"]);
 			$this->CurrentOrderType = @$_GET["ordertype"];
-			$this->UpdateSort($this->id); // id
-			$this->UpdateSort($this->tipejurnal_id); // tipejurnal_id
-			$this->UpdateSort($this->period_id); // period_id
-			$this->UpdateSort($this->createon); // createon
-			$this->UpdateSort($this->keterangan); // keterangan
-			$this->UpdateSort($this->person_id); // person_id
-			$this->UpdateSort($this->nomer); // nomer
+			$this->UpdateSort($this->id, $bCtrl); // id
+			$this->UpdateSort($this->tipejurnal_id, $bCtrl); // tipejurnal_id
+			$this->UpdateSort($this->period_id, $bCtrl); // period_id
+			$this->UpdateSort($this->createon, $bCtrl); // createon
+			$this->UpdateSort($this->keterangan, $bCtrl); // keterangan
+			$this->UpdateSort($this->person_id, $bCtrl); // person_id
+			$this->UpdateSort($this->nomer, $bCtrl); // nomer
 			$this->setStartRecordNumber(1); // Reset start position
 		}
 	}
@@ -1032,6 +1044,28 @@ class cjurnal_list extends cjurnal {
 		$item->CssStyle = "white-space: nowrap;";
 		$item->Visible = TRUE;
 		$item->OnLeft = FALSE;
+
+		// "detail_jurnald"
+		$item = &$this->ListOptions->Add("detail_jurnald");
+		$item->CssStyle = "white-space: nowrap;";
+		$item->Visible = TRUE && !$this->ShowMultipleDetails;
+		$item->OnLeft = FALSE;
+		$item->ShowInButtonGroup = FALSE;
+		if (!isset($GLOBALS["jurnald_grid"])) $GLOBALS["jurnald_grid"] = new cjurnald_grid;
+
+		// Multiple details
+		if ($this->ShowMultipleDetails) {
+			$item = &$this->ListOptions->Add("details");
+			$item->CssStyle = "white-space: nowrap;";
+			$item->Visible = $this->ShowMultipleDetails;
+			$item->OnLeft = FALSE;
+			$item->ShowInButtonGroup = FALSE;
+		}
+
+		// Set up detail pages
+		$pages = new cSubPages();
+		$pages->Add("jurnald");
+		$this->DetailPages = $pages;
 
 		// List actions
 		$item = &$this->ListOptions->Add("listactions");
@@ -1132,6 +1166,62 @@ class cjurnal_list extends cjurnal {
 				$oListOpt->Visible = TRUE;
 			}
 		}
+		$DetailViewTblVar = "";
+		$DetailCopyTblVar = "";
+		$DetailEditTblVar = "";
+
+		// "detail_jurnald"
+		$oListOpt = &$this->ListOptions->Items["detail_jurnald"];
+		if (TRUE) {
+			$body = $Language->Phrase("DetailLink") . $Language->TablePhrase("jurnald", "TblCaption");
+			$body = "<a class=\"btn btn-default btn-sm ewRowLink ewDetail\" data-action=\"list\" href=\"" . ew_HtmlEncode("jurnaldlist.php?" . EW_TABLE_SHOW_MASTER . "=jurnal&fk_id=" . urlencode(strval($this->id->CurrentValue)) . "") . "\">" . $body . "</a>";
+			$links = "";
+			if ($GLOBALS["jurnald_grid"]->DetailView) {
+				$links .= "<li><a class=\"ewRowLink ewDetailView\" data-action=\"view\" data-caption=\"" . ew_HtmlTitle($Language->Phrase("MasterDetailViewLink")) . "\" href=\"" . ew_HtmlEncode($this->GetViewUrl(EW_TABLE_SHOW_DETAIL . "=jurnald")) . "\">" . ew_HtmlImageAndText($Language->Phrase("MasterDetailViewLink")) . "</a></li>";
+				if ($DetailViewTblVar <> "") $DetailViewTblVar .= ",";
+				$DetailViewTblVar .= "jurnald";
+			}
+			if ($GLOBALS["jurnald_grid"]->DetailEdit) {
+				$links .= "<li><a class=\"ewRowLink ewDetailEdit\" data-action=\"edit\" data-caption=\"" . ew_HtmlTitle($Language->Phrase("MasterDetailEditLink")) . "\" href=\"" . ew_HtmlEncode($this->GetEditUrl(EW_TABLE_SHOW_DETAIL . "=jurnald")) . "\">" . ew_HtmlImageAndText($Language->Phrase("MasterDetailEditLink")) . "</a></li>";
+				if ($DetailEditTblVar <> "") $DetailEditTblVar .= ",";
+				$DetailEditTblVar .= "jurnald";
+			}
+			if ($GLOBALS["jurnald_grid"]->DetailAdd) {
+				$links .= "<li><a class=\"ewRowLink ewDetailCopy\" data-action=\"add\" data-caption=\"" . ew_HtmlTitle($Language->Phrase("MasterDetailCopyLink")) . "\" href=\"" . ew_HtmlEncode($this->GetCopyUrl(EW_TABLE_SHOW_DETAIL . "=jurnald")) . "\">" . ew_HtmlImageAndText($Language->Phrase("MasterDetailCopyLink")) . "</a></li>";
+				if ($DetailCopyTblVar <> "") $DetailCopyTblVar .= ",";
+				$DetailCopyTblVar .= "jurnald";
+			}
+			if ($links <> "") {
+				$body .= "<button class=\"dropdown-toggle btn btn-default btn-sm ewDetail\" data-toggle=\"dropdown\"><b class=\"caret\"></b></button>";
+				$body .= "<ul class=\"dropdown-menu\">". $links . "</ul>";
+			}
+			$body = "<div class=\"btn-group\">" . $body . "</div>";
+			$oListOpt->Body = $body;
+			if ($this->ShowMultipleDetails) $oListOpt->Visible = FALSE;
+		}
+		if ($this->ShowMultipleDetails) {
+			$body = $Language->Phrase("MultipleMasterDetails");
+			$body = "<div class=\"btn-group\">";
+			$links = "";
+			if ($DetailViewTblVar <> "") {
+				$links .= "<li><a class=\"ewRowLink ewDetailView\" data-action=\"view\" data-caption=\"" . ew_HtmlTitle($Language->Phrase("MasterDetailViewLink")) . "\" href=\"" . ew_HtmlEncode($this->GetViewUrl(EW_TABLE_SHOW_DETAIL . "=" . $DetailViewTblVar)) . "\">" . ew_HtmlImageAndText($Language->Phrase("MasterDetailViewLink")) . "</a></li>";
+			}
+			if ($DetailEditTblVar <> "") {
+				$links .= "<li><a class=\"ewRowLink ewDetailEdit\" data-action=\"edit\" data-caption=\"" . ew_HtmlTitle($Language->Phrase("MasterDetailEditLink")) . "\" href=\"" . ew_HtmlEncode($this->GetEditUrl(EW_TABLE_SHOW_DETAIL . "=" . $DetailEditTblVar)) . "\">" . ew_HtmlImageAndText($Language->Phrase("MasterDetailEditLink")) . "</a></li>";
+			}
+			if ($DetailCopyTblVar <> "") {
+				$links .= "<li><a class=\"ewRowLink ewDetailCopy\" data-action=\"add\" data-caption=\"" . ew_HtmlTitle($Language->Phrase("MasterDetailCopyLink")) . "\" href=\"" . ew_HtmlEncode($this->GetCopyUrl(EW_TABLE_SHOW_DETAIL . "=" . $DetailCopyTblVar)) . "\">" . ew_HtmlImageAndText($Language->Phrase("MasterDetailCopyLink")) . "</a></li>";
+			}
+			if ($links <> "") {
+				$body .= "<button class=\"dropdown-toggle btn btn-default btn-sm ewMasterDetail\" title=\"" . ew_HtmlTitle($Language->Phrase("MultipleMasterDetails")) . "\" data-toggle=\"dropdown\">" . $Language->Phrase("MultipleMasterDetails") . "<b class=\"caret\"></b></button>";
+				$body .= "<ul class=\"dropdown-menu ewMenu\">". $links . "</ul>";
+			}
+			$body .= "</div>";
+
+			// Multiple details
+			$oListOpt = &$this->ListOptions->Items["details"];
+			$oListOpt->Body = $body;
+		}
 
 		// "checkbox"
 		$oListOpt = &$this->ListOptions->Items["checkbox"];
@@ -1153,6 +1243,33 @@ class cjurnal_list extends cjurnal {
 		$addcaption = ew_HtmlTitle($Language->Phrase("AddLink"));
 		$item->Body = "<a class=\"ewAddEdit ewAdd\" title=\"" . $addcaption . "\" data-caption=\"" . $addcaption . "\" href=\"" . ew_HtmlEncode($this->AddUrl) . "\">" . $Language->Phrase("AddLink") . "</a>";
 		$item->Visible = ($this->AddUrl <> "");
+		$option = $options["detail"];
+		$DetailTableLink = "";
+		$item = &$option->Add("detailadd_jurnald");
+		$url = $this->GetAddUrl(EW_TABLE_SHOW_DETAIL . "=jurnald");
+		$caption = $Language->Phrase("Add") . "&nbsp;" . $this->TableCaption() . "/" . $GLOBALS["jurnald"]->TableCaption();
+		$item->Body = "<a class=\"ewDetailAddGroup ewDetailAdd\" title=\"" . ew_HtmlTitle($caption) . "\" data-caption=\"" . ew_HtmlTitle($caption) . "\" href=\"" . ew_HtmlEncode($url) . "\">" . $caption . "</a>";
+		$item->Visible = ($GLOBALS["jurnald"]->DetailAdd);
+		if ($item->Visible) {
+			if ($DetailTableLink <> "") $DetailTableLink .= ",";
+			$DetailTableLink .= "jurnald";
+		}
+
+		// Add multiple details
+		if ($this->ShowMultipleDetails) {
+			$item = &$option->Add("detailsadd");
+			$url = $this->GetAddUrl(EW_TABLE_SHOW_DETAIL . "=" . $DetailTableLink);
+			$item->Body = "<a class=\"ewDetailAddGroup ewDetailAdd\" title=\"" . ew_HtmlTitle($Language->Phrase("AddMasterDetailLink")) . "\" data-caption=\"" . ew_HtmlTitle($Language->Phrase("AddMasterDetailLink")) . "\" href=\"" . ew_HtmlEncode($url) . "\">" . $Language->Phrase("AddMasterDetailLink") . "</a>";
+			$item->Visible = ($DetailTableLink <> "");
+
+			// Hide single master/detail items
+			$ar = explode(",", $DetailTableLink);
+			$cnt = count($ar);
+			for ($i = 0; $i < $cnt; $i++) {
+				if ($item = &$option->GetItem("detailadd_" . $ar[$i]))
+					$item->Visible = FALSE;
+			}
+		}
 		$option = $options["action"];
 
 		// Set up options default
@@ -1508,11 +1625,50 @@ class cjurnal_list extends cjurnal {
 		$this->id->ViewCustomAttributes = "";
 
 		// tipejurnal_id
-		$this->tipejurnal_id->ViewValue = $this->tipejurnal_id->CurrentValue;
+		if (strval($this->tipejurnal_id->CurrentValue) <> "") {
+			$sFilterWrk = "`id`" . ew_SearchString("=", $this->tipejurnal_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+		$sSqlWrk = "SELECT `id`, `nama` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `tipejurnal`";
+		$sWhereWrk = "";
+		$this->tipejurnal_id->LookupFilters = array();
+		ew_AddFilter($sWhereWrk, $sFilterWrk);
+		$this->Lookup_Selecting($this->tipejurnal_id, $sWhereWrk); // Call Lookup selecting
+		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			if ($rswrk && !$rswrk->EOF) { // Lookup values found
+				$arwrk = array();
+				$arwrk[1] = $rswrk->fields('DispFld');
+				$this->tipejurnal_id->ViewValue = $this->tipejurnal_id->DisplayValue($arwrk);
+				$rswrk->Close();
+			} else {
+				$this->tipejurnal_id->ViewValue = $this->tipejurnal_id->CurrentValue;
+			}
+		} else {
+			$this->tipejurnal_id->ViewValue = NULL;
+		}
 		$this->tipejurnal_id->ViewCustomAttributes = "";
 
 		// period_id
-		$this->period_id->ViewValue = $this->period_id->CurrentValue;
+		if (strval($this->period_id->CurrentValue) <> "") {
+			$sFilterWrk = "`id`" . ew_SearchString("=", $this->period_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+		$sSqlWrk = "SELECT `id`, `start` AS `DispFld`, `end` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `periode`";
+		$sWhereWrk = "";
+		$this->period_id->LookupFilters = array("df1" => "7", "df2" => "7");
+		ew_AddFilter($sWhereWrk, $sFilterWrk);
+		$this->Lookup_Selecting($this->period_id, $sWhereWrk); // Call Lookup selecting
+		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			if ($rswrk && !$rswrk->EOF) { // Lookup values found
+				$arwrk = array();
+				$arwrk[1] = ew_FormatDateTime($rswrk->fields('DispFld'), 7);
+				$arwrk[2] = ew_FormatDateTime($rswrk->fields('Disp2Fld'), 7);
+				$this->period_id->ViewValue = $this->period_id->DisplayValue($arwrk);
+				$rswrk->Close();
+			} else {
+				$this->period_id->ViewValue = $this->period_id->CurrentValue;
+			}
+		} else {
+			$this->period_id->ViewValue = NULL;
+		}
 		$this->period_id->ViewCustomAttributes = "";
 
 		// createon
@@ -1760,8 +1916,10 @@ fjurnallist.ValidateRequired = false;
 <?php } ?>
 
 // Dynamic selection lists
-// Form object for search
+fjurnallist.Lists["x_tipejurnal_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_nama","","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"tipejurnal"};
+fjurnallist.Lists["x_period_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_start","x_end","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"periode"};
 
+// Form object for search
 var CurrentSearchForm = fjurnallistsrch = new ew_Form("fjurnallistsrch");
 </script>
 <script type="text/javascript">
@@ -1867,7 +2025,7 @@ $jurnal_list->ListOptions->Render("header", "left");
 	<?php if ($jurnal->SortUrl($jurnal->id) == "") { ?>
 		<th data-name="id"><div id="elh_jurnal_id" class="jurnal_id"><div class="ewTableHeaderCaption"><?php echo $jurnal->id->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $jurnal->SortUrl($jurnal->id) ?>',1);"><div id="elh_jurnal_id" class="jurnal_id">
+		<th data-name="id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $jurnal->SortUrl($jurnal->id) ?>',2);"><div id="elh_jurnal_id" class="jurnal_id">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $jurnal->id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($jurnal->id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($jurnal->id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1876,7 +2034,7 @@ $jurnal_list->ListOptions->Render("header", "left");
 	<?php if ($jurnal->SortUrl($jurnal->tipejurnal_id) == "") { ?>
 		<th data-name="tipejurnal_id"><div id="elh_jurnal_tipejurnal_id" class="jurnal_tipejurnal_id"><div class="ewTableHeaderCaption"><?php echo $jurnal->tipejurnal_id->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="tipejurnal_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $jurnal->SortUrl($jurnal->tipejurnal_id) ?>',1);"><div id="elh_jurnal_tipejurnal_id" class="jurnal_tipejurnal_id">
+		<th data-name="tipejurnal_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $jurnal->SortUrl($jurnal->tipejurnal_id) ?>',2);"><div id="elh_jurnal_tipejurnal_id" class="jurnal_tipejurnal_id">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $jurnal->tipejurnal_id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($jurnal->tipejurnal_id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($jurnal->tipejurnal_id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1885,7 +2043,7 @@ $jurnal_list->ListOptions->Render("header", "left");
 	<?php if ($jurnal->SortUrl($jurnal->period_id) == "") { ?>
 		<th data-name="period_id"><div id="elh_jurnal_period_id" class="jurnal_period_id"><div class="ewTableHeaderCaption"><?php echo $jurnal->period_id->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="period_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $jurnal->SortUrl($jurnal->period_id) ?>',1);"><div id="elh_jurnal_period_id" class="jurnal_period_id">
+		<th data-name="period_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $jurnal->SortUrl($jurnal->period_id) ?>',2);"><div id="elh_jurnal_period_id" class="jurnal_period_id">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $jurnal->period_id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($jurnal->period_id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($jurnal->period_id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1894,7 +2052,7 @@ $jurnal_list->ListOptions->Render("header", "left");
 	<?php if ($jurnal->SortUrl($jurnal->createon) == "") { ?>
 		<th data-name="createon"><div id="elh_jurnal_createon" class="jurnal_createon"><div class="ewTableHeaderCaption"><?php echo $jurnal->createon->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="createon"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $jurnal->SortUrl($jurnal->createon) ?>',1);"><div id="elh_jurnal_createon" class="jurnal_createon">
+		<th data-name="createon"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $jurnal->SortUrl($jurnal->createon) ?>',2);"><div id="elh_jurnal_createon" class="jurnal_createon">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $jurnal->createon->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($jurnal->createon->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($jurnal->createon->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1903,7 +2061,7 @@ $jurnal_list->ListOptions->Render("header", "left");
 	<?php if ($jurnal->SortUrl($jurnal->keterangan) == "") { ?>
 		<th data-name="keterangan"><div id="elh_jurnal_keterangan" class="jurnal_keterangan"><div class="ewTableHeaderCaption"><?php echo $jurnal->keterangan->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="keterangan"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $jurnal->SortUrl($jurnal->keterangan) ?>',1);"><div id="elh_jurnal_keterangan" class="jurnal_keterangan">
+		<th data-name="keterangan"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $jurnal->SortUrl($jurnal->keterangan) ?>',2);"><div id="elh_jurnal_keterangan" class="jurnal_keterangan">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $jurnal->keterangan->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($jurnal->keterangan->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($jurnal->keterangan->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1912,7 +2070,7 @@ $jurnal_list->ListOptions->Render("header", "left");
 	<?php if ($jurnal->SortUrl($jurnal->person_id) == "") { ?>
 		<th data-name="person_id"><div id="elh_jurnal_person_id" class="jurnal_person_id"><div class="ewTableHeaderCaption"><?php echo $jurnal->person_id->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="person_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $jurnal->SortUrl($jurnal->person_id) ?>',1);"><div id="elh_jurnal_person_id" class="jurnal_person_id">
+		<th data-name="person_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $jurnal->SortUrl($jurnal->person_id) ?>',2);"><div id="elh_jurnal_person_id" class="jurnal_person_id">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $jurnal->person_id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($jurnal->person_id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($jurnal->person_id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1921,7 +2079,7 @@ $jurnal_list->ListOptions->Render("header", "left");
 	<?php if ($jurnal->SortUrl($jurnal->nomer) == "") { ?>
 		<th data-name="nomer"><div id="elh_jurnal_nomer" class="jurnal_nomer"><div class="ewTableHeaderCaption"><?php echo $jurnal->nomer->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="nomer"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $jurnal->SortUrl($jurnal->nomer) ?>',1);"><div id="elh_jurnal_nomer" class="jurnal_nomer">
+		<th data-name="nomer"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $jurnal->SortUrl($jurnal->nomer) ?>',2);"><div id="elh_jurnal_nomer" class="jurnal_nomer">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $jurnal->nomer->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($jurnal->nomer->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($jurnal->nomer->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>

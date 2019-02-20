@@ -6,7 +6,6 @@ ob_start(); // Turn on output buffering
 <?php include_once ((EW_USE_ADODB) ? "adodb5/adodb.inc.php" : "ewmysql13.php") ?>
 <?php include_once "phpfn13.php" ?>
 <?php include_once "subgrupinfo.php" ?>
-<?php include_once "grupinfo.php" ?>
 <?php include_once "userfn13.php" ?>
 <?php
 
@@ -286,9 +285,6 @@ class csubgrup_list extends csubgrup {
 		$this->MultiDeleteUrl = "subgrupdelete.php";
 		$this->MultiUpdateUrl = "subgrupupdate.php";
 
-		// Table object (grup)
-		if (!isset($GLOBALS['grup'])) $GLOBALS['grup'] = new cgrup();
-
 		// Page ID
 		if (!defined("EW_PAGE_ID"))
 			define("EW_PAGE_ID", 'list', TRUE);
@@ -346,8 +342,6 @@ class csubgrup_list extends csubgrup {
 
 		// Set up list options
 		$this->SetupListOptions();
-		$this->id->SetVisibility();
-		$this->id->Visible = !$this->IsAdd() && !$this->IsCopy() && !$this->IsGridAdd();
 		$this->grup_id->SetVisibility();
 		$this->kode->SetVisibility();
 		$this->nama->SetVisibility();
@@ -381,9 +375,6 @@ class csubgrup_list extends csubgrup {
 
 		// Create Token
 		$this->CreateToken();
-
-		// Set up master detail parameters
-		$this->SetUpMasterParms();
 
 		// Setup other options
 		$this->SetupOtherOptions();
@@ -537,13 +528,15 @@ class csubgrup_list extends csubgrup {
 			}
 
 			// Get default search criteria
-			ew_AddFilter($this->DefaultSearchWhere, $this->BasicSearchWhere(TRUE));
+			ew_AddFilter($this->DefaultSearchWhere, $this->AdvancedSearchWhere(TRUE));
 
-			// Get basic search values
-			$this->LoadBasicSearchValues();
+			// Get and validate search values for advanced search
+			$this->LoadSearchValues(); // Get search values
 
 			// Process filter list
 			$this->ProcessFilterList();
+			if (!$this->ValidateSearch())
+				$this->setFailureMessage($gsSearchError);
 
 			// Restore search parms from Session if not searching / reset / export
 			if (($this->Export <> "" || $this->Command <> "search" && $this->Command <> "reset" && $this->Command <> "resetall") && $this->CheckSearchParms())
@@ -555,9 +548,9 @@ class csubgrup_list extends csubgrup {
 			// Set up sorting order
 			$this->SetUpSortOrder();
 
-			// Get basic search criteria
+			// Get search criteria for advanced search
 			if ($gsSearchError == "")
-				$sSrchBasic = $this->BasicSearchWhere();
+				$sSrchAdvanced = $this->AdvancedSearchWhere();
 		}
 
 		// Restore display records
@@ -573,10 +566,10 @@ class csubgrup_list extends csubgrup {
 		// Load search default if no existing search criteria
 		if (!$this->CheckSearchParms()) {
 
-			// Load basic search from default
-			$this->BasicSearch->LoadDefault();
-			if ($this->BasicSearch->Keyword != "")
-				$sSrchBasic = $this->BasicSearchWhere();
+			// Load advanced search from default
+			if ($this->LoadAdvancedSearchDefault()) {
+				$sSrchAdvanced = $this->AdvancedSearchWhere();
+			}
 		}
 
 		// Build search criteria
@@ -597,28 +590,8 @@ class csubgrup_list extends csubgrup {
 
 		// Build filter
 		$sFilter = "";
-
-		// Restore master/detail filter
-		$this->DbMasterFilter = $this->GetMasterFilter(); // Restore master filter
-		$this->DbDetailFilter = $this->GetDetailFilter(); // Restore detail filter
 		ew_AddFilter($sFilter, $this->DbDetailFilter);
 		ew_AddFilter($sFilter, $this->SearchWhere);
-
-		// Load master record
-		if ($this->CurrentMode <> "add" && $this->GetMasterFilter() <> "" && $this->getCurrentMasterTable() == "grup") {
-			global $grup;
-			$rsmaster = $grup->LoadRs($this->DbMasterFilter);
-			$this->MasterRecordExists = ($rsmaster && !$rsmaster->EOF);
-			if (!$this->MasterRecordExists) {
-				$this->setFailureMessage($Language->Phrase("NoRecord")); // Set no record found
-				$this->Page_Terminate("gruplist.php"); // Return to master page
-			} else {
-				$grup->LoadListRowValues($rsmaster);
-				$grup->RowType = EW_ROWTYPE_MASTER; // Master row
-				$grup->RenderListRow();
-				$rsmaster->Close();
-			}
-		}
 
 		// Set up filter in session
 		$this->setSessionWhere($sFilter);
@@ -694,10 +667,6 @@ class csubgrup_list extends csubgrup {
 		$sFilterList = ew_Concat($sFilterList, $this->grup_id->AdvancedSearch->ToJSON(), ","); // Field grup_id
 		$sFilterList = ew_Concat($sFilterList, $this->kode->AdvancedSearch->ToJSON(), ","); // Field kode
 		$sFilterList = ew_Concat($sFilterList, $this->nama->AdvancedSearch->ToJSON(), ","); // Field nama
-		if ($this->BasicSearch->Keyword <> "") {
-			$sWrk = "\"" . EW_TABLE_BASIC_SEARCH . "\":\"" . ew_JsEncode2($this->BasicSearch->Keyword) . "\",\"" . EW_TABLE_BASIC_SEARCH_TYPE . "\":\"" . ew_JsEncode2($this->BasicSearch->Type) . "\"";
-			$sFilterList = ew_Concat($sFilterList, $sWrk, ",");
-		}
 		$sFilterList = preg_replace('/,$/', "", $sFilterList);
 
 		// Return filter list in json
@@ -769,139 +738,87 @@ class csubgrup_list extends csubgrup {
 		$this->nama->AdvancedSearch->SearchValue2 = @$filter["y_nama"];
 		$this->nama->AdvancedSearch->SearchOperator2 = @$filter["w_nama"];
 		$this->nama->AdvancedSearch->Save();
-		$this->BasicSearch->setKeyword(@$filter[EW_TABLE_BASIC_SEARCH]);
-		$this->BasicSearch->setType(@$filter[EW_TABLE_BASIC_SEARCH_TYPE]);
 	}
 
-	// Return basic search SQL
-	function BasicSearchSQL($arKeywords, $type) {
+	// Advanced search WHERE clause based on QueryString
+	function AdvancedSearchWhere($Default = FALSE) {
+		global $Security;
 		$sWhere = "";
-		$this->BuildBasicSearchSQL($sWhere, $this->kode, $arKeywords, $type);
-		$this->BuildBasicSearchSQL($sWhere, $this->nama, $arKeywords, $type);
+		$this->BuildSearchSql($sWhere, $this->id, $Default, FALSE); // id
+		$this->BuildSearchSql($sWhere, $this->grup_id, $Default, FALSE); // grup_id
+		$this->BuildSearchSql($sWhere, $this->kode, $Default, FALSE); // kode
+		$this->BuildSearchSql($sWhere, $this->nama, $Default, FALSE); // nama
+
+		// Set up search parm
+		if (!$Default && $sWhere <> "") {
+			$this->Command = "search";
+		}
+		if (!$Default && $this->Command == "search") {
+			$this->id->AdvancedSearch->Save(); // id
+			$this->grup_id->AdvancedSearch->Save(); // grup_id
+			$this->kode->AdvancedSearch->Save(); // kode
+			$this->nama->AdvancedSearch->Save(); // nama
+		}
 		return $sWhere;
 	}
 
-	// Build basic search SQL
-	function BuildBasicSearchSQL(&$Where, &$Fld, $arKeywords, $type) {
-		global $EW_BASIC_SEARCH_IGNORE_PATTERN;
-		$sDefCond = ($type == "OR") ? "OR" : "AND";
-		$arSQL = array(); // Array for SQL parts
-		$arCond = array(); // Array for search conditions
-		$cnt = count($arKeywords);
-		$j = 0; // Number of SQL parts
-		for ($i = 0; $i < $cnt; $i++) {
-			$Keyword = $arKeywords[$i];
-			$Keyword = trim($Keyword);
-			if ($EW_BASIC_SEARCH_IGNORE_PATTERN <> "") {
-				$Keyword = preg_replace($EW_BASIC_SEARCH_IGNORE_PATTERN, "\\", $Keyword);
-				$ar = explode("\\", $Keyword);
-			} else {
-				$ar = array($Keyword);
-			}
-			foreach ($ar as $Keyword) {
-				if ($Keyword <> "") {
-					$sWrk = "";
-					if ($Keyword == "OR" && $type == "") {
-						if ($j > 0)
-							$arCond[$j-1] = "OR";
-					} elseif ($Keyword == EW_NULL_VALUE) {
-						$sWrk = $Fld->FldExpression . " IS NULL";
-					} elseif ($Keyword == EW_NOT_NULL_VALUE) {
-						$sWrk = $Fld->FldExpression . " IS NOT NULL";
-					} elseif ($Fld->FldIsVirtual) {
-						$sWrk = $Fld->FldVirtualExpression . ew_Like(ew_QuotedValue("%" . $Keyword . "%", EW_DATATYPE_STRING, $this->DBID), $this->DBID);
-					} elseif ($Fld->FldDataType != EW_DATATYPE_NUMBER || is_numeric($Keyword)) {
-						$sWrk = $Fld->FldBasicSearchExpression . ew_Like(ew_QuotedValue("%" . $Keyword . "%", EW_DATATYPE_STRING, $this->DBID), $this->DBID);
-					}
-					if ($sWrk <> "") {
-						$arSQL[$j] = $sWrk;
-						$arCond[$j] = $sDefCond;
-						$j += 1;
-					}
-				}
-			}
+	// Build search SQL
+	function BuildSearchSql(&$Where, &$Fld, $Default, $MultiValue) {
+		$FldParm = substr($Fld->FldVar, 2);
+		$FldVal = ($Default) ? $Fld->AdvancedSearch->SearchValueDefault : $Fld->AdvancedSearch->SearchValue; // @$_GET["x_$FldParm"]
+		$FldOpr = ($Default) ? $Fld->AdvancedSearch->SearchOperatorDefault : $Fld->AdvancedSearch->SearchOperator; // @$_GET["z_$FldParm"]
+		$FldCond = ($Default) ? $Fld->AdvancedSearch->SearchConditionDefault : $Fld->AdvancedSearch->SearchCondition; // @$_GET["v_$FldParm"]
+		$FldVal2 = ($Default) ? $Fld->AdvancedSearch->SearchValue2Default : $Fld->AdvancedSearch->SearchValue2; // @$_GET["y_$FldParm"]
+		$FldOpr2 = ($Default) ? $Fld->AdvancedSearch->SearchOperator2Default : $Fld->AdvancedSearch->SearchOperator2; // @$_GET["w_$FldParm"]
+		$sWrk = "";
+
+		//$FldVal = ew_StripSlashes($FldVal);
+		if (is_array($FldVal)) $FldVal = implode(",", $FldVal);
+
+		//$FldVal2 = ew_StripSlashes($FldVal2);
+		if (is_array($FldVal2)) $FldVal2 = implode(",", $FldVal2);
+		$FldOpr = strtoupper(trim($FldOpr));
+		if ($FldOpr == "") $FldOpr = "=";
+		$FldOpr2 = strtoupper(trim($FldOpr2));
+		if ($FldOpr2 == "") $FldOpr2 = "=";
+		if (EW_SEARCH_MULTI_VALUE_OPTION == 1)
+			$MultiValue = FALSE;
+		if ($MultiValue) {
+			$sWrk1 = ($FldVal <> "") ? ew_GetMultiSearchSql($Fld, $FldOpr, $FldVal, $this->DBID) : ""; // Field value 1
+			$sWrk2 = ($FldVal2 <> "") ? ew_GetMultiSearchSql($Fld, $FldOpr2, $FldVal2, $this->DBID) : ""; // Field value 2
+			$sWrk = $sWrk1; // Build final SQL
+			if ($sWrk2 <> "")
+				$sWrk = ($sWrk <> "") ? "($sWrk) $FldCond ($sWrk2)" : $sWrk2;
+		} else {
+			$FldVal = $this->ConvertSearchValue($Fld, $FldVal);
+			$FldVal2 = $this->ConvertSearchValue($Fld, $FldVal2);
+			$sWrk = ew_GetSearchSql($Fld, $FldVal, $FldOpr, $FldCond, $FldVal2, $FldOpr2, $this->DBID);
 		}
-		$cnt = count($arSQL);
-		$bQuoted = FALSE;
-		$sSql = "";
-		if ($cnt > 0) {
-			for ($i = 0; $i < $cnt-1; $i++) {
-				if ($arCond[$i] == "OR") {
-					if (!$bQuoted) $sSql .= "(";
-					$bQuoted = TRUE;
-				}
-				$sSql .= $arSQL[$i];
-				if ($bQuoted && $arCond[$i] <> "OR") {
-					$sSql .= ")";
-					$bQuoted = FALSE;
-				}
-				$sSql .= " " . $arCond[$i] . " ";
-			}
-			$sSql .= $arSQL[$cnt-1];
-			if ($bQuoted)
-				$sSql .= ")";
-		}
-		if ($sSql <> "") {
-			if ($Where <> "") $Where .= " OR ";
-			$Where .=  "(" . $sSql . ")";
-		}
+		ew_AddFilter($Where, $sWrk);
 	}
 
-	// Return basic search WHERE clause based on search keyword and type
-	function BasicSearchWhere($Default = FALSE) {
-		global $Security;
-		$sSearchStr = "";
-		$sSearchKeyword = ($Default) ? $this->BasicSearch->KeywordDefault : $this->BasicSearch->Keyword;
-		$sSearchType = ($Default) ? $this->BasicSearch->TypeDefault : $this->BasicSearch->Type;
-		if ($sSearchKeyword <> "") {
-			$sSearch = trim($sSearchKeyword);
-			if ($sSearchType <> "=") {
-				$ar = array();
-
-				// Match quoted keywords (i.e.: "...")
-				if (preg_match_all('/"([^"]*)"/i', $sSearch, $matches, PREG_SET_ORDER)) {
-					foreach ($matches as $match) {
-						$p = strpos($sSearch, $match[0]);
-						$str = substr($sSearch, 0, $p);
-						$sSearch = substr($sSearch, $p + strlen($match[0]));
-						if (strlen(trim($str)) > 0)
-							$ar = array_merge($ar, explode(" ", trim($str)));
-						$ar[] = $match[1]; // Save quoted keyword
-					}
-				}
-
-				// Match individual keywords
-				if (strlen(trim($sSearch)) > 0)
-					$ar = array_merge($ar, explode(" ", trim($sSearch)));
-
-				// Search keyword in any fields
-				if (($sSearchType == "OR" || $sSearchType == "AND") && $this->BasicSearch->BasicSearchAnyFields) {
-					foreach ($ar as $sKeyword) {
-						if ($sKeyword <> "") {
-							if ($sSearchStr <> "") $sSearchStr .= " " . $sSearchType . " ";
-							$sSearchStr .= "(" . $this->BasicSearchSQL(array($sKeyword), $sSearchType) . ")";
-						}
-					}
-				} else {
-					$sSearchStr = $this->BasicSearchSQL($ar, $sSearchType);
-				}
-			} else {
-				$sSearchStr = $this->BasicSearchSQL(array($sSearch), $sSearchType);
-			}
-			if (!$Default) $this->Command = "search";
+	// Convert search value
+	function ConvertSearchValue(&$Fld, $FldVal) {
+		if ($FldVal == EW_NULL_VALUE || $FldVal == EW_NOT_NULL_VALUE)
+			return $FldVal;
+		$Value = $FldVal;
+		if ($Fld->FldDataType == EW_DATATYPE_BOOLEAN) {
+			if ($FldVal <> "") $Value = ($FldVal == "1" || strtolower(strval($FldVal)) == "y" || strtolower(strval($FldVal)) == "t") ? $Fld->TrueValue : $Fld->FalseValue;
+		} elseif ($Fld->FldDataType == EW_DATATYPE_DATE || $Fld->FldDataType == EW_DATATYPE_TIME) {
+			if ($FldVal <> "") $Value = ew_UnFormatDateTime($FldVal, $Fld->FldDateTimeFormat);
 		}
-		if (!$Default && $this->Command == "search") {
-			$this->BasicSearch->setKeyword($sSearchKeyword);
-			$this->BasicSearch->setType($sSearchType);
-		}
-		return $sSearchStr;
+		return $Value;
 	}
 
 	// Check if search parm exists
 	function CheckSearchParms() {
-
-		// Check basic search
-		if ($this->BasicSearch->IssetSession())
+		if ($this->id->AdvancedSearch->IssetSession())
+			return TRUE;
+		if ($this->grup_id->AdvancedSearch->IssetSession())
+			return TRUE;
+		if ($this->kode->AdvancedSearch->IssetSession())
+			return TRUE;
+		if ($this->nama->AdvancedSearch->IssetSession())
 			return TRUE;
 		return FALSE;
 	}
@@ -913,8 +830,8 @@ class csubgrup_list extends csubgrup {
 		$this->SearchWhere = "";
 		$this->setSearchWhere($this->SearchWhere);
 
-		// Clear basic search parameters
-		$this->ResetBasicSearchParms();
+		// Clear advanced search parameters
+		$this->ResetAdvancedSearchParms();
 	}
 
 	// Load advanced search default values
@@ -922,30 +839,38 @@ class csubgrup_list extends csubgrup {
 		return FALSE;
 	}
 
-	// Clear all basic search parameters
-	function ResetBasicSearchParms() {
-		$this->BasicSearch->UnsetSession();
+	// Clear all advanced search parameters
+	function ResetAdvancedSearchParms() {
+		$this->id->AdvancedSearch->UnsetSession();
+		$this->grup_id->AdvancedSearch->UnsetSession();
+		$this->kode->AdvancedSearch->UnsetSession();
+		$this->nama->AdvancedSearch->UnsetSession();
 	}
 
 	// Restore all search parameters
 	function RestoreSearchParms() {
 		$this->RestoreSearch = TRUE;
 
-		// Restore basic search values
-		$this->BasicSearch->Load();
+		// Restore advanced search values
+		$this->id->AdvancedSearch->Load();
+		$this->grup_id->AdvancedSearch->Load();
+		$this->kode->AdvancedSearch->Load();
+		$this->nama->AdvancedSearch->Load();
 	}
 
 	// Set up sort parameters
 	function SetUpSortOrder() {
 
+		// Check for Ctrl pressed
+		$bCtrl = (@$_GET["ctrl"] <> "");
+
 		// Check for "order" parameter
 		if (@$_GET["order"] <> "") {
 			$this->CurrentOrder = ew_StripSlashes(@$_GET["order"]);
 			$this->CurrentOrderType = @$_GET["ordertype"];
-			$this->UpdateSort($this->id); // id
-			$this->UpdateSort($this->grup_id); // grup_id
-			$this->UpdateSort($this->kode); // kode
-			$this->UpdateSort($this->nama); // nama
+			$this->UpdateSort($this->grup_id, $bCtrl); // grup_id
+			$this->UpdateSort($this->kode, $bCtrl); // kode
+			$this->UpdateSort($this->nama, $bCtrl); // nama
 			$this->setStartRecordNumber(1); // Reset start position
 		}
 	}
@@ -974,19 +899,10 @@ class csubgrup_list extends csubgrup {
 			if ($this->Command == "reset" || $this->Command == "resetall")
 				$this->ResetSearchParms();
 
-			// Reset master/detail keys
-			if ($this->Command == "resetall") {
-				$this->setCurrentMasterTable(""); // Clear master table
-				$this->DbMasterFilter = "";
-				$this->DbDetailFilter = "";
-				$this->grup_id->setSessionValue("");
-			}
-
 			// Reset sorting order
 			if ($this->Command == "resetsort") {
 				$sOrderBy = "";
 				$this->setSessionOrderBy($sOrderBy);
-				$this->id->setSort("");
 				$this->grup_id->setSort("");
 				$this->kode->setSort("");
 				$this->nama->setSort("");
@@ -1048,6 +964,14 @@ class csubgrup_list extends csubgrup {
 		$item->ShowInDropDown = FALSE;
 		$item->ShowInButtonGroup = FALSE;
 
+		// "sequence"
+		$item = &$this->ListOptions->Add("sequence");
+		$item->CssStyle = "white-space: nowrap;";
+		$item->Visible = TRUE;
+		$item->OnLeft = TRUE; // Always on left
+		$item->ShowInDropDown = FALSE;
+		$item->ShowInButtonGroup = FALSE;
+
 		// Drop down button for ListOptions
 		$this->ListOptions->UseImageAndText = TRUE;
 		$this->ListOptions->UseDropDownButton = FALSE;
@@ -1068,6 +992,10 @@ class csubgrup_list extends csubgrup {
 	function RenderListOptions() {
 		global $Security, $Language, $objForm;
 		$this->ListOptions->LoadDefault();
+
+		// "sequence"
+		$oListOpt = &$this->ListOptions->Items["sequence"];
+		$oListOpt->Body = ew_FormatSeqNo($this->RecCnt);
 
 		// "view"
 		$oListOpt = &$this->ListOptions->Items["view"];
@@ -1369,11 +1297,31 @@ class csubgrup_list extends csubgrup {
 		}
 	}
 
-	// Load basic search values
-	function LoadBasicSearchValues() {
-		$this->BasicSearch->Keyword = @$_GET[EW_TABLE_BASIC_SEARCH];
-		if ($this->BasicSearch->Keyword <> "") $this->Command = "search";
-		$this->BasicSearch->Type = @$_GET[EW_TABLE_BASIC_SEARCH_TYPE];
+	// Load search values for validation
+	function LoadSearchValues() {
+		global $objForm;
+
+		// Load search values
+		// id
+
+		$this->id->AdvancedSearch->SearchValue = ew_StripSlashes(@$_GET["x_id"]);
+		if ($this->id->AdvancedSearch->SearchValue <> "") $this->Command = "search";
+		$this->id->AdvancedSearch->SearchOperator = @$_GET["z_id"];
+
+		// grup_id
+		$this->grup_id->AdvancedSearch->SearchValue = ew_StripSlashes(@$_GET["x_grup_id"]);
+		if ($this->grup_id->AdvancedSearch->SearchValue <> "") $this->Command = "search";
+		$this->grup_id->AdvancedSearch->SearchOperator = @$_GET["z_grup_id"];
+
+		// kode
+		$this->kode->AdvancedSearch->SearchValue = ew_StripSlashes(@$_GET["x_kode"]);
+		if ($this->kode->AdvancedSearch->SearchValue <> "") $this->Command = "search";
+		$this->kode->AdvancedSearch->SearchOperator = @$_GET["z_kode"];
+
+		// nama
+		$this->nama->AdvancedSearch->SearchValue = ew_StripSlashes(@$_GET["x_nama"]);
+		if ($this->nama->AdvancedSearch->SearchValue <> "") $this->Command = "search";
+		$this->nama->AdvancedSearch->SearchOperator = @$_GET["z_nama"];
 	}
 
 	// Load recordset
@@ -1498,7 +1446,26 @@ class csubgrup_list extends csubgrup {
 		$this->id->ViewCustomAttributes = "";
 
 		// grup_id
-		$this->grup_id->ViewValue = $this->grup_id->CurrentValue;
+		if (strval($this->grup_id->CurrentValue) <> "") {
+			$sFilterWrk = "`id`" . ew_SearchString("=", $this->grup_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+		$sSqlWrk = "SELECT `id`, `name` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `grup`";
+		$sWhereWrk = "";
+		$this->grup_id->LookupFilters = array();
+		ew_AddFilter($sWhereWrk, $sFilterWrk);
+		$this->Lookup_Selecting($this->grup_id, $sWhereWrk); // Call Lookup selecting
+		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			if ($rswrk && !$rswrk->EOF) { // Lookup values found
+				$arwrk = array();
+				$arwrk[1] = $rswrk->fields('DispFld');
+				$this->grup_id->ViewValue = $this->grup_id->DisplayValue($arwrk);
+				$rswrk->Close();
+			} else {
+				$this->grup_id->ViewValue = $this->grup_id->CurrentValue;
+			}
+		} else {
+			$this->grup_id->ViewValue = NULL;
+		}
 		$this->grup_id->ViewCustomAttributes = "";
 
 		// kode
@@ -1508,11 +1475,6 @@ class csubgrup_list extends csubgrup {
 		// nama
 		$this->nama->ViewValue = $this->nama->CurrentValue;
 		$this->nama->ViewCustomAttributes = "";
-
-			// id
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-			$this->id->TooltipValue = "";
 
 			// grup_id
 			$this->grup_id->LinkCustomAttributes = "";
@@ -1528,6 +1490,43 @@ class csubgrup_list extends csubgrup {
 			$this->nama->LinkCustomAttributes = "";
 			$this->nama->HrefValue = "";
 			$this->nama->TooltipValue = "";
+		} elseif ($this->RowType == EW_ROWTYPE_SEARCH) { // Search row
+
+			// grup_id
+			$this->grup_id->EditAttrs["class"] = "form-control";
+			$this->grup_id->EditCustomAttributes = "";
+			if (trim(strval($this->grup_id->AdvancedSearch->SearchValue)) == "") {
+				$sFilterWrk = "0=1";
+			} else {
+				$sFilterWrk = "`id`" . ew_SearchString("=", $this->grup_id->AdvancedSearch->SearchValue, EW_DATATYPE_NUMBER, "");
+			}
+			$sSqlWrk = "SELECT `id`, `name` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld`, '' AS `SelectFilterFld`, '' AS `SelectFilterFld2`, '' AS `SelectFilterFld3`, '' AS `SelectFilterFld4` FROM `grup`";
+			$sWhereWrk = "";
+			$this->grup_id->LookupFilters = array();
+			ew_AddFilter($sWhereWrk, $sFilterWrk);
+			$this->Lookup_Selecting($this->grup_id, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			$arwrk = ($rswrk) ? $rswrk->GetRows() : array();
+			if ($rswrk) $rswrk->Close();
+			$this->grup_id->EditValue = $arwrk;
+
+			// kode
+			$this->kode->EditAttrs["class"] = "form-control";
+			$this->kode->EditCustomAttributes = "";
+			$this->kode->EditValue = ew_HtmlEncode($this->kode->AdvancedSearch->SearchValue);
+			$this->kode->PlaceHolder = ew_RemoveHtml($this->kode->FldCaption());
+
+			// nama
+			$this->nama->EditAttrs["class"] = "form-control";
+			$this->nama->EditCustomAttributes = "";
+			$this->nama->EditValue = ew_HtmlEncode($this->nama->AdvancedSearch->SearchValue);
+			$this->nama->PlaceHolder = ew_RemoveHtml($this->nama->FldCaption());
+		}
+		if ($this->RowType == EW_ROWTYPE_ADD ||
+			$this->RowType == EW_ROWTYPE_EDIT ||
+			$this->RowType == EW_ROWTYPE_SEARCH) { // Add / Edit / Search row
+			$this->SetupFieldTitles();
 		}
 
 		// Call Row Rendered event
@@ -1535,70 +1534,35 @@ class csubgrup_list extends csubgrup {
 			$this->Row_Rendered();
 	}
 
-	// Set up master/detail based on QueryString
-	function SetUpMasterParms() {
-		$bValidMaster = FALSE;
+	// Validate search
+	function ValidateSearch() {
+		global $gsSearchError;
 
-		// Get the keys for master table
-		if (isset($_GET[EW_TABLE_SHOW_MASTER])) {
-			$sMasterTblVar = $_GET[EW_TABLE_SHOW_MASTER];
-			if ($sMasterTblVar == "") {
-				$bValidMaster = TRUE;
-				$this->DbMasterFilter = "";
-				$this->DbDetailFilter = "";
-			}
-			if ($sMasterTblVar == "grup") {
-				$bValidMaster = TRUE;
-				if (@$_GET["fk_id"] <> "") {
-					$GLOBALS["grup"]->id->setQueryStringValue($_GET["fk_id"]);
-					$this->grup_id->setQueryStringValue($GLOBALS["grup"]->id->QueryStringValue);
-					$this->grup_id->setSessionValue($this->grup_id->QueryStringValue);
-					if (!is_numeric($GLOBALS["grup"]->id->QueryStringValue)) $bValidMaster = FALSE;
-				} else {
-					$bValidMaster = FALSE;
-				}
-			}
-		} elseif (isset($_POST[EW_TABLE_SHOW_MASTER])) {
-			$sMasterTblVar = $_POST[EW_TABLE_SHOW_MASTER];
-			if ($sMasterTblVar == "") {
-				$bValidMaster = TRUE;
-				$this->DbMasterFilter = "";
-				$this->DbDetailFilter = "";
-			}
-			if ($sMasterTblVar == "grup") {
-				$bValidMaster = TRUE;
-				if (@$_POST["fk_id"] <> "") {
-					$GLOBALS["grup"]->id->setFormValue($_POST["fk_id"]);
-					$this->grup_id->setFormValue($GLOBALS["grup"]->id->FormValue);
-					$this->grup_id->setSessionValue($this->grup_id->FormValue);
-					if (!is_numeric($GLOBALS["grup"]->id->FormValue)) $bValidMaster = FALSE;
-				} else {
-					$bValidMaster = FALSE;
-				}
-			}
+		// Initialize
+		$gsSearchError = "";
+
+		// Check if validation required
+		if (!EW_SERVER_VALIDATE)
+			return TRUE;
+
+		// Return validate result
+		$ValidateSearch = ($gsSearchError == "");
+
+		// Call Form_CustomValidate event
+		$sFormCustomError = "";
+		$ValidateSearch = $ValidateSearch && $this->Form_CustomValidate($sFormCustomError);
+		if ($sFormCustomError <> "") {
+			ew_AddMessage($gsSearchError, $sFormCustomError);
 		}
-		if ($bValidMaster) {
+		return $ValidateSearch;
+	}
 
-			// Update URL
-			$this->AddUrl = $this->AddMasterUrl($this->AddUrl);
-			$this->InlineAddUrl = $this->AddMasterUrl($this->InlineAddUrl);
-			$this->GridAddUrl = $this->AddMasterUrl($this->GridAddUrl);
-			$this->GridEditUrl = $this->AddMasterUrl($this->GridEditUrl);
-
-			// Save current master table
-			$this->setCurrentMasterTable($sMasterTblVar);
-
-			// Reset start record counter (new master key)
-			$this->StartRec = 1;
-			$this->setStartRecordNumber($this->StartRec);
-
-			// Clear previous master key from Session
-			if ($sMasterTblVar <> "grup") {
-				if ($this->grup_id->CurrentValue == "") $this->grup_id->setSessionValue("");
-			}
-		}
-		$this->DbMasterFilter = $this->GetMasterFilter(); // Get master filter
-		$this->DbDetailFilter = $this->GetDetailFilter(); // Get detail filter
+	// Load advanced search
+	function LoadAdvancedSearch() {
+		$this->id->AdvancedSearch->Load();
+		$this->grup_id->AdvancedSearch->Load();
+		$this->kode->AdvancedSearch->Load();
+		$this->nama->AdvancedSearch->Load();
 	}
 
 	// Set up Breadcrumb
@@ -1614,16 +1578,38 @@ class csubgrup_list extends csubgrup {
 	function SetupLookupFilters($fld, $pageId = null) {
 		global $gsLanguage;
 		$pageId = $pageId ?: $this->PageID;
-		switch ($fld->FldVar) {
-		}
+		if ($pageId == "list") {
+			switch ($fld->FldVar) {
+			}
+		} elseif ($pageId == "extbs") {
+			switch ($fld->FldVar) {
+		case "x_grup_id":
+			$sSqlWrk = "";
+			$sSqlWrk = "SELECT `id` AS `LinkFld`, `name` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `grup`";
+			$sWhereWrk = "";
+			$this->grup_id->LookupFilters = array();
+			$fld->LookupFilters += array("s" => $sSqlWrk, "d" => "", "f0" => '`id` = {filter_value}', "t0" => "3", "fn0" => "");
+			$sSqlWrk = "";
+			$this->Lookup_Selecting($this->grup_id, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			if ($sSqlWrk <> "")
+				$fld->LookupFilters["s"] .= $sSqlWrk;
+			break;
+			}
+		} 
 	}
 
 	// Setup AutoSuggest filters of a field
 	function SetupAutoSuggestFilters($fld, $pageId = null) {
 		global $gsLanguage;
 		$pageId = $pageId ?: $this->PageID;
-		switch ($fld->FldVar) {
-		}
+		if ($pageId == "list") {
+			switch ($fld->FldVar) {
+			}
+		} elseif ($pageId == "extbs") {
+			switch ($fld->FldVar) {
+			}
+		} 
 	}
 
 	// Page Load event
@@ -1788,9 +1774,41 @@ fsubgruplist.ValidateRequired = false;
 <?php } ?>
 
 // Dynamic selection lists
-// Form object for search
+fsubgruplist.Lists["x_grup_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_name","","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"grup"};
 
+// Form object for search
 var CurrentSearchForm = fsubgruplistsrch = new ew_Form("fsubgruplistsrch");
+
+// Validate function for search
+fsubgruplistsrch.Validate = function(fobj) {
+	if (!this.ValidateRequired)
+		return true; // Ignore validation
+	fobj = fobj || this.Form;
+	var infix = "";
+
+	// Fire Form_CustomValidate event
+	if (!this.Form_CustomValidate(fobj))
+		return false;
+	return true;
+}
+
+// Form_CustomValidate event
+fsubgruplistsrch.Form_CustomValidate = 
+ function(fobj) { // DO NOT CHANGE THIS LINE!
+
+ 	// Your custom validation code here, return false if invalid. 
+ 	return true;
+ }
+
+// Use JavaScript validation or not
+<?php if (EW_CLIENT_VALIDATE) { ?>
+fsubgruplistsrch.ValidateRequired = true; // Use JavaScript validation
+<?php } else { ?>
+fsubgruplistsrch.ValidateRequired = false; // No JavaScript validation
+<?php } ?>
+
+// Dynamic selection lists
+fsubgruplistsrch.Lists["x_grup_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_name","","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"grup"};
 </script>
 <script type="text/javascript">
 
@@ -1810,17 +1828,6 @@ var CurrentSearchForm = fsubgruplistsrch = new ew_Form("fsubgruplistsrch");
 <?php echo $Language->SelectionForm(); ?>
 <div class="clearfix"></div>
 </div>
-<?php if (($subgrup->Export == "") || (EW_EXPORT_MASTER_RECORD && $subgrup->Export == "print")) { ?>
-<?php
-if ($subgrup_list->DbMasterFilter <> "" && $subgrup->getCurrentMasterTable() == "grup") {
-	if ($subgrup_list->MasterRecordExists) {
-?>
-<?php include_once "grupmaster.php" ?>
-<?php
-	}
-}
-?>
-<?php } ?>
 <?php
 	$bSelectLimit = $subgrup_list->UseSelectLimit;
 	if ($bSelectLimit) {
@@ -1854,21 +1861,33 @@ $subgrup_list->RenderOtherOptions();
 <input type="hidden" name="cmd" value="search">
 <input type="hidden" name="t" value="subgrup">
 	<div class="ewBasicSearch">
+<?php
+if ($gsSearchError == "")
+	$subgrup_list->LoadAdvancedSearch(); // Load advanced search
+
+// Render for search
+$subgrup->RowType = EW_ROWTYPE_SEARCH;
+
+// Render row
+$subgrup->ResetAttrs();
+$subgrup_list->RenderRow();
+?>
 <div id="xsr_1" class="ewRow">
-	<div class="ewQuickSearch input-group">
-	<input type="text" name="<?php echo EW_TABLE_BASIC_SEARCH ?>" id="<?php echo EW_TABLE_BASIC_SEARCH ?>" class="form-control" value="<?php echo ew_HtmlEncode($subgrup_list->BasicSearch->getKeyword()) ?>" placeholder="<?php echo ew_HtmlEncode($Language->Phrase("Search")) ?>">
-	<input type="hidden" name="<?php echo EW_TABLE_BASIC_SEARCH_TYPE ?>" id="<?php echo EW_TABLE_BASIC_SEARCH_TYPE ?>" value="<?php echo ew_HtmlEncode($subgrup_list->BasicSearch->getType()) ?>">
-	<div class="input-group-btn">
-		<button type="button" data-toggle="dropdown" class="btn btn-default"><span id="searchtype"><?php echo $subgrup_list->BasicSearch->getTypeNameShort() ?></span><span class="caret"></span></button>
-		<ul class="dropdown-menu pull-right" role="menu">
-			<li<?php if ($subgrup_list->BasicSearch->getType() == "") echo " class=\"active\""; ?>><a href="javascript:void(0);" onclick="ew_SetSearchType(this)"><?php echo $Language->Phrase("QuickSearchAuto") ?></a></li>
-			<li<?php if ($subgrup_list->BasicSearch->getType() == "=") echo " class=\"active\""; ?>><a href="javascript:void(0);" onclick="ew_SetSearchType(this,'=')"><?php echo $Language->Phrase("QuickSearchExact") ?></a></li>
-			<li<?php if ($subgrup_list->BasicSearch->getType() == "AND") echo " class=\"active\""; ?>><a href="javascript:void(0);" onclick="ew_SetSearchType(this,'AND')"><?php echo $Language->Phrase("QuickSearchAll") ?></a></li>
-			<li<?php if ($subgrup_list->BasicSearch->getType() == "OR") echo " class=\"active\""; ?>><a href="javascript:void(0);" onclick="ew_SetSearchType(this,'OR')"><?php echo $Language->Phrase("QuickSearchAny") ?></a></li>
-		</ul>
+<?php if ($subgrup->grup_id->Visible) { // grup_id ?>
+	<div id="xsc_grup_id" class="ewCell form-group">
+		<label for="x_grup_id" class="ewSearchCaption ewLabel"><?php echo $subgrup->grup_id->FldCaption() ?></label>
+		<span class="ewSearchOperator"><?php echo $Language->Phrase("=") ?><input type="hidden" name="z_grup_id" id="z_grup_id" value="="></span>
+		<span class="ewSearchField">
+<select data-table="subgrup" data-field="x_grup_id" data-value-separator="<?php echo $subgrup->grup_id->DisplayValueSeparatorAttribute() ?>" id="x_grup_id" name="x_grup_id"<?php echo $subgrup->grup_id->EditAttributes() ?>>
+<?php echo $subgrup->grup_id->SelectOptionListHtml("x_grup_id") ?>
+</select>
+<input type="hidden" name="s_x_grup_id" id="s_x_grup_id" value="<?php echo $subgrup->grup_id->LookupFilterQuery(false, "extbs") ?>">
+</span>
+	</div>
+<?php } ?>
+</div>
+<div id="xsr_2" class="ewRow">
 	<button class="btn btn-primary ewButton" name="btnsubmit" id="btnsubmit" type="submit"><?php echo $Language->Phrase("QuickSearchBtn") ?></button>
-	</div>
-	</div>
 </div>
 	</div>
 </div>
@@ -1885,10 +1904,6 @@ $subgrup_list->ShowMessage();
 <input type="hidden" name="<?php echo EW_TOKEN_NAME ?>" value="<?php echo $subgrup_list->Token ?>">
 <?php } ?>
 <input type="hidden" name="t" value="subgrup">
-<?php if ($subgrup->getCurrentMasterTable() == "grup" && $subgrup->CurrentAction <> "") { ?>
-<input type="hidden" name="<?php echo EW_TABLE_SHOW_MASTER ?>" value="grup">
-<input type="hidden" name="fk_id" value="<?php echo $subgrup->grup_id->getSessionValue() ?>">
-<?php } ?>
 <div id="gmp_subgrup" class="<?php if (ew_IsResponsiveLayout()) { echo "table-responsive "; } ?>ewGridMiddlePanel">
 <?php if ($subgrup_list->TotalRecs > 0 || $subgrup->CurrentAction == "gridedit") { ?>
 <table id="tbl_subgruplist" class="table ewTable">
@@ -1906,20 +1921,11 @@ $subgrup_list->RenderListOptions();
 // Render list options (header, left)
 $subgrup_list->ListOptions->Render("header", "left");
 ?>
-<?php if ($subgrup->id->Visible) { // id ?>
-	<?php if ($subgrup->SortUrl($subgrup->id) == "") { ?>
-		<th data-name="id"><div id="elh_subgrup_id" class="subgrup_id"><div class="ewTableHeaderCaption"><?php echo $subgrup->id->FldCaption() ?></div></div></th>
-	<?php } else { ?>
-		<th data-name="id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $subgrup->SortUrl($subgrup->id) ?>',1);"><div id="elh_subgrup_id" class="subgrup_id">
-			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $subgrup->id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($subgrup->id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($subgrup->id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
-        </div></div></th>
-	<?php } ?>
-<?php } ?>		
 <?php if ($subgrup->grup_id->Visible) { // grup_id ?>
 	<?php if ($subgrup->SortUrl($subgrup->grup_id) == "") { ?>
 		<th data-name="grup_id"><div id="elh_subgrup_grup_id" class="subgrup_grup_id"><div class="ewTableHeaderCaption"><?php echo $subgrup->grup_id->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="grup_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $subgrup->SortUrl($subgrup->grup_id) ?>',1);"><div id="elh_subgrup_grup_id" class="subgrup_grup_id">
+		<th data-name="grup_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $subgrup->SortUrl($subgrup->grup_id) ?>',2);"><div id="elh_subgrup_grup_id" class="subgrup_grup_id">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $subgrup->grup_id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($subgrup->grup_id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($subgrup->grup_id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1928,8 +1934,8 @@ $subgrup_list->ListOptions->Render("header", "left");
 	<?php if ($subgrup->SortUrl($subgrup->kode) == "") { ?>
 		<th data-name="kode"><div id="elh_subgrup_kode" class="subgrup_kode"><div class="ewTableHeaderCaption"><?php echo $subgrup->kode->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="kode"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $subgrup->SortUrl($subgrup->kode) ?>',1);"><div id="elh_subgrup_kode" class="subgrup_kode">
-			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $subgrup->kode->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($subgrup->kode->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($subgrup->kode->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
+		<th data-name="kode"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $subgrup->SortUrl($subgrup->kode) ?>',2);"><div id="elh_subgrup_kode" class="subgrup_kode">
+			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $subgrup->kode->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($subgrup->kode->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($subgrup->kode->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
 <?php } ?>		
@@ -1937,8 +1943,8 @@ $subgrup_list->ListOptions->Render("header", "left");
 	<?php if ($subgrup->SortUrl($subgrup->nama) == "") { ?>
 		<th data-name="nama"><div id="elh_subgrup_nama" class="subgrup_nama"><div class="ewTableHeaderCaption"><?php echo $subgrup->nama->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="nama"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $subgrup->SortUrl($subgrup->nama) ?>',1);"><div id="elh_subgrup_nama" class="subgrup_nama">
-			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $subgrup->nama->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($subgrup->nama->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($subgrup->nama->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
+		<th data-name="nama"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $subgrup->SortUrl($subgrup->nama) ?>',2);"><div id="elh_subgrup_nama" class="subgrup_nama">
+			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $subgrup->nama->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($subgrup->nama->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($subgrup->nama->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
 <?php } ?>		
@@ -2007,21 +2013,13 @@ while ($subgrup_list->RecCnt < $subgrup_list->StopRec) {
 // Render list options (body, left)
 $subgrup_list->ListOptions->Render("body", "left", $subgrup_list->RowCnt);
 ?>
-	<?php if ($subgrup->id->Visible) { // id ?>
-		<td data-name="id"<?php echo $subgrup->id->CellAttributes() ?>>
-<span id="el<?php echo $subgrup_list->RowCnt ?>_subgrup_id" class="subgrup_id">
-<span<?php echo $subgrup->id->ViewAttributes() ?>>
-<?php echo $subgrup->id->ListViewValue() ?></span>
-</span>
-<a id="<?php echo $subgrup_list->PageObjName . "_row_" . $subgrup_list->RowCnt ?>"></a></td>
-	<?php } ?>
 	<?php if ($subgrup->grup_id->Visible) { // grup_id ?>
 		<td data-name="grup_id"<?php echo $subgrup->grup_id->CellAttributes() ?>>
 <span id="el<?php echo $subgrup_list->RowCnt ?>_subgrup_grup_id" class="subgrup_grup_id">
 <span<?php echo $subgrup->grup_id->ViewAttributes() ?>>
 <?php echo $subgrup->grup_id->ListViewValue() ?></span>
 </span>
-</td>
+<a id="<?php echo $subgrup_list->PageObjName . "_row_" . $subgrup_list->RowCnt ?>"></a></td>
 	<?php } ?>
 	<?php if ($subgrup->kode->Visible) { // kode ?>
 		<td data-name="kode"<?php echo $subgrup->kode->CellAttributes() ?>>

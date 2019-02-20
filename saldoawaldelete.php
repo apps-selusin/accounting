@@ -251,13 +251,9 @@ class csaldoawal_delete extends csaldoawal {
 	function Page_Init() {
 		global $gsExport, $gsCustomExport, $gsExportFile, $UserProfile, $Language, $Security, $objForm;
 		$this->CurrentAction = (@$_GET["a"] <> "") ? $_GET["a"] : @$_POST["a_list"]; // Set up current action
-		$this->id->SetVisibility();
-		$this->id->Visible = !$this->IsAdd() && !$this->IsCopy() && !$this->IsGridAdd();
-		$this->periode_id->SetVisibility();
 		$this->akun_id->SetVisibility();
 		$this->debet->SetVisibility();
 		$this->kredit->SetVisibility();
-		$this->user_id->SetVisibility();
 		$this->saldo->SetVisibility();
 
 		// Global Page Loading event (in userfn*.php)
@@ -492,7 +488,27 @@ class csaldoawal_delete extends csaldoawal {
 		$this->periode_id->ViewCustomAttributes = "";
 
 		// akun_id
-		$this->akun_id->ViewValue = $this->akun_id->CurrentValue;
+		if (strval($this->akun_id->CurrentValue) <> "") {
+			$sFilterWrk = "`id`" . ew_SearchString("=", $this->akun_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+		$sSqlWrk = "SELECT `id`, `kode` AS `DispFld`, `nama` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `akun`";
+		$sWhereWrk = "";
+		$this->akun_id->LookupFilters = array();
+		ew_AddFilter($sWhereWrk, $sFilterWrk);
+		$this->Lookup_Selecting($this->akun_id, $sWhereWrk); // Call Lookup selecting
+		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			if ($rswrk && !$rswrk->EOF) { // Lookup values found
+				$arwrk = array();
+				$arwrk[1] = $rswrk->fields('DispFld');
+				$arwrk[2] = $rswrk->fields('Disp2Fld');
+				$this->akun_id->ViewValue = $this->akun_id->DisplayValue($arwrk);
+				$rswrk->Close();
+			} else {
+				$this->akun_id->ViewValue = $this->akun_id->CurrentValue;
+			}
+		} else {
+			$this->akun_id->ViewValue = NULL;
+		}
 		$this->akun_id->ViewCustomAttributes = "";
 
 		// debet
@@ -509,17 +525,9 @@ class csaldoawal_delete extends csaldoawal {
 
 		// saldo
 		$this->saldo->ViewValue = $this->saldo->CurrentValue;
+		$this->saldo->ViewValue = ew_FormatNumber($this->saldo->ViewValue, 2, -2, -2, -2);
+		$this->saldo->CellCssStyle .= "text-align: right;";
 		$this->saldo->ViewCustomAttributes = "";
-
-			// id
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-			$this->id->TooltipValue = "";
-
-			// periode_id
-			$this->periode_id->LinkCustomAttributes = "";
-			$this->periode_id->HrefValue = "";
-			$this->periode_id->TooltipValue = "";
 
 			// akun_id
 			$this->akun_id->LinkCustomAttributes = "";
@@ -535,11 +543,6 @@ class csaldoawal_delete extends csaldoawal {
 			$this->kredit->LinkCustomAttributes = "";
 			$this->kredit->HrefValue = "";
 			$this->kredit->TooltipValue = "";
-
-			// user_id
-			$this->user_id->LinkCustomAttributes = "";
-			$this->user_id->HrefValue = "";
-			$this->user_id->TooltipValue = "";
 
 			// saldo
 			$this->saldo->LinkCustomAttributes = "";
@@ -759,8 +762,9 @@ fsaldoawaldelete.ValidateRequired = false;
 <?php } ?>
 
 // Dynamic selection lists
-// Form object for search
+fsaldoawaldelete.Lists["x_akun_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_kode","x_nama","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"akun"};
 
+// Form object for search
 </script>
 <script type="text/javascript">
 
@@ -791,12 +795,6 @@ $saldoawal_delete->ShowMessage();
 <?php echo $saldoawal->TableCustomInnerHtml ?>
 	<thead>
 	<tr class="ewTableHeader">
-<?php if ($saldoawal->id->Visible) { // id ?>
-		<th><span id="elh_saldoawal_id" class="saldoawal_id"><?php echo $saldoawal->id->FldCaption() ?></span></th>
-<?php } ?>
-<?php if ($saldoawal->periode_id->Visible) { // periode_id ?>
-		<th><span id="elh_saldoawal_periode_id" class="saldoawal_periode_id"><?php echo $saldoawal->periode_id->FldCaption() ?></span></th>
-<?php } ?>
 <?php if ($saldoawal->akun_id->Visible) { // akun_id ?>
 		<th><span id="elh_saldoawal_akun_id" class="saldoawal_akun_id"><?php echo $saldoawal->akun_id->FldCaption() ?></span></th>
 <?php } ?>
@@ -805,9 +803,6 @@ $saldoawal_delete->ShowMessage();
 <?php } ?>
 <?php if ($saldoawal->kredit->Visible) { // kredit ?>
 		<th><span id="elh_saldoawal_kredit" class="saldoawal_kredit"><?php echo $saldoawal->kredit->FldCaption() ?></span></th>
-<?php } ?>
-<?php if ($saldoawal->user_id->Visible) { // user_id ?>
-		<th><span id="elh_saldoawal_user_id" class="saldoawal_user_id"><?php echo $saldoawal->user_id->FldCaption() ?></span></th>
 <?php } ?>
 <?php if ($saldoawal->saldo->Visible) { // saldo ?>
 		<th><span id="elh_saldoawal_saldo" class="saldoawal_saldo"><?php echo $saldoawal->saldo->FldCaption() ?></span></th>
@@ -833,22 +828,6 @@ while (!$saldoawal_delete->Recordset->EOF) {
 	$saldoawal_delete->RenderRow();
 ?>
 	<tr<?php echo $saldoawal->RowAttributes() ?>>
-<?php if ($saldoawal->id->Visible) { // id ?>
-		<td<?php echo $saldoawal->id->CellAttributes() ?>>
-<span id="el<?php echo $saldoawal_delete->RowCnt ?>_saldoawal_id" class="saldoawal_id">
-<span<?php echo $saldoawal->id->ViewAttributes() ?>>
-<?php echo $saldoawal->id->ListViewValue() ?></span>
-</span>
-</td>
-<?php } ?>
-<?php if ($saldoawal->periode_id->Visible) { // periode_id ?>
-		<td<?php echo $saldoawal->periode_id->CellAttributes() ?>>
-<span id="el<?php echo $saldoawal_delete->RowCnt ?>_saldoawal_periode_id" class="saldoawal_periode_id">
-<span<?php echo $saldoawal->periode_id->ViewAttributes() ?>>
-<?php echo $saldoawal->periode_id->ListViewValue() ?></span>
-</span>
-</td>
-<?php } ?>
 <?php if ($saldoawal->akun_id->Visible) { // akun_id ?>
 		<td<?php echo $saldoawal->akun_id->CellAttributes() ?>>
 <span id="el<?php echo $saldoawal_delete->RowCnt ?>_saldoawal_akun_id" class="saldoawal_akun_id">
@@ -870,14 +849,6 @@ while (!$saldoawal_delete->Recordset->EOF) {
 <span id="el<?php echo $saldoawal_delete->RowCnt ?>_saldoawal_kredit" class="saldoawal_kredit">
 <span<?php echo $saldoawal->kredit->ViewAttributes() ?>>
 <?php echo $saldoawal->kredit->ListViewValue() ?></span>
-</span>
-</td>
-<?php } ?>
-<?php if ($saldoawal->user_id->Visible) { // user_id ?>
-		<td<?php echo $saldoawal->user_id->CellAttributes() ?>>
-<span id="el<?php echo $saldoawal_delete->RowCnt ?>_saldoawal_user_id" class="saldoawal_user_id">
-<span<?php echo $saldoawal->user_id->ViewAttributes() ?>>
-<?php echo $saldoawal->user_id->ListViewValue() ?></span>
 </span>
 </td>
 <?php } ?>

@@ -342,13 +342,9 @@ class csaldoawal_list extends csaldoawal {
 
 		// Set up list options
 		$this->SetupListOptions();
-		$this->id->SetVisibility();
-		$this->id->Visible = !$this->IsAdd() && !$this->IsCopy() && !$this->IsGridAdd();
-		$this->periode_id->SetVisibility();
 		$this->akun_id->SetVisibility();
 		$this->debet->SetVisibility();
 		$this->kredit->SetVisibility();
-		$this->user_id->SetVisibility();
 		$this->saldo->SetVisibility();
 
 		// Global Page Loading event (in userfn*.php)
@@ -533,13 +529,15 @@ class csaldoawal_list extends csaldoawal {
 			}
 
 			// Get default search criteria
-			ew_AddFilter($this->DefaultSearchWhere, $this->BasicSearchWhere(TRUE));
+			ew_AddFilter($this->DefaultSearchWhere, $this->AdvancedSearchWhere(TRUE));
 
-			// Get basic search values
-			$this->LoadBasicSearchValues();
+			// Get and validate search values for advanced search
+			$this->LoadSearchValues(); // Get search values
 
 			// Process filter list
 			$this->ProcessFilterList();
+			if (!$this->ValidateSearch())
+				$this->setFailureMessage($gsSearchError);
 
 			// Restore search parms from Session if not searching / reset / export
 			if (($this->Export <> "" || $this->Command <> "search" && $this->Command <> "reset" && $this->Command <> "resetall") && $this->CheckSearchParms())
@@ -551,9 +549,9 @@ class csaldoawal_list extends csaldoawal {
 			// Set up sorting order
 			$this->SetUpSortOrder();
 
-			// Get basic search criteria
+			// Get search criteria for advanced search
 			if ($gsSearchError == "")
-				$sSrchBasic = $this->BasicSearchWhere();
+				$sSrchAdvanced = $this->AdvancedSearchWhere();
 		}
 
 		// Restore display records
@@ -569,10 +567,10 @@ class csaldoawal_list extends csaldoawal {
 		// Load search default if no existing search criteria
 		if (!$this->CheckSearchParms()) {
 
-			// Load basic search from default
-			$this->BasicSearch->LoadDefault();
-			if ($this->BasicSearch->Keyword != "")
-				$sSrchBasic = $this->BasicSearchWhere();
+			// Load advanced search from default
+			if ($this->LoadAdvancedSearchDefault()) {
+				$sSrchAdvanced = $this->AdvancedSearchWhere();
+			}
 		}
 
 		// Build search criteria
@@ -673,10 +671,6 @@ class csaldoawal_list extends csaldoawal {
 		$sFilterList = ew_Concat($sFilterList, $this->kredit->AdvancedSearch->ToJSON(), ","); // Field kredit
 		$sFilterList = ew_Concat($sFilterList, $this->user_id->AdvancedSearch->ToJSON(), ","); // Field user_id
 		$sFilterList = ew_Concat($sFilterList, $this->saldo->AdvancedSearch->ToJSON(), ","); // Field saldo
-		if ($this->BasicSearch->Keyword <> "") {
-			$sWrk = "\"" . EW_TABLE_BASIC_SEARCH . "\":\"" . ew_JsEncode2($this->BasicSearch->Keyword) . "\",\"" . EW_TABLE_BASIC_SEARCH_TYPE . "\":\"" . ew_JsEncode2($this->BasicSearch->Type) . "\"";
-			$sFilterList = ew_Concat($sFilterList, $sWrk, ",");
-		}
 		$sFilterList = preg_replace('/,$/', "", $sFilterList);
 
 		// Return filter list in json
@@ -772,138 +766,99 @@ class csaldoawal_list extends csaldoawal {
 		$this->saldo->AdvancedSearch->SearchValue2 = @$filter["y_saldo"];
 		$this->saldo->AdvancedSearch->SearchOperator2 = @$filter["w_saldo"];
 		$this->saldo->AdvancedSearch->Save();
-		$this->BasicSearch->setKeyword(@$filter[EW_TABLE_BASIC_SEARCH]);
-		$this->BasicSearch->setType(@$filter[EW_TABLE_BASIC_SEARCH_TYPE]);
 	}
 
-	// Return basic search SQL
-	function BasicSearchSQL($arKeywords, $type) {
+	// Advanced search WHERE clause based on QueryString
+	function AdvancedSearchWhere($Default = FALSE) {
+		global $Security;
 		$sWhere = "";
-		$this->BuildBasicSearchSQL($sWhere, $this->kredit, $arKeywords, $type);
+		$this->BuildSearchSql($sWhere, $this->id, $Default, FALSE); // id
+		$this->BuildSearchSql($sWhere, $this->periode_id, $Default, FALSE); // periode_id
+		$this->BuildSearchSql($sWhere, $this->akun_id, $Default, FALSE); // akun_id
+		$this->BuildSearchSql($sWhere, $this->debet, $Default, FALSE); // debet
+		$this->BuildSearchSql($sWhere, $this->kredit, $Default, FALSE); // kredit
+		$this->BuildSearchSql($sWhere, $this->user_id, $Default, FALSE); // user_id
+		$this->BuildSearchSql($sWhere, $this->saldo, $Default, FALSE); // saldo
+
+		// Set up search parm
+		if (!$Default && $sWhere <> "") {
+			$this->Command = "search";
+		}
+		if (!$Default && $this->Command == "search") {
+			$this->id->AdvancedSearch->Save(); // id
+			$this->periode_id->AdvancedSearch->Save(); // periode_id
+			$this->akun_id->AdvancedSearch->Save(); // akun_id
+			$this->debet->AdvancedSearch->Save(); // debet
+			$this->kredit->AdvancedSearch->Save(); // kredit
+			$this->user_id->AdvancedSearch->Save(); // user_id
+			$this->saldo->AdvancedSearch->Save(); // saldo
+		}
 		return $sWhere;
 	}
 
-	// Build basic search SQL
-	function BuildBasicSearchSQL(&$Where, &$Fld, $arKeywords, $type) {
-		global $EW_BASIC_SEARCH_IGNORE_PATTERN;
-		$sDefCond = ($type == "OR") ? "OR" : "AND";
-		$arSQL = array(); // Array for SQL parts
-		$arCond = array(); // Array for search conditions
-		$cnt = count($arKeywords);
-		$j = 0; // Number of SQL parts
-		for ($i = 0; $i < $cnt; $i++) {
-			$Keyword = $arKeywords[$i];
-			$Keyword = trim($Keyword);
-			if ($EW_BASIC_SEARCH_IGNORE_PATTERN <> "") {
-				$Keyword = preg_replace($EW_BASIC_SEARCH_IGNORE_PATTERN, "\\", $Keyword);
-				$ar = explode("\\", $Keyword);
-			} else {
-				$ar = array($Keyword);
-			}
-			foreach ($ar as $Keyword) {
-				if ($Keyword <> "") {
-					$sWrk = "";
-					if ($Keyword == "OR" && $type == "") {
-						if ($j > 0)
-							$arCond[$j-1] = "OR";
-					} elseif ($Keyword == EW_NULL_VALUE) {
-						$sWrk = $Fld->FldExpression . " IS NULL";
-					} elseif ($Keyword == EW_NOT_NULL_VALUE) {
-						$sWrk = $Fld->FldExpression . " IS NOT NULL";
-					} elseif ($Fld->FldIsVirtual) {
-						$sWrk = $Fld->FldVirtualExpression . ew_Like(ew_QuotedValue("%" . $Keyword . "%", EW_DATATYPE_STRING, $this->DBID), $this->DBID);
-					} elseif ($Fld->FldDataType != EW_DATATYPE_NUMBER || is_numeric($Keyword)) {
-						$sWrk = $Fld->FldBasicSearchExpression . ew_Like(ew_QuotedValue("%" . $Keyword . "%", EW_DATATYPE_STRING, $this->DBID), $this->DBID);
-					}
-					if ($sWrk <> "") {
-						$arSQL[$j] = $sWrk;
-						$arCond[$j] = $sDefCond;
-						$j += 1;
-					}
-				}
-			}
+	// Build search SQL
+	function BuildSearchSql(&$Where, &$Fld, $Default, $MultiValue) {
+		$FldParm = substr($Fld->FldVar, 2);
+		$FldVal = ($Default) ? $Fld->AdvancedSearch->SearchValueDefault : $Fld->AdvancedSearch->SearchValue; // @$_GET["x_$FldParm"]
+		$FldOpr = ($Default) ? $Fld->AdvancedSearch->SearchOperatorDefault : $Fld->AdvancedSearch->SearchOperator; // @$_GET["z_$FldParm"]
+		$FldCond = ($Default) ? $Fld->AdvancedSearch->SearchConditionDefault : $Fld->AdvancedSearch->SearchCondition; // @$_GET["v_$FldParm"]
+		$FldVal2 = ($Default) ? $Fld->AdvancedSearch->SearchValue2Default : $Fld->AdvancedSearch->SearchValue2; // @$_GET["y_$FldParm"]
+		$FldOpr2 = ($Default) ? $Fld->AdvancedSearch->SearchOperator2Default : $Fld->AdvancedSearch->SearchOperator2; // @$_GET["w_$FldParm"]
+		$sWrk = "";
+
+		//$FldVal = ew_StripSlashes($FldVal);
+		if (is_array($FldVal)) $FldVal = implode(",", $FldVal);
+
+		//$FldVal2 = ew_StripSlashes($FldVal2);
+		if (is_array($FldVal2)) $FldVal2 = implode(",", $FldVal2);
+		$FldOpr = strtoupper(trim($FldOpr));
+		if ($FldOpr == "") $FldOpr = "=";
+		$FldOpr2 = strtoupper(trim($FldOpr2));
+		if ($FldOpr2 == "") $FldOpr2 = "=";
+		if (EW_SEARCH_MULTI_VALUE_OPTION == 1)
+			$MultiValue = FALSE;
+		if ($MultiValue) {
+			$sWrk1 = ($FldVal <> "") ? ew_GetMultiSearchSql($Fld, $FldOpr, $FldVal, $this->DBID) : ""; // Field value 1
+			$sWrk2 = ($FldVal2 <> "") ? ew_GetMultiSearchSql($Fld, $FldOpr2, $FldVal2, $this->DBID) : ""; // Field value 2
+			$sWrk = $sWrk1; // Build final SQL
+			if ($sWrk2 <> "")
+				$sWrk = ($sWrk <> "") ? "($sWrk) $FldCond ($sWrk2)" : $sWrk2;
+		} else {
+			$FldVal = $this->ConvertSearchValue($Fld, $FldVal);
+			$FldVal2 = $this->ConvertSearchValue($Fld, $FldVal2);
+			$sWrk = ew_GetSearchSql($Fld, $FldVal, $FldOpr, $FldCond, $FldVal2, $FldOpr2, $this->DBID);
 		}
-		$cnt = count($arSQL);
-		$bQuoted = FALSE;
-		$sSql = "";
-		if ($cnt > 0) {
-			for ($i = 0; $i < $cnt-1; $i++) {
-				if ($arCond[$i] == "OR") {
-					if (!$bQuoted) $sSql .= "(";
-					$bQuoted = TRUE;
-				}
-				$sSql .= $arSQL[$i];
-				if ($bQuoted && $arCond[$i] <> "OR") {
-					$sSql .= ")";
-					$bQuoted = FALSE;
-				}
-				$sSql .= " " . $arCond[$i] . " ";
-			}
-			$sSql .= $arSQL[$cnt-1];
-			if ($bQuoted)
-				$sSql .= ")";
-		}
-		if ($sSql <> "") {
-			if ($Where <> "") $Where .= " OR ";
-			$Where .=  "(" . $sSql . ")";
-		}
+		ew_AddFilter($Where, $sWrk);
 	}
 
-	// Return basic search WHERE clause based on search keyword and type
-	function BasicSearchWhere($Default = FALSE) {
-		global $Security;
-		$sSearchStr = "";
-		$sSearchKeyword = ($Default) ? $this->BasicSearch->KeywordDefault : $this->BasicSearch->Keyword;
-		$sSearchType = ($Default) ? $this->BasicSearch->TypeDefault : $this->BasicSearch->Type;
-		if ($sSearchKeyword <> "") {
-			$sSearch = trim($sSearchKeyword);
-			if ($sSearchType <> "=") {
-				$ar = array();
-
-				// Match quoted keywords (i.e.: "...")
-				if (preg_match_all('/"([^"]*)"/i', $sSearch, $matches, PREG_SET_ORDER)) {
-					foreach ($matches as $match) {
-						$p = strpos($sSearch, $match[0]);
-						$str = substr($sSearch, 0, $p);
-						$sSearch = substr($sSearch, $p + strlen($match[0]));
-						if (strlen(trim($str)) > 0)
-							$ar = array_merge($ar, explode(" ", trim($str)));
-						$ar[] = $match[1]; // Save quoted keyword
-					}
-				}
-
-				// Match individual keywords
-				if (strlen(trim($sSearch)) > 0)
-					$ar = array_merge($ar, explode(" ", trim($sSearch)));
-
-				// Search keyword in any fields
-				if (($sSearchType == "OR" || $sSearchType == "AND") && $this->BasicSearch->BasicSearchAnyFields) {
-					foreach ($ar as $sKeyword) {
-						if ($sKeyword <> "") {
-							if ($sSearchStr <> "") $sSearchStr .= " " . $sSearchType . " ";
-							$sSearchStr .= "(" . $this->BasicSearchSQL(array($sKeyword), $sSearchType) . ")";
-						}
-					}
-				} else {
-					$sSearchStr = $this->BasicSearchSQL($ar, $sSearchType);
-				}
-			} else {
-				$sSearchStr = $this->BasicSearchSQL(array($sSearch), $sSearchType);
-			}
-			if (!$Default) $this->Command = "search";
+	// Convert search value
+	function ConvertSearchValue(&$Fld, $FldVal) {
+		if ($FldVal == EW_NULL_VALUE || $FldVal == EW_NOT_NULL_VALUE)
+			return $FldVal;
+		$Value = $FldVal;
+		if ($Fld->FldDataType == EW_DATATYPE_BOOLEAN) {
+			if ($FldVal <> "") $Value = ($FldVal == "1" || strtolower(strval($FldVal)) == "y" || strtolower(strval($FldVal)) == "t") ? $Fld->TrueValue : $Fld->FalseValue;
+		} elseif ($Fld->FldDataType == EW_DATATYPE_DATE || $Fld->FldDataType == EW_DATATYPE_TIME) {
+			if ($FldVal <> "") $Value = ew_UnFormatDateTime($FldVal, $Fld->FldDateTimeFormat);
 		}
-		if (!$Default && $this->Command == "search") {
-			$this->BasicSearch->setKeyword($sSearchKeyword);
-			$this->BasicSearch->setType($sSearchType);
-		}
-		return $sSearchStr;
+		return $Value;
 	}
 
 	// Check if search parm exists
 	function CheckSearchParms() {
-
-		// Check basic search
-		if ($this->BasicSearch->IssetSession())
+		if ($this->id->AdvancedSearch->IssetSession())
+			return TRUE;
+		if ($this->periode_id->AdvancedSearch->IssetSession())
+			return TRUE;
+		if ($this->akun_id->AdvancedSearch->IssetSession())
+			return TRUE;
+		if ($this->debet->AdvancedSearch->IssetSession())
+			return TRUE;
+		if ($this->kredit->AdvancedSearch->IssetSession())
+			return TRUE;
+		if ($this->user_id->AdvancedSearch->IssetSession())
+			return TRUE;
+		if ($this->saldo->AdvancedSearch->IssetSession())
 			return TRUE;
 		return FALSE;
 	}
@@ -915,8 +870,8 @@ class csaldoawal_list extends csaldoawal {
 		$this->SearchWhere = "";
 		$this->setSearchWhere($this->SearchWhere);
 
-		// Clear basic search parameters
-		$this->ResetBasicSearchParms();
+		// Clear advanced search parameters
+		$this->ResetAdvancedSearchParms();
 	}
 
 	// Load advanced search default values
@@ -924,33 +879,45 @@ class csaldoawal_list extends csaldoawal {
 		return FALSE;
 	}
 
-	// Clear all basic search parameters
-	function ResetBasicSearchParms() {
-		$this->BasicSearch->UnsetSession();
+	// Clear all advanced search parameters
+	function ResetAdvancedSearchParms() {
+		$this->id->AdvancedSearch->UnsetSession();
+		$this->periode_id->AdvancedSearch->UnsetSession();
+		$this->akun_id->AdvancedSearch->UnsetSession();
+		$this->debet->AdvancedSearch->UnsetSession();
+		$this->kredit->AdvancedSearch->UnsetSession();
+		$this->user_id->AdvancedSearch->UnsetSession();
+		$this->saldo->AdvancedSearch->UnsetSession();
 	}
 
 	// Restore all search parameters
 	function RestoreSearchParms() {
 		$this->RestoreSearch = TRUE;
 
-		// Restore basic search values
-		$this->BasicSearch->Load();
+		// Restore advanced search values
+		$this->id->AdvancedSearch->Load();
+		$this->periode_id->AdvancedSearch->Load();
+		$this->akun_id->AdvancedSearch->Load();
+		$this->debet->AdvancedSearch->Load();
+		$this->kredit->AdvancedSearch->Load();
+		$this->user_id->AdvancedSearch->Load();
+		$this->saldo->AdvancedSearch->Load();
 	}
 
 	// Set up sort parameters
 	function SetUpSortOrder() {
 
+		// Check for Ctrl pressed
+		$bCtrl = (@$_GET["ctrl"] <> "");
+
 		// Check for "order" parameter
 		if (@$_GET["order"] <> "") {
 			$this->CurrentOrder = ew_StripSlashes(@$_GET["order"]);
 			$this->CurrentOrderType = @$_GET["ordertype"];
-			$this->UpdateSort($this->id); // id
-			$this->UpdateSort($this->periode_id); // periode_id
-			$this->UpdateSort($this->akun_id); // akun_id
-			$this->UpdateSort($this->debet); // debet
-			$this->UpdateSort($this->kredit); // kredit
-			$this->UpdateSort($this->user_id); // user_id
-			$this->UpdateSort($this->saldo); // saldo
+			$this->UpdateSort($this->akun_id, $bCtrl); // akun_id
+			$this->UpdateSort($this->debet, $bCtrl); // debet
+			$this->UpdateSort($this->kredit, $bCtrl); // kredit
+			$this->UpdateSort($this->saldo, $bCtrl); // saldo
 			$this->setStartRecordNumber(1); // Reset start position
 		}
 	}
@@ -983,12 +950,9 @@ class csaldoawal_list extends csaldoawal {
 			if ($this->Command == "resetsort") {
 				$sOrderBy = "";
 				$this->setSessionOrderBy($sOrderBy);
-				$this->id->setSort("");
-				$this->periode_id->setSort("");
 				$this->akun_id->setSort("");
 				$this->debet->setSort("");
 				$this->kredit->setSort("");
-				$this->user_id->setSort("");
 				$this->saldo->setSort("");
 			}
 
@@ -1048,6 +1012,14 @@ class csaldoawal_list extends csaldoawal {
 		$item->ShowInDropDown = FALSE;
 		$item->ShowInButtonGroup = FALSE;
 
+		// "sequence"
+		$item = &$this->ListOptions->Add("sequence");
+		$item->CssStyle = "white-space: nowrap;";
+		$item->Visible = TRUE;
+		$item->OnLeft = TRUE; // Always on left
+		$item->ShowInDropDown = FALSE;
+		$item->ShowInButtonGroup = FALSE;
+
 		// Drop down button for ListOptions
 		$this->ListOptions->UseImageAndText = TRUE;
 		$this->ListOptions->UseDropDownButton = FALSE;
@@ -1068,6 +1040,10 @@ class csaldoawal_list extends csaldoawal {
 	function RenderListOptions() {
 		global $Security, $Language, $objForm;
 		$this->ListOptions->LoadDefault();
+
+		// "sequence"
+		$oListOpt = &$this->ListOptions->Items["sequence"];
+		$oListOpt->Body = ew_FormatSeqNo($this->RecCnt);
 
 		// "view"
 		$oListOpt = &$this->ListOptions->Items["view"];
@@ -1369,11 +1345,46 @@ class csaldoawal_list extends csaldoawal {
 		}
 	}
 
-	// Load basic search values
-	function LoadBasicSearchValues() {
-		$this->BasicSearch->Keyword = @$_GET[EW_TABLE_BASIC_SEARCH];
-		if ($this->BasicSearch->Keyword <> "") $this->Command = "search";
-		$this->BasicSearch->Type = @$_GET[EW_TABLE_BASIC_SEARCH_TYPE];
+	// Load search values for validation
+	function LoadSearchValues() {
+		global $objForm;
+
+		// Load search values
+		// id
+
+		$this->id->AdvancedSearch->SearchValue = ew_StripSlashes(@$_GET["x_id"]);
+		if ($this->id->AdvancedSearch->SearchValue <> "") $this->Command = "search";
+		$this->id->AdvancedSearch->SearchOperator = @$_GET["z_id"];
+
+		// periode_id
+		$this->periode_id->AdvancedSearch->SearchValue = ew_StripSlashes(@$_GET["x_periode_id"]);
+		if ($this->periode_id->AdvancedSearch->SearchValue <> "") $this->Command = "search";
+		$this->periode_id->AdvancedSearch->SearchOperator = @$_GET["z_periode_id"];
+
+		// akun_id
+		$this->akun_id->AdvancedSearch->SearchValue = ew_StripSlashes(@$_GET["x_akun_id"]);
+		if ($this->akun_id->AdvancedSearch->SearchValue <> "") $this->Command = "search";
+		$this->akun_id->AdvancedSearch->SearchOperator = @$_GET["z_akun_id"];
+
+		// debet
+		$this->debet->AdvancedSearch->SearchValue = ew_StripSlashes(@$_GET["x_debet"]);
+		if ($this->debet->AdvancedSearch->SearchValue <> "") $this->Command = "search";
+		$this->debet->AdvancedSearch->SearchOperator = @$_GET["z_debet"];
+
+		// kredit
+		$this->kredit->AdvancedSearch->SearchValue = ew_StripSlashes(@$_GET["x_kredit"]);
+		if ($this->kredit->AdvancedSearch->SearchValue <> "") $this->Command = "search";
+		$this->kredit->AdvancedSearch->SearchOperator = @$_GET["z_kredit"];
+
+		// user_id
+		$this->user_id->AdvancedSearch->SearchValue = ew_StripSlashes(@$_GET["x_user_id"]);
+		if ($this->user_id->AdvancedSearch->SearchValue <> "") $this->Command = "search";
+		$this->user_id->AdvancedSearch->SearchOperator = @$_GET["z_user_id"];
+
+		// saldo
+		$this->saldo->AdvancedSearch->SearchValue = ew_StripSlashes(@$_GET["x_saldo"]);
+		if ($this->saldo->AdvancedSearch->SearchValue <> "") $this->Command = "search";
+		$this->saldo->AdvancedSearch->SearchOperator = @$_GET["z_saldo"];
 	}
 
 	// Load recordset
@@ -1519,7 +1530,27 @@ class csaldoawal_list extends csaldoawal {
 		$this->periode_id->ViewCustomAttributes = "";
 
 		// akun_id
-		$this->akun_id->ViewValue = $this->akun_id->CurrentValue;
+		if (strval($this->akun_id->CurrentValue) <> "") {
+			$sFilterWrk = "`id`" . ew_SearchString("=", $this->akun_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+		$sSqlWrk = "SELECT `id`, `kode` AS `DispFld`, `nama` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `akun`";
+		$sWhereWrk = "";
+		$this->akun_id->LookupFilters = array();
+		ew_AddFilter($sWhereWrk, $sFilterWrk);
+		$this->Lookup_Selecting($this->akun_id, $sWhereWrk); // Call Lookup selecting
+		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			if ($rswrk && !$rswrk->EOF) { // Lookup values found
+				$arwrk = array();
+				$arwrk[1] = $rswrk->fields('DispFld');
+				$arwrk[2] = $rswrk->fields('Disp2Fld');
+				$this->akun_id->ViewValue = $this->akun_id->DisplayValue($arwrk);
+				$rswrk->Close();
+			} else {
+				$this->akun_id->ViewValue = $this->akun_id->CurrentValue;
+			}
+		} else {
+			$this->akun_id->ViewValue = NULL;
+		}
 		$this->akun_id->ViewCustomAttributes = "";
 
 		// debet
@@ -1536,17 +1567,9 @@ class csaldoawal_list extends csaldoawal {
 
 		// saldo
 		$this->saldo->ViewValue = $this->saldo->CurrentValue;
+		$this->saldo->ViewValue = ew_FormatNumber($this->saldo->ViewValue, 2, -2, -2, -2);
+		$this->saldo->CellCssStyle .= "text-align: right;";
 		$this->saldo->ViewCustomAttributes = "";
-
-			// id
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-			$this->id->TooltipValue = "";
-
-			// periode_id
-			$this->periode_id->LinkCustomAttributes = "";
-			$this->periode_id->HrefValue = "";
-			$this->periode_id->TooltipValue = "";
 
 			// akun_id
 			$this->akun_id->LinkCustomAttributes = "";
@@ -1563,20 +1586,92 @@ class csaldoawal_list extends csaldoawal {
 			$this->kredit->HrefValue = "";
 			$this->kredit->TooltipValue = "";
 
-			// user_id
-			$this->user_id->LinkCustomAttributes = "";
-			$this->user_id->HrefValue = "";
-			$this->user_id->TooltipValue = "";
-
 			// saldo
 			$this->saldo->LinkCustomAttributes = "";
 			$this->saldo->HrefValue = "";
 			$this->saldo->TooltipValue = "";
+		} elseif ($this->RowType == EW_ROWTYPE_SEARCH) { // Search row
+
+			// akun_id
+			$this->akun_id->EditAttrs["class"] = "form-control";
+			$this->akun_id->EditCustomAttributes = "";
+			if (trim(strval($this->akun_id->AdvancedSearch->SearchValue)) == "") {
+				$sFilterWrk = "0=1";
+			} else {
+				$sFilterWrk = "`id`" . ew_SearchString("=", $this->akun_id->AdvancedSearch->SearchValue, EW_DATATYPE_NUMBER, "");
+			}
+			$sSqlWrk = "SELECT `id`, `kode` AS `DispFld`, `nama` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld`, '' AS `SelectFilterFld`, '' AS `SelectFilterFld2`, '' AS `SelectFilterFld3`, '' AS `SelectFilterFld4` FROM `akun`";
+			$sWhereWrk = "";
+			$this->akun_id->LookupFilters = array();
+			ew_AddFilter($sWhereWrk, $sFilterWrk);
+			$this->Lookup_Selecting($this->akun_id, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			$arwrk = ($rswrk) ? $rswrk->GetRows() : array();
+			if ($rswrk) $rswrk->Close();
+			$this->akun_id->EditValue = $arwrk;
+
+			// debet
+			$this->debet->EditAttrs["class"] = "form-control";
+			$this->debet->EditCustomAttributes = "";
+			$this->debet->EditValue = ew_HtmlEncode($this->debet->AdvancedSearch->SearchValue);
+			$this->debet->PlaceHolder = ew_RemoveHtml($this->debet->FldCaption());
+
+			// kredit
+			$this->kredit->EditAttrs["class"] = "form-control";
+			$this->kredit->EditCustomAttributes = "";
+			$this->kredit->EditValue = ew_HtmlEncode($this->kredit->AdvancedSearch->SearchValue);
+			$this->kredit->PlaceHolder = ew_RemoveHtml($this->kredit->FldCaption());
+
+			// saldo
+			$this->saldo->EditAttrs["class"] = "form-control";
+			$this->saldo->EditCustomAttributes = "";
+			$this->saldo->EditValue = ew_HtmlEncode($this->saldo->AdvancedSearch->SearchValue);
+			$this->saldo->PlaceHolder = ew_RemoveHtml($this->saldo->FldCaption());
+		}
+		if ($this->RowType == EW_ROWTYPE_ADD ||
+			$this->RowType == EW_ROWTYPE_EDIT ||
+			$this->RowType == EW_ROWTYPE_SEARCH) { // Add / Edit / Search row
+			$this->SetupFieldTitles();
 		}
 
 		// Call Row Rendered event
 		if ($this->RowType <> EW_ROWTYPE_AGGREGATEINIT)
 			$this->Row_Rendered();
+	}
+
+	// Validate search
+	function ValidateSearch() {
+		global $gsSearchError;
+
+		// Initialize
+		$gsSearchError = "";
+
+		// Check if validation required
+		if (!EW_SERVER_VALIDATE)
+			return TRUE;
+
+		// Return validate result
+		$ValidateSearch = ($gsSearchError == "");
+
+		// Call Form_CustomValidate event
+		$sFormCustomError = "";
+		$ValidateSearch = $ValidateSearch && $this->Form_CustomValidate($sFormCustomError);
+		if ($sFormCustomError <> "") {
+			ew_AddMessage($gsSearchError, $sFormCustomError);
+		}
+		return $ValidateSearch;
+	}
+
+	// Load advanced search
+	function LoadAdvancedSearch() {
+		$this->id->AdvancedSearch->Load();
+		$this->periode_id->AdvancedSearch->Load();
+		$this->akun_id->AdvancedSearch->Load();
+		$this->debet->AdvancedSearch->Load();
+		$this->kredit->AdvancedSearch->Load();
+		$this->user_id->AdvancedSearch->Load();
+		$this->saldo->AdvancedSearch->Load();
 	}
 
 	// Set up Breadcrumb
@@ -1592,16 +1687,38 @@ class csaldoawal_list extends csaldoawal {
 	function SetupLookupFilters($fld, $pageId = null) {
 		global $gsLanguage;
 		$pageId = $pageId ?: $this->PageID;
-		switch ($fld->FldVar) {
-		}
+		if ($pageId == "list") {
+			switch ($fld->FldVar) {
+			}
+		} elseif ($pageId == "extbs") {
+			switch ($fld->FldVar) {
+		case "x_akun_id":
+			$sSqlWrk = "";
+			$sSqlWrk = "SELECT `id` AS `LinkFld`, `kode` AS `DispFld`, `nama` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `akun`";
+			$sWhereWrk = "";
+			$this->akun_id->LookupFilters = array();
+			$fld->LookupFilters += array("s" => $sSqlWrk, "d" => "", "f0" => '`id` = {filter_value}', "t0" => "3", "fn0" => "");
+			$sSqlWrk = "";
+			$this->Lookup_Selecting($this->akun_id, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			if ($sSqlWrk <> "")
+				$fld->LookupFilters["s"] .= $sSqlWrk;
+			break;
+			}
+		} 
 	}
 
 	// Setup AutoSuggest filters of a field
 	function SetupAutoSuggestFilters($fld, $pageId = null) {
 		global $gsLanguage;
 		$pageId = $pageId ?: $this->PageID;
-		switch ($fld->FldVar) {
-		}
+		if ($pageId == "list") {
+			switch ($fld->FldVar) {
+			}
+		} elseif ($pageId == "extbs") {
+			switch ($fld->FldVar) {
+			}
+		} 
 	}
 
 	// Page Load event
@@ -1766,9 +1883,41 @@ fsaldoawallist.ValidateRequired = false;
 <?php } ?>
 
 // Dynamic selection lists
-// Form object for search
+fsaldoawallist.Lists["x_akun_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_kode","x_nama","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"akun"};
 
+// Form object for search
 var CurrentSearchForm = fsaldoawallistsrch = new ew_Form("fsaldoawallistsrch");
+
+// Validate function for search
+fsaldoawallistsrch.Validate = function(fobj) {
+	if (!this.ValidateRequired)
+		return true; // Ignore validation
+	fobj = fobj || this.Form;
+	var infix = "";
+
+	// Fire Form_CustomValidate event
+	if (!this.Form_CustomValidate(fobj))
+		return false;
+	return true;
+}
+
+// Form_CustomValidate event
+fsaldoawallistsrch.Form_CustomValidate = 
+ function(fobj) { // DO NOT CHANGE THIS LINE!
+
+ 	// Your custom validation code here, return false if invalid. 
+ 	return true;
+ }
+
+// Use JavaScript validation or not
+<?php if (EW_CLIENT_VALIDATE) { ?>
+fsaldoawallistsrch.ValidateRequired = true; // Use JavaScript validation
+<?php } else { ?>
+fsaldoawallistsrch.ValidateRequired = false; // No JavaScript validation
+<?php } ?>
+
+// Dynamic selection lists
+fsaldoawallistsrch.Lists["x_akun_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_kode","x_nama","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"akun"};
 </script>
 <script type="text/javascript">
 
@@ -1821,21 +1970,33 @@ $saldoawal_list->RenderOtherOptions();
 <input type="hidden" name="cmd" value="search">
 <input type="hidden" name="t" value="saldoawal">
 	<div class="ewBasicSearch">
+<?php
+if ($gsSearchError == "")
+	$saldoawal_list->LoadAdvancedSearch(); // Load advanced search
+
+// Render for search
+$saldoawal->RowType = EW_ROWTYPE_SEARCH;
+
+// Render row
+$saldoawal->ResetAttrs();
+$saldoawal_list->RenderRow();
+?>
 <div id="xsr_1" class="ewRow">
-	<div class="ewQuickSearch input-group">
-	<input type="text" name="<?php echo EW_TABLE_BASIC_SEARCH ?>" id="<?php echo EW_TABLE_BASIC_SEARCH ?>" class="form-control" value="<?php echo ew_HtmlEncode($saldoawal_list->BasicSearch->getKeyword()) ?>" placeholder="<?php echo ew_HtmlEncode($Language->Phrase("Search")) ?>">
-	<input type="hidden" name="<?php echo EW_TABLE_BASIC_SEARCH_TYPE ?>" id="<?php echo EW_TABLE_BASIC_SEARCH_TYPE ?>" value="<?php echo ew_HtmlEncode($saldoawal_list->BasicSearch->getType()) ?>">
-	<div class="input-group-btn">
-		<button type="button" data-toggle="dropdown" class="btn btn-default"><span id="searchtype"><?php echo $saldoawal_list->BasicSearch->getTypeNameShort() ?></span><span class="caret"></span></button>
-		<ul class="dropdown-menu pull-right" role="menu">
-			<li<?php if ($saldoawal_list->BasicSearch->getType() == "") echo " class=\"active\""; ?>><a href="javascript:void(0);" onclick="ew_SetSearchType(this)"><?php echo $Language->Phrase("QuickSearchAuto") ?></a></li>
-			<li<?php if ($saldoawal_list->BasicSearch->getType() == "=") echo " class=\"active\""; ?>><a href="javascript:void(0);" onclick="ew_SetSearchType(this,'=')"><?php echo $Language->Phrase("QuickSearchExact") ?></a></li>
-			<li<?php if ($saldoawal_list->BasicSearch->getType() == "AND") echo " class=\"active\""; ?>><a href="javascript:void(0);" onclick="ew_SetSearchType(this,'AND')"><?php echo $Language->Phrase("QuickSearchAll") ?></a></li>
-			<li<?php if ($saldoawal_list->BasicSearch->getType() == "OR") echo " class=\"active\""; ?>><a href="javascript:void(0);" onclick="ew_SetSearchType(this,'OR')"><?php echo $Language->Phrase("QuickSearchAny") ?></a></li>
-		</ul>
+<?php if ($saldoawal->akun_id->Visible) { // akun_id ?>
+	<div id="xsc_akun_id" class="ewCell form-group">
+		<label for="x_akun_id" class="ewSearchCaption ewLabel"><?php echo $saldoawal->akun_id->FldCaption() ?></label>
+		<span class="ewSearchOperator"><?php echo $Language->Phrase("=") ?><input type="hidden" name="z_akun_id" id="z_akun_id" value="="></span>
+		<span class="ewSearchField">
+<select data-table="saldoawal" data-field="x_akun_id" data-value-separator="<?php echo $saldoawal->akun_id->DisplayValueSeparatorAttribute() ?>" id="x_akun_id" name="x_akun_id"<?php echo $saldoawal->akun_id->EditAttributes() ?>>
+<?php echo $saldoawal->akun_id->SelectOptionListHtml("x_akun_id") ?>
+</select>
+<input type="hidden" name="s_x_akun_id" id="s_x_akun_id" value="<?php echo $saldoawal->akun_id->LookupFilterQuery(false, "extbs") ?>">
+</span>
+	</div>
+<?php } ?>
+</div>
+<div id="xsr_2" class="ewRow">
 	<button class="btn btn-primary ewButton" name="btnsubmit" id="btnsubmit" type="submit"><?php echo $Language->Phrase("QuickSearchBtn") ?></button>
-	</div>
-	</div>
 </div>
 	</div>
 </div>
@@ -1869,29 +2030,11 @@ $saldoawal_list->RenderListOptions();
 // Render list options (header, left)
 $saldoawal_list->ListOptions->Render("header", "left");
 ?>
-<?php if ($saldoawal->id->Visible) { // id ?>
-	<?php if ($saldoawal->SortUrl($saldoawal->id) == "") { ?>
-		<th data-name="id"><div id="elh_saldoawal_id" class="saldoawal_id"><div class="ewTableHeaderCaption"><?php echo $saldoawal->id->FldCaption() ?></div></div></th>
-	<?php } else { ?>
-		<th data-name="id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $saldoawal->SortUrl($saldoawal->id) ?>',1);"><div id="elh_saldoawal_id" class="saldoawal_id">
-			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $saldoawal->id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($saldoawal->id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($saldoawal->id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
-        </div></div></th>
-	<?php } ?>
-<?php } ?>		
-<?php if ($saldoawal->periode_id->Visible) { // periode_id ?>
-	<?php if ($saldoawal->SortUrl($saldoawal->periode_id) == "") { ?>
-		<th data-name="periode_id"><div id="elh_saldoawal_periode_id" class="saldoawal_periode_id"><div class="ewTableHeaderCaption"><?php echo $saldoawal->periode_id->FldCaption() ?></div></div></th>
-	<?php } else { ?>
-		<th data-name="periode_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $saldoawal->SortUrl($saldoawal->periode_id) ?>',1);"><div id="elh_saldoawal_periode_id" class="saldoawal_periode_id">
-			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $saldoawal->periode_id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($saldoawal->periode_id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($saldoawal->periode_id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
-        </div></div></th>
-	<?php } ?>
-<?php } ?>		
 <?php if ($saldoawal->akun_id->Visible) { // akun_id ?>
 	<?php if ($saldoawal->SortUrl($saldoawal->akun_id) == "") { ?>
 		<th data-name="akun_id"><div id="elh_saldoawal_akun_id" class="saldoawal_akun_id"><div class="ewTableHeaderCaption"><?php echo $saldoawal->akun_id->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="akun_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $saldoawal->SortUrl($saldoawal->akun_id) ?>',1);"><div id="elh_saldoawal_akun_id" class="saldoawal_akun_id">
+		<th data-name="akun_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $saldoawal->SortUrl($saldoawal->akun_id) ?>',2);"><div id="elh_saldoawal_akun_id" class="saldoawal_akun_id">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $saldoawal->akun_id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($saldoawal->akun_id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($saldoawal->akun_id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1900,7 +2043,7 @@ $saldoawal_list->ListOptions->Render("header", "left");
 	<?php if ($saldoawal->SortUrl($saldoawal->debet) == "") { ?>
 		<th data-name="debet"><div id="elh_saldoawal_debet" class="saldoawal_debet"><div class="ewTableHeaderCaption"><?php echo $saldoawal->debet->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="debet"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $saldoawal->SortUrl($saldoawal->debet) ?>',1);"><div id="elh_saldoawal_debet" class="saldoawal_debet">
+		<th data-name="debet"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $saldoawal->SortUrl($saldoawal->debet) ?>',2);"><div id="elh_saldoawal_debet" class="saldoawal_debet">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $saldoawal->debet->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($saldoawal->debet->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($saldoawal->debet->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1909,17 +2052,8 @@ $saldoawal_list->ListOptions->Render("header", "left");
 	<?php if ($saldoawal->SortUrl($saldoawal->kredit) == "") { ?>
 		<th data-name="kredit"><div id="elh_saldoawal_kredit" class="saldoawal_kredit"><div class="ewTableHeaderCaption"><?php echo $saldoawal->kredit->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="kredit"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $saldoawal->SortUrl($saldoawal->kredit) ?>',1);"><div id="elh_saldoawal_kredit" class="saldoawal_kredit">
-			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $saldoawal->kredit->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($saldoawal->kredit->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($saldoawal->kredit->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
-        </div></div></th>
-	<?php } ?>
-<?php } ?>		
-<?php if ($saldoawal->user_id->Visible) { // user_id ?>
-	<?php if ($saldoawal->SortUrl($saldoawal->user_id) == "") { ?>
-		<th data-name="user_id"><div id="elh_saldoawal_user_id" class="saldoawal_user_id"><div class="ewTableHeaderCaption"><?php echo $saldoawal->user_id->FldCaption() ?></div></div></th>
-	<?php } else { ?>
-		<th data-name="user_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $saldoawal->SortUrl($saldoawal->user_id) ?>',1);"><div id="elh_saldoawal_user_id" class="saldoawal_user_id">
-			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $saldoawal->user_id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($saldoawal->user_id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($saldoawal->user_id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
+		<th data-name="kredit"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $saldoawal->SortUrl($saldoawal->kredit) ?>',2);"><div id="elh_saldoawal_kredit" class="saldoawal_kredit">
+			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $saldoawal->kredit->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($saldoawal->kredit->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($saldoawal->kredit->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
 <?php } ?>		
@@ -1927,7 +2061,7 @@ $saldoawal_list->ListOptions->Render("header", "left");
 	<?php if ($saldoawal->SortUrl($saldoawal->saldo) == "") { ?>
 		<th data-name="saldo"><div id="elh_saldoawal_saldo" class="saldoawal_saldo"><div class="ewTableHeaderCaption"><?php echo $saldoawal->saldo->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="saldo"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $saldoawal->SortUrl($saldoawal->saldo) ?>',1);"><div id="elh_saldoawal_saldo" class="saldoawal_saldo">
+		<th data-name="saldo"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $saldoawal->SortUrl($saldoawal->saldo) ?>',2);"><div id="elh_saldoawal_saldo" class="saldoawal_saldo">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $saldoawal->saldo->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($saldoawal->saldo->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($saldoawal->saldo->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1997,29 +2131,13 @@ while ($saldoawal_list->RecCnt < $saldoawal_list->StopRec) {
 // Render list options (body, left)
 $saldoawal_list->ListOptions->Render("body", "left", $saldoawal_list->RowCnt);
 ?>
-	<?php if ($saldoawal->id->Visible) { // id ?>
-		<td data-name="id"<?php echo $saldoawal->id->CellAttributes() ?>>
-<span id="el<?php echo $saldoawal_list->RowCnt ?>_saldoawal_id" class="saldoawal_id">
-<span<?php echo $saldoawal->id->ViewAttributes() ?>>
-<?php echo $saldoawal->id->ListViewValue() ?></span>
-</span>
-<a id="<?php echo $saldoawal_list->PageObjName . "_row_" . $saldoawal_list->RowCnt ?>"></a></td>
-	<?php } ?>
-	<?php if ($saldoawal->periode_id->Visible) { // periode_id ?>
-		<td data-name="periode_id"<?php echo $saldoawal->periode_id->CellAttributes() ?>>
-<span id="el<?php echo $saldoawal_list->RowCnt ?>_saldoawal_periode_id" class="saldoawal_periode_id">
-<span<?php echo $saldoawal->periode_id->ViewAttributes() ?>>
-<?php echo $saldoawal->periode_id->ListViewValue() ?></span>
-</span>
-</td>
-	<?php } ?>
 	<?php if ($saldoawal->akun_id->Visible) { // akun_id ?>
 		<td data-name="akun_id"<?php echo $saldoawal->akun_id->CellAttributes() ?>>
 <span id="el<?php echo $saldoawal_list->RowCnt ?>_saldoawal_akun_id" class="saldoawal_akun_id">
 <span<?php echo $saldoawal->akun_id->ViewAttributes() ?>>
 <?php echo $saldoawal->akun_id->ListViewValue() ?></span>
 </span>
-</td>
+<a id="<?php echo $saldoawal_list->PageObjName . "_row_" . $saldoawal_list->RowCnt ?>"></a></td>
 	<?php } ?>
 	<?php if ($saldoawal->debet->Visible) { // debet ?>
 		<td data-name="debet"<?php echo $saldoawal->debet->CellAttributes() ?>>
@@ -2034,14 +2152,6 @@ $saldoawal_list->ListOptions->Render("body", "left", $saldoawal_list->RowCnt);
 <span id="el<?php echo $saldoawal_list->RowCnt ?>_saldoawal_kredit" class="saldoawal_kredit">
 <span<?php echo $saldoawal->kredit->ViewAttributes() ?>>
 <?php echo $saldoawal->kredit->ListViewValue() ?></span>
-</span>
-</td>
-	<?php } ?>
-	<?php if ($saldoawal->user_id->Visible) { // user_id ?>
-		<td data-name="user_id"<?php echo $saldoawal->user_id->CellAttributes() ?>>
-<span id="el<?php echo $saldoawal_list->RowCnt ?>_saldoawal_user_id" class="saldoawal_user_id">
-<span<?php echo $saldoawal->user_id->ViewAttributes() ?>>
-<?php echo $saldoawal->user_id->ListViewValue() ?></span>
 </span>
 </td>
 	<?php } ?>

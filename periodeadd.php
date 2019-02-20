@@ -256,7 +256,6 @@ class cperiode_add extends cperiode {
 		$this->CurrentAction = (@$_GET["a"] <> "") ? $_GET["a"] : @$_POST["a_list"]; // Set up current action
 		$this->start->SetVisibility();
 		$this->end->SetVisibility();
-		$this->user_id->SetVisibility();
 
 		// Global Page Loading event (in userfn*.php)
 		Page_Loading();
@@ -447,8 +446,6 @@ class cperiode_add extends cperiode {
 		$this->start->OldValue = $this->start->CurrentValue;
 		$this->end->CurrentValue = NULL;
 		$this->end->OldValue = $this->end->CurrentValue;
-		$this->user_id->CurrentValue = NULL;
-		$this->user_id->OldValue = $this->user_id->CurrentValue;
 	}
 
 	// Load form values
@@ -458,14 +455,11 @@ class cperiode_add extends cperiode {
 		global $objForm;
 		if (!$this->start->FldIsDetailKey) {
 			$this->start->setFormValue($objForm->GetValue("x_start"));
-			$this->start->CurrentValue = ew_UnFormatDateTime($this->start->CurrentValue, 0);
+			$this->start->CurrentValue = ew_UnFormatDateTime($this->start->CurrentValue, 7);
 		}
 		if (!$this->end->FldIsDetailKey) {
 			$this->end->setFormValue($objForm->GetValue("x_end"));
-			$this->end->CurrentValue = ew_UnFormatDateTime($this->end->CurrentValue, 0);
-		}
-		if (!$this->user_id->FldIsDetailKey) {
-			$this->user_id->setFormValue($objForm->GetValue("x_user_id"));
+			$this->end->CurrentValue = ew_UnFormatDateTime($this->end->CurrentValue, 7);
 		}
 	}
 
@@ -474,10 +468,9 @@ class cperiode_add extends cperiode {
 		global $objForm;
 		$this->LoadOldRecord();
 		$this->start->CurrentValue = $this->start->FormValue;
-		$this->start->CurrentValue = ew_UnFormatDateTime($this->start->CurrentValue, 0);
+		$this->start->CurrentValue = ew_UnFormatDateTime($this->start->CurrentValue, 7);
 		$this->end->CurrentValue = $this->end->FormValue;
-		$this->end->CurrentValue = ew_UnFormatDateTime($this->end->CurrentValue, 0);
-		$this->user_id->CurrentValue = $this->user_id->FormValue;
+		$this->end->CurrentValue = ew_UnFormatDateTime($this->end->CurrentValue, 7);
 	}
 
 	// Load row based on key values
@@ -571,12 +564,12 @@ class cperiode_add extends cperiode {
 
 		// start
 		$this->start->ViewValue = $this->start->CurrentValue;
-		$this->start->ViewValue = ew_FormatDateTime($this->start->ViewValue, 0);
+		$this->start->ViewValue = ew_FormatDateTime($this->start->ViewValue, 7);
 		$this->start->ViewCustomAttributes = "";
 
 		// end
 		$this->end->ViewValue = $this->end->CurrentValue;
-		$this->end->ViewValue = ew_FormatDateTime($this->end->ViewValue, 0);
+		$this->end->ViewValue = ew_FormatDateTime($this->end->ViewValue, 7);
 		$this->end->ViewCustomAttributes = "";
 
 		// user_id
@@ -592,30 +585,19 @@ class cperiode_add extends cperiode {
 			$this->end->LinkCustomAttributes = "";
 			$this->end->HrefValue = "";
 			$this->end->TooltipValue = "";
-
-			// user_id
-			$this->user_id->LinkCustomAttributes = "";
-			$this->user_id->HrefValue = "";
-			$this->user_id->TooltipValue = "";
 		} elseif ($this->RowType == EW_ROWTYPE_ADD) { // Add row
 
 			// start
 			$this->start->EditAttrs["class"] = "form-control";
 			$this->start->EditCustomAttributes = "";
-			$this->start->EditValue = ew_HtmlEncode(ew_FormatDateTime($this->start->CurrentValue, 8));
+			$this->start->EditValue = ew_HtmlEncode(ew_FormatDateTime($this->start->CurrentValue, 7));
 			$this->start->PlaceHolder = ew_RemoveHtml($this->start->FldCaption());
 
 			// end
 			$this->end->EditAttrs["class"] = "form-control";
 			$this->end->EditCustomAttributes = "";
-			$this->end->EditValue = ew_HtmlEncode(ew_FormatDateTime($this->end->CurrentValue, 8));
+			$this->end->EditValue = ew_HtmlEncode(ew_FormatDateTime($this->end->CurrentValue, 7));
 			$this->end->PlaceHolder = ew_RemoveHtml($this->end->FldCaption());
-
-			// user_id
-			$this->user_id->EditAttrs["class"] = "form-control";
-			$this->user_id->EditCustomAttributes = "";
-			$this->user_id->EditValue = ew_HtmlEncode($this->user_id->CurrentValue);
-			$this->user_id->PlaceHolder = ew_RemoveHtml($this->user_id->FldCaption());
 
 			// Add refer script
 			// start
@@ -626,10 +608,6 @@ class cperiode_add extends cperiode {
 			// end
 			$this->end->LinkCustomAttributes = "";
 			$this->end->HrefValue = "";
-
-			// user_id
-			$this->user_id->LinkCustomAttributes = "";
-			$this->user_id->HrefValue = "";
 		}
 		if ($this->RowType == EW_ROWTYPE_ADD ||
 			$this->RowType == EW_ROWTYPE_EDIT ||
@@ -652,14 +630,11 @@ class cperiode_add extends cperiode {
 		// Check if validation required
 		if (!EW_SERVER_VALIDATE)
 			return ($gsFormError == "");
-		if (!ew_CheckDateDef($this->start->FormValue)) {
+		if (!ew_CheckEuroDate($this->start->FormValue)) {
 			ew_AddMessage($gsFormError, $this->start->FldErrMsg());
 		}
-		if (!ew_CheckDateDef($this->end->FormValue)) {
+		if (!ew_CheckEuroDate($this->end->FormValue)) {
 			ew_AddMessage($gsFormError, $this->end->FldErrMsg());
-		}
-		if (!ew_CheckInteger($this->user_id->FormValue)) {
-			ew_AddMessage($gsFormError, $this->user_id->FldErrMsg());
 		}
 
 		// Return validate result
@@ -686,13 +661,10 @@ class cperiode_add extends cperiode {
 		$rsnew = array();
 
 		// start
-		$this->start->SetDbValueDef($rsnew, ew_UnFormatDateTime($this->start->CurrentValue, 0), NULL, FALSE);
+		$this->start->SetDbValueDef($rsnew, ew_UnFormatDateTime($this->start->CurrentValue, 7), NULL, FALSE);
 
 		// end
-		$this->end->SetDbValueDef($rsnew, ew_UnFormatDateTime($this->end->CurrentValue, 0), NULL, FALSE);
-
-		// user_id
-		$this->user_id->SetDbValueDef($rsnew, $this->user_id->CurrentValue, NULL, FALSE);
+		$this->end->SetDbValueDef($rsnew, ew_UnFormatDateTime($this->end->CurrentValue, 7), NULL, FALSE);
 
 		// Call Row Inserting event
 		$rs = ($rsold == NULL) ? NULL : $rsold->fields;
@@ -859,14 +831,11 @@ fperiodeadd.Validate = function() {
 		var infix = ($k[0]) ? String(i) : "";
 		$fobj.data("rowindex", infix);
 			elm = this.GetElements("x" + infix + "_start");
-			if (elm && !ew_CheckDateDef(elm.value))
+			if (elm && !ew_CheckEuroDate(elm.value))
 				return this.OnError(elm, "<?php echo ew_JsEncode2($periode->start->FldErrMsg()) ?>");
 			elm = this.GetElements("x" + infix + "_end");
-			if (elm && !ew_CheckDateDef(elm.value))
+			if (elm && !ew_CheckEuroDate(elm.value))
 				return this.OnError(elm, "<?php echo ew_JsEncode2($periode->end->FldErrMsg()) ?>");
-			elm = this.GetElements("x" + infix + "_user_id");
-			if (elm && !ew_CheckInteger(elm.value))
-				return this.OnError(elm, "<?php echo ew_JsEncode2($periode->user_id->FldErrMsg()) ?>");
 
 			// Fire Form_CustomValidate event
 			if (!this.Form_CustomValidate(fobj))
@@ -933,7 +902,12 @@ $periode_add->ShowMessage();
 		<label id="elh_periode_start" for="x_start" class="col-sm-2 control-label ewLabel"><?php echo $periode->start->FldCaption() ?></label>
 		<div class="col-sm-10"><div<?php echo $periode->start->CellAttributes() ?>>
 <span id="el_periode_start">
-<input type="text" data-table="periode" data-field="x_start" name="x_start" id="x_start" placeholder="<?php echo ew_HtmlEncode($periode->start->getPlaceHolder()) ?>" value="<?php echo $periode->start->EditValue ?>"<?php echo $periode->start->EditAttributes() ?>>
+<input type="text" data-table="periode" data-field="x_start" data-format="7" name="x_start" id="x_start" placeholder="<?php echo ew_HtmlEncode($periode->start->getPlaceHolder()) ?>" value="<?php echo $periode->start->EditValue ?>"<?php echo $periode->start->EditAttributes() ?>>
+<?php if (!$periode->start->ReadOnly && !$periode->start->Disabled && !isset($periode->start->EditAttrs["readonly"]) && !isset($periode->start->EditAttrs["disabled"])) { ?>
+<script type="text/javascript">
+ew_CreateCalendar("fperiodeadd", "x_start", 7);
+</script>
+<?php } ?>
 </span>
 <?php echo $periode->start->CustomMsg ?></div></div>
 	</div>
@@ -943,19 +917,14 @@ $periode_add->ShowMessage();
 		<label id="elh_periode_end" for="x_end" class="col-sm-2 control-label ewLabel"><?php echo $periode->end->FldCaption() ?></label>
 		<div class="col-sm-10"><div<?php echo $periode->end->CellAttributes() ?>>
 <span id="el_periode_end">
-<input type="text" data-table="periode" data-field="x_end" name="x_end" id="x_end" placeholder="<?php echo ew_HtmlEncode($periode->end->getPlaceHolder()) ?>" value="<?php echo $periode->end->EditValue ?>"<?php echo $periode->end->EditAttributes() ?>>
+<input type="text" data-table="periode" data-field="x_end" data-format="7" name="x_end" id="x_end" placeholder="<?php echo ew_HtmlEncode($periode->end->getPlaceHolder()) ?>" value="<?php echo $periode->end->EditValue ?>"<?php echo $periode->end->EditAttributes() ?>>
+<?php if (!$periode->end->ReadOnly && !$periode->end->Disabled && !isset($periode->end->EditAttrs["readonly"]) && !isset($periode->end->EditAttrs["disabled"])) { ?>
+<script type="text/javascript">
+ew_CreateCalendar("fperiodeadd", "x_end", 7);
+</script>
+<?php } ?>
 </span>
 <?php echo $periode->end->CustomMsg ?></div></div>
-	</div>
-<?php } ?>
-<?php if ($periode->user_id->Visible) { // user_id ?>
-	<div id="r_user_id" class="form-group">
-		<label id="elh_periode_user_id" for="x_user_id" class="col-sm-2 control-label ewLabel"><?php echo $periode->user_id->FldCaption() ?></label>
-		<div class="col-sm-10"><div<?php echo $periode->user_id->CellAttributes() ?>>
-<span id="el_periode_user_id">
-<input type="text" data-table="periode" data-field="x_user_id" name="x_user_id" id="x_user_id" size="30" placeholder="<?php echo ew_HtmlEncode($periode->user_id->getPlaceHolder()) ?>" value="<?php echo $periode->user_id->EditValue ?>"<?php echo $periode->user_id->EditAttributes() ?>>
-</span>
-<?php echo $periode->user_id->CustomMsg ?></div></div>
 	</div>
 <?php } ?>
 </div>

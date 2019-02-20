@@ -308,13 +308,9 @@ class csaldoawal_view extends csaldoawal {
 	function Page_Init() {
 		global $gsExport, $gsCustomExport, $gsExportFile, $UserProfile, $Language, $Security, $objForm;
 		$this->CurrentAction = (@$_GET["a"] <> "") ? $_GET["a"] : @$_POST["a_list"]; // Set up current action
-		$this->id->SetVisibility();
-		$this->id->Visible = !$this->IsAdd() && !$this->IsCopy() && !$this->IsGridAdd();
-		$this->periode_id->SetVisibility();
 		$this->akun_id->SetVisibility();
 		$this->debet->SetVisibility();
 		$this->kredit->SetVisibility();
-		$this->user_id->SetVisibility();
 		$this->saldo->SetVisibility();
 
 		// Global Page Loading event (in userfn*.php)
@@ -393,6 +389,7 @@ class csaldoawal_view extends csaldoawal {
 	var $StopRec;
 	var $TotalRecs = 0;
 	var $RecRange = 10;
+	var $Pager;
 	var $RecCnt;
 	var $RecKey = array();
 	var $IsModal = FALSE;
@@ -409,6 +406,9 @@ class csaldoawal_view extends csaldoawal {
 		$this->IsModal = (@$_GET["modal"] == "1" || @$_POST["modal"] == "1");
 		if ($this->IsModal)
 			$gbSkipHeaderFooter = TRUE;
+
+		// Load current record
+		$bLoadCurrentRecord = FALSE;
 		$sReturnUrl = "";
 		$bMatchRecord = FALSE;
 		if ($this->IsPageRequest()) { // Validate request
@@ -419,17 +419,46 @@ class csaldoawal_view extends csaldoawal {
 				$this->id->setFormValue($_POST["id"]);
 				$this->RecKey["id"] = $this->id->FormValue;
 			} else {
-				$sReturnUrl = "saldoawallist.php"; // Return to list
+				$bLoadCurrentRecord = TRUE;
 			}
 
 			// Get action
 			$this->CurrentAction = "I"; // Display form
 			switch ($this->CurrentAction) {
 				case "I": // Get a record to display
-					if (!$this->LoadRow()) { // Load record based on key
+					$this->StartRec = 1; // Initialize start position
+					if ($this->Recordset = $this->LoadRecordset()) // Load records
+						$this->TotalRecs = $this->Recordset->RecordCount(); // Get record count
+					if ($this->TotalRecs <= 0) { // No record found
+						if ($this->getSuccessMessage() == "" && $this->getFailureMessage() == "")
+							$this->setFailureMessage($Language->Phrase("NoRecord")); // Set no record message
+						$this->Page_Terminate("saldoawallist.php"); // Return to list page
+					} elseif ($bLoadCurrentRecord) { // Load current record position
+						$this->SetUpStartRec(); // Set up start record position
+
+						// Point to current record
+						if (intval($this->StartRec) <= intval($this->TotalRecs)) {
+							$bMatchRecord = TRUE;
+							$this->Recordset->Move($this->StartRec-1);
+						}
+					} else { // Match key values
+						while (!$this->Recordset->EOF) {
+							if (strval($this->id->CurrentValue) == strval($this->Recordset->fields('id'))) {
+								$this->setStartRecordNumber($this->StartRec); // Save record position
+								$bMatchRecord = TRUE;
+								break;
+							} else {
+								$this->StartRec++;
+								$this->Recordset->MoveNext();
+							}
+						}
+					}
+					if (!$bMatchRecord) {
 						if ($this->getSuccessMessage() == "" && $this->getFailureMessage() == "")
 							$this->setFailureMessage($Language->Phrase("NoRecord")); // Set no record message
 						$sReturnUrl = "saldoawallist.php"; // No matching record, return to list
+					} else {
+						$this->LoadRowValues($this->Recordset); // Load row values
 					}
 			}
 		} else {
@@ -536,6 +565,32 @@ class csaldoawal_view extends csaldoawal {
 		}
 	}
 
+	// Load recordset
+	function LoadRecordset($offset = -1, $rowcnt = -1) {
+
+		// Load List page SQL
+		$sSql = $this->SelectSQL();
+		$conn = &$this->Connection();
+
+		// Load recordset
+		$dbtype = ew_GetConnectionType($this->DBID);
+		if ($this->UseSelectLimit) {
+			$conn->raiseErrorFn = $GLOBALS["EW_ERROR_FN"];
+			if ($dbtype == "MSSQL") {
+				$rs = $conn->SelectLimit($sSql, $rowcnt, $offset, array("_hasOrderBy" => trim($this->getOrderBy()) || trim($this->getSessionOrderBy())));
+			} else {
+				$rs = $conn->SelectLimit($sSql, $rowcnt, $offset);
+			}
+			$conn->raiseErrorFn = '';
+		} else {
+			$rs = ew_LoadRecordset($sSql, $conn);
+		}
+
+		// Call Recordset Selected event
+		$this->Recordset_Selected($rs);
+		return $rs;
+	}
+
 	// Load row based on key values
 	function LoadRow() {
 		global $Security, $Language;
@@ -630,7 +685,27 @@ class csaldoawal_view extends csaldoawal {
 		$this->periode_id->ViewCustomAttributes = "";
 
 		// akun_id
-		$this->akun_id->ViewValue = $this->akun_id->CurrentValue;
+		if (strval($this->akun_id->CurrentValue) <> "") {
+			$sFilterWrk = "`id`" . ew_SearchString("=", $this->akun_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+		$sSqlWrk = "SELECT `id`, `kode` AS `DispFld`, `nama` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `akun`";
+		$sWhereWrk = "";
+		$this->akun_id->LookupFilters = array();
+		ew_AddFilter($sWhereWrk, $sFilterWrk);
+		$this->Lookup_Selecting($this->akun_id, $sWhereWrk); // Call Lookup selecting
+		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			if ($rswrk && !$rswrk->EOF) { // Lookup values found
+				$arwrk = array();
+				$arwrk[1] = $rswrk->fields('DispFld');
+				$arwrk[2] = $rswrk->fields('Disp2Fld');
+				$this->akun_id->ViewValue = $this->akun_id->DisplayValue($arwrk);
+				$rswrk->Close();
+			} else {
+				$this->akun_id->ViewValue = $this->akun_id->CurrentValue;
+			}
+		} else {
+			$this->akun_id->ViewValue = NULL;
+		}
 		$this->akun_id->ViewCustomAttributes = "";
 
 		// debet
@@ -647,17 +722,9 @@ class csaldoawal_view extends csaldoawal {
 
 		// saldo
 		$this->saldo->ViewValue = $this->saldo->CurrentValue;
+		$this->saldo->ViewValue = ew_FormatNumber($this->saldo->ViewValue, 2, -2, -2, -2);
+		$this->saldo->CellCssStyle .= "text-align: right;";
 		$this->saldo->ViewCustomAttributes = "";
-
-			// id
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-			$this->id->TooltipValue = "";
-
-			// periode_id
-			$this->periode_id->LinkCustomAttributes = "";
-			$this->periode_id->HrefValue = "";
-			$this->periode_id->TooltipValue = "";
 
 			// akun_id
 			$this->akun_id->LinkCustomAttributes = "";
@@ -673,11 +740,6 @@ class csaldoawal_view extends csaldoawal {
 			$this->kredit->LinkCustomAttributes = "";
 			$this->kredit->HrefValue = "";
 			$this->kredit->TooltipValue = "";
-
-			// user_id
-			$this->user_id->LinkCustomAttributes = "";
-			$this->user_id->HrefValue = "";
-			$this->user_id->TooltipValue = "";
 
 			// saldo
 			$this->saldo->LinkCustomAttributes = "";
@@ -844,8 +906,9 @@ fsaldoawalview.ValidateRequired = false;
 <?php } ?>
 
 // Dynamic selection lists
-// Form object for search
+fsaldoawalview.Lists["x_akun_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_kode","x_nama","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"akun"};
 
+// Form object for search
 </script>
 <script type="text/javascript">
 
@@ -878,28 +941,6 @@ $saldoawal_view->ShowMessage();
 <input type="hidden" name="modal" value="1">
 <?php } ?>
 <table class="table table-bordered table-striped ewViewTable">
-<?php if ($saldoawal->id->Visible) { // id ?>
-	<tr id="r_id">
-		<td><span id="elh_saldoawal_id"><?php echo $saldoawal->id->FldCaption() ?></span></td>
-		<td data-name="id"<?php echo $saldoawal->id->CellAttributes() ?>>
-<span id="el_saldoawal_id">
-<span<?php echo $saldoawal->id->ViewAttributes() ?>>
-<?php echo $saldoawal->id->ViewValue ?></span>
-</span>
-</td>
-	</tr>
-<?php } ?>
-<?php if ($saldoawal->periode_id->Visible) { // periode_id ?>
-	<tr id="r_periode_id">
-		<td><span id="elh_saldoawal_periode_id"><?php echo $saldoawal->periode_id->FldCaption() ?></span></td>
-		<td data-name="periode_id"<?php echo $saldoawal->periode_id->CellAttributes() ?>>
-<span id="el_saldoawal_periode_id">
-<span<?php echo $saldoawal->periode_id->ViewAttributes() ?>>
-<?php echo $saldoawal->periode_id->ViewValue ?></span>
-</span>
-</td>
-	</tr>
-<?php } ?>
 <?php if ($saldoawal->akun_id->Visible) { // akun_id ?>
 	<tr id="r_akun_id">
 		<td><span id="elh_saldoawal_akun_id"><?php echo $saldoawal->akun_id->FldCaption() ?></span></td>
@@ -933,17 +974,6 @@ $saldoawal_view->ShowMessage();
 </td>
 	</tr>
 <?php } ?>
-<?php if ($saldoawal->user_id->Visible) { // user_id ?>
-	<tr id="r_user_id">
-		<td><span id="elh_saldoawal_user_id"><?php echo $saldoawal->user_id->FldCaption() ?></span></td>
-		<td data-name="user_id"<?php echo $saldoawal->user_id->CellAttributes() ?>>
-<span id="el_saldoawal_user_id">
-<span<?php echo $saldoawal->user_id->ViewAttributes() ?>>
-<?php echo $saldoawal->user_id->ViewValue ?></span>
-</span>
-</td>
-	</tr>
-<?php } ?>
 <?php if ($saldoawal->saldo->Visible) { // saldo ?>
 	<tr id="r_saldo">
 		<td><span id="elh_saldoawal_saldo"><?php echo $saldoawal->saldo->FldCaption() ?></span></td>
@@ -956,6 +986,49 @@ $saldoawal_view->ShowMessage();
 	</tr>
 <?php } ?>
 </table>
+<?php if (!$saldoawal_view->IsModal) { ?>
+<?php if (!isset($saldoawal_view->Pager)) $saldoawal_view->Pager = new cPrevNextPager($saldoawal_view->StartRec, $saldoawal_view->DisplayRecs, $saldoawal_view->TotalRecs) ?>
+<?php if ($saldoawal_view->Pager->RecordCount > 0 && $saldoawal_view->Pager->Visible) { ?>
+<div class="ewPager">
+<span><?php echo $Language->Phrase("Page") ?>&nbsp;</span>
+<div class="ewPrevNext"><div class="input-group">
+<div class="input-group-btn">
+<!--first page button-->
+	<?php if ($saldoawal_view->Pager->FirstButton->Enabled) { ?>
+	<a class="btn btn-default btn-sm" title="<?php echo $Language->Phrase("PagerFirst") ?>" href="<?php echo $saldoawal_view->PageUrl() ?>start=<?php echo $saldoawal_view->Pager->FirstButton->Start ?>"><span class="icon-first ewIcon"></span></a>
+	<?php } else { ?>
+	<a class="btn btn-default btn-sm disabled" title="<?php echo $Language->Phrase("PagerFirst") ?>"><span class="icon-first ewIcon"></span></a>
+	<?php } ?>
+<!--previous page button-->
+	<?php if ($saldoawal_view->Pager->PrevButton->Enabled) { ?>
+	<a class="btn btn-default btn-sm" title="<?php echo $Language->Phrase("PagerPrevious") ?>" href="<?php echo $saldoawal_view->PageUrl() ?>start=<?php echo $saldoawal_view->Pager->PrevButton->Start ?>"><span class="icon-prev ewIcon"></span></a>
+	<?php } else { ?>
+	<a class="btn btn-default btn-sm disabled" title="<?php echo $Language->Phrase("PagerPrevious") ?>"><span class="icon-prev ewIcon"></span></a>
+	<?php } ?>
+</div>
+<!--current page number-->
+	<input class="form-control input-sm" type="text" name="<?php echo EW_TABLE_PAGE_NO ?>" value="<?php echo $saldoawal_view->Pager->CurrentPage ?>">
+<div class="input-group-btn">
+<!--next page button-->
+	<?php if ($saldoawal_view->Pager->NextButton->Enabled) { ?>
+	<a class="btn btn-default btn-sm" title="<?php echo $Language->Phrase("PagerNext") ?>" href="<?php echo $saldoawal_view->PageUrl() ?>start=<?php echo $saldoawal_view->Pager->NextButton->Start ?>"><span class="icon-next ewIcon"></span></a>
+	<?php } else { ?>
+	<a class="btn btn-default btn-sm disabled" title="<?php echo $Language->Phrase("PagerNext") ?>"><span class="icon-next ewIcon"></span></a>
+	<?php } ?>
+<!--last page button-->
+	<?php if ($saldoawal_view->Pager->LastButton->Enabled) { ?>
+	<a class="btn btn-default btn-sm" title="<?php echo $Language->Phrase("PagerLast") ?>" href="<?php echo $saldoawal_view->PageUrl() ?>start=<?php echo $saldoawal_view->Pager->LastButton->Start ?>"><span class="icon-last ewIcon"></span></a>
+	<?php } else { ?>
+	<a class="btn btn-default btn-sm disabled" title="<?php echo $Language->Phrase("PagerLast") ?>"><span class="icon-last ewIcon"></span></a>
+	<?php } ?>
+</div>
+</div>
+</div>
+<span>&nbsp;<?php echo $Language->Phrase("of") ?>&nbsp;<?php echo $saldoawal_view->Pager->PageCount ?></span>
+</div>
+<?php } ?>
+<div class="clearfix"></div>
+<?php } ?>
 </form>
 <script type="text/javascript">
 fsaldoawalview.Init();

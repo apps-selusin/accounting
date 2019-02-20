@@ -566,7 +566,27 @@ class ckurs_add extends ckurs {
 		$this->id->ViewCustomAttributes = "";
 
 		// matauang_id
-		$this->matauang_id->ViewValue = $this->matauang_id->CurrentValue;
+		if (strval($this->matauang_id->CurrentValue) <> "") {
+			$sFilterWrk = "`id`" . ew_SearchString("=", $this->matauang_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+		$sSqlWrk = "SELECT `id`, `nama` AS `DispFld`, `kode` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `matauang`";
+		$sWhereWrk = "";
+		$this->matauang_id->LookupFilters = array();
+		ew_AddFilter($sWhereWrk, $sFilterWrk);
+		$this->Lookup_Selecting($this->matauang_id, $sWhereWrk); // Call Lookup selecting
+		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			if ($rswrk && !$rswrk->EOF) { // Lookup values found
+				$arwrk = array();
+				$arwrk[1] = $rswrk->fields('DispFld');
+				$arwrk[2] = $rswrk->fields('Disp2Fld');
+				$this->matauang_id->ViewValue = $this->matauang_id->DisplayValue($arwrk);
+				$rswrk->Close();
+			} else {
+				$this->matauang_id->ViewValue = $this->matauang_id->CurrentValue;
+			}
+		} else {
+			$this->matauang_id->ViewValue = NULL;
+		}
 		$this->matauang_id->ViewCustomAttributes = "";
 
 		// tanggal
@@ -596,8 +616,21 @@ class ckurs_add extends ckurs {
 			// matauang_id
 			$this->matauang_id->EditAttrs["class"] = "form-control";
 			$this->matauang_id->EditCustomAttributes = "";
-			$this->matauang_id->EditValue = ew_HtmlEncode($this->matauang_id->CurrentValue);
-			$this->matauang_id->PlaceHolder = ew_RemoveHtml($this->matauang_id->FldCaption());
+			if (trim(strval($this->matauang_id->CurrentValue)) == "") {
+				$sFilterWrk = "0=1";
+			} else {
+				$sFilterWrk = "`id`" . ew_SearchString("=", $this->matauang_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+			}
+			$sSqlWrk = "SELECT `id`, `nama` AS `DispFld`, `kode` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld`, '' AS `SelectFilterFld`, '' AS `SelectFilterFld2`, '' AS `SelectFilterFld3`, '' AS `SelectFilterFld4` FROM `matauang`";
+			$sWhereWrk = "";
+			$this->matauang_id->LookupFilters = array();
+			ew_AddFilter($sWhereWrk, $sFilterWrk);
+			$this->Lookup_Selecting($this->matauang_id, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			$arwrk = ($rswrk) ? $rswrk->GetRows() : array();
+			if ($rswrk) $rswrk->Close();
+			$this->matauang_id->EditValue = $arwrk;
 
 			// tanggal
 			$this->tanggal->EditAttrs["class"] = "form-control";
@@ -646,9 +679,6 @@ class ckurs_add extends ckurs {
 		// Check if validation required
 		if (!EW_SERVER_VALIDATE)
 			return ($gsFormError == "");
-		if (!ew_CheckInteger($this->matauang_id->FormValue)) {
-			ew_AddMessage($gsFormError, $this->matauang_id->FldErrMsg());
-		}
 		if (!ew_CheckInteger($this->tanggal->FormValue)) {
 			ew_AddMessage($gsFormError, $this->tanggal->FldErrMsg());
 		}
@@ -733,6 +763,18 @@ class ckurs_add extends ckurs {
 		global $gsLanguage;
 		$pageId = $pageId ?: $this->PageID;
 		switch ($fld->FldVar) {
+		case "x_matauang_id":
+			$sSqlWrk = "";
+			$sSqlWrk = "SELECT `id` AS `LinkFld`, `nama` AS `DispFld`, `kode` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `matauang`";
+			$sWhereWrk = "";
+			$this->matauang_id->LookupFilters = array();
+			$fld->LookupFilters += array("s" => $sSqlWrk, "d" => "", "f0" => '`id` = {filter_value}', "t0" => "3", "fn0" => "");
+			$sSqlWrk = "";
+			$this->Lookup_Selecting($this->matauang_id, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			if ($sSqlWrk <> "")
+				$fld->LookupFilters["s"] .= $sSqlWrk;
+			break;
 		}
 	}
 
@@ -852,9 +894,6 @@ fkursadd.Validate = function() {
 	for (var i = startcnt; i <= rowcnt; i++) {
 		var infix = ($k[0]) ? String(i) : "";
 		$fobj.data("rowindex", infix);
-			elm = this.GetElements("x" + infix + "_matauang_id");
-			if (elm && !ew_CheckInteger(elm.value))
-				return this.OnError(elm, "<?php echo ew_JsEncode2($kurs->matauang_id->FldErrMsg()) ?>");
 			elm = this.GetElements("x" + infix + "_tanggal");
 			if (elm && !ew_CheckInteger(elm.value))
 				return this.OnError(elm, "<?php echo ew_JsEncode2($kurs->tanggal->FldErrMsg()) ?>");
@@ -894,8 +933,9 @@ fkursadd.ValidateRequired = false;
 <?php } ?>
 
 // Dynamic selection lists
-// Form object for search
+fkursadd.Lists["x_matauang_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_nama","x_kode","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"matauang"};
 
+// Form object for search
 </script>
 <script type="text/javascript">
 
@@ -927,7 +967,10 @@ $kurs_add->ShowMessage();
 		<label id="elh_kurs_matauang_id" for="x_matauang_id" class="col-sm-2 control-label ewLabel"><?php echo $kurs->matauang_id->FldCaption() ?></label>
 		<div class="col-sm-10"><div<?php echo $kurs->matauang_id->CellAttributes() ?>>
 <span id="el_kurs_matauang_id">
-<input type="text" data-table="kurs" data-field="x_matauang_id" name="x_matauang_id" id="x_matauang_id" size="30" placeholder="<?php echo ew_HtmlEncode($kurs->matauang_id->getPlaceHolder()) ?>" value="<?php echo $kurs->matauang_id->EditValue ?>"<?php echo $kurs->matauang_id->EditAttributes() ?>>
+<select data-table="kurs" data-field="x_matauang_id" data-value-separator="<?php echo $kurs->matauang_id->DisplayValueSeparatorAttribute() ?>" id="x_matauang_id" name="x_matauang_id"<?php echo $kurs->matauang_id->EditAttributes() ?>>
+<?php echo $kurs->matauang_id->SelectOptionListHtml("x_matauang_id") ?>
+</select>
+<input type="hidden" name="s_x_matauang_id" id="s_x_matauang_id" value="<?php echo $kurs->matauang_id->LookupFilterQuery() ?>">
 </span>
 <?php echo $kurs->matauang_id->CustomMsg ?></div></div>
 	</div>

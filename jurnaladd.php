@@ -6,6 +6,7 @@ ob_start(); // Turn on output buffering
 <?php include_once ((EW_USE_ADODB) ? "adodb5/adodb.inc.php" : "ewmysql13.php") ?>
 <?php include_once "phpfn13.php" ?>
 <?php include_once "jurnalinfo.php" ?>
+<?php include_once "jurnaldgridcls.php" ?>
 <?php include_once "userfn13.php" ?>
 <?php
 
@@ -276,6 +277,14 @@ class cjurnal_add extends cjurnal {
 
 		// Process auto fill
 		if (@$_POST["ajax"] == "autofill") {
+
+			// Process auto fill for detail table 'jurnald'
+			if (@$_POST["grid"] == "fjurnaldgrid") {
+				if (!isset($GLOBALS["jurnald_grid"])) $GLOBALS["jurnald_grid"] = new cjurnald_grid;
+				$GLOBALS["jurnald_grid"]->Page_Init();
+				$this->Page_Terminate();
+				exit();
+			}
 			$results = $this->GetAutoFill(@$_POST["name"], @$_POST["q"]);
 			if ($results) {
 
@@ -389,6 +398,9 @@ class cjurnal_add extends cjurnal {
 		// Set up Breadcrumb
 		$this->SetupBreadcrumb();
 
+		// Set up detail parameters
+		$this->SetUpDetailParms();
+
 		// Validate form if post back
 		if (@$_POST["a_add"] <> "") {
 			if (!$this->ValidateForm()) {
@@ -411,13 +423,19 @@ class cjurnal_add extends cjurnal {
 					if ($this->getFailureMessage() == "") $this->setFailureMessage($Language->Phrase("NoRecord")); // No record found
 					$this->Page_Terminate("jurnallist.php"); // No matching record, return to list
 				}
+
+				// Set up detail parameters
+				$this->SetUpDetailParms();
 				break;
 			case "A": // Add new record
 				$this->SendEmail = TRUE; // Send email on add success
 				if ($this->AddRow($this->OldRecordset)) { // Add successful
 					if ($this->getSuccessMessage() == "")
 						$this->setSuccessMessage($Language->Phrase("AddSuccess")); // Set up success message
-					$sReturnUrl = $this->getReturnUrl();
+					if ($this->getCurrentDetailTable() <> "") // Master/detail add
+						$sReturnUrl = $this->GetDetailUrl();
+					else
+						$sReturnUrl = $this->getReturnUrl();
 					if (ew_GetPageName($sReturnUrl) == "jurnallist.php")
 						$sReturnUrl = $this->AddMasterUrl($sReturnUrl); // List page, return to list page with correct master key if necessary
 					elseif (ew_GetPageName($sReturnUrl) == "jurnalview.php")
@@ -426,6 +444,9 @@ class cjurnal_add extends cjurnal {
 				} else {
 					$this->EventCancelled = TRUE; // Event cancelled
 					$this->RestoreFormValues(); // Add failed, restore form values
+
+					// Set up detail parameters
+					$this->SetUpDetailParms();
 				}
 		}
 
@@ -598,11 +619,50 @@ class cjurnal_add extends cjurnal {
 		$this->id->ViewCustomAttributes = "";
 
 		// tipejurnal_id
-		$this->tipejurnal_id->ViewValue = $this->tipejurnal_id->CurrentValue;
+		if (strval($this->tipejurnal_id->CurrentValue) <> "") {
+			$sFilterWrk = "`id`" . ew_SearchString("=", $this->tipejurnal_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+		$sSqlWrk = "SELECT `id`, `nama` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `tipejurnal`";
+		$sWhereWrk = "";
+		$this->tipejurnal_id->LookupFilters = array();
+		ew_AddFilter($sWhereWrk, $sFilterWrk);
+		$this->Lookup_Selecting($this->tipejurnal_id, $sWhereWrk); // Call Lookup selecting
+		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			if ($rswrk && !$rswrk->EOF) { // Lookup values found
+				$arwrk = array();
+				$arwrk[1] = $rswrk->fields('DispFld');
+				$this->tipejurnal_id->ViewValue = $this->tipejurnal_id->DisplayValue($arwrk);
+				$rswrk->Close();
+			} else {
+				$this->tipejurnal_id->ViewValue = $this->tipejurnal_id->CurrentValue;
+			}
+		} else {
+			$this->tipejurnal_id->ViewValue = NULL;
+		}
 		$this->tipejurnal_id->ViewCustomAttributes = "";
 
 		// period_id
-		$this->period_id->ViewValue = $this->period_id->CurrentValue;
+		if (strval($this->period_id->CurrentValue) <> "") {
+			$sFilterWrk = "`id`" . ew_SearchString("=", $this->period_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+		$sSqlWrk = "SELECT `id`, `start` AS `DispFld`, `end` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `periode`";
+		$sWhereWrk = "";
+		$this->period_id->LookupFilters = array("df1" => "7", "df2" => "7");
+		ew_AddFilter($sWhereWrk, $sFilterWrk);
+		$this->Lookup_Selecting($this->period_id, $sWhereWrk); // Call Lookup selecting
+		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			if ($rswrk && !$rswrk->EOF) { // Lookup values found
+				$arwrk = array();
+				$arwrk[1] = ew_FormatDateTime($rswrk->fields('DispFld'), 7);
+				$arwrk[2] = ew_FormatDateTime($rswrk->fields('Disp2Fld'), 7);
+				$this->period_id->ViewValue = $this->period_id->DisplayValue($arwrk);
+				$rswrk->Close();
+			} else {
+				$this->period_id->ViewValue = $this->period_id->CurrentValue;
+			}
+		} else {
+			$this->period_id->ViewValue = NULL;
+		}
 		$this->period_id->ViewCustomAttributes = "";
 
 		// createon
@@ -656,14 +716,45 @@ class cjurnal_add extends cjurnal {
 			// tipejurnal_id
 			$this->tipejurnal_id->EditAttrs["class"] = "form-control";
 			$this->tipejurnal_id->EditCustomAttributes = "";
-			$this->tipejurnal_id->EditValue = ew_HtmlEncode($this->tipejurnal_id->CurrentValue);
-			$this->tipejurnal_id->PlaceHolder = ew_RemoveHtml($this->tipejurnal_id->FldCaption());
+			if (trim(strval($this->tipejurnal_id->CurrentValue)) == "") {
+				$sFilterWrk = "0=1";
+			} else {
+				$sFilterWrk = "`id`" . ew_SearchString("=", $this->tipejurnal_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+			}
+			$sSqlWrk = "SELECT `id`, `nama` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld`, '' AS `SelectFilterFld`, '' AS `SelectFilterFld2`, '' AS `SelectFilterFld3`, '' AS `SelectFilterFld4` FROM `tipejurnal`";
+			$sWhereWrk = "";
+			$this->tipejurnal_id->LookupFilters = array();
+			ew_AddFilter($sWhereWrk, $sFilterWrk);
+			$this->Lookup_Selecting($this->tipejurnal_id, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			$arwrk = ($rswrk) ? $rswrk->GetRows() : array();
+			if ($rswrk) $rswrk->Close();
+			$this->tipejurnal_id->EditValue = $arwrk;
 
 			// period_id
 			$this->period_id->EditAttrs["class"] = "form-control";
 			$this->period_id->EditCustomAttributes = "";
-			$this->period_id->EditValue = ew_HtmlEncode($this->period_id->CurrentValue);
-			$this->period_id->PlaceHolder = ew_RemoveHtml($this->period_id->FldCaption());
+			if (trim(strval($this->period_id->CurrentValue)) == "") {
+				$sFilterWrk = "0=1";
+			} else {
+				$sFilterWrk = "`id`" . ew_SearchString("=", $this->period_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+			}
+			$sSqlWrk = "SELECT `id`, `start` AS `DispFld`, `end` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld`, '' AS `SelectFilterFld`, '' AS `SelectFilterFld2`, '' AS `SelectFilterFld3`, '' AS `SelectFilterFld4` FROM `periode`";
+			$sWhereWrk = "";
+			$this->period_id->LookupFilters = array("df1" => "7", "df2" => "7");
+			ew_AddFilter($sWhereWrk, $sFilterWrk);
+			$this->Lookup_Selecting($this->period_id, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			$arwrk = ($rswrk) ? $rswrk->GetRows() : array();
+			if ($rswrk) $rswrk->Close();
+			$rowswrk = count($arwrk);
+			for ($rowcntwrk = 0; $rowcntwrk < $rowswrk; $rowcntwrk++) {
+				$arwrk[$rowcntwrk][1] = ew_FormatDateTime($arwrk[$rowcntwrk][1], 7);
+				$arwrk[$rowcntwrk][2] = ew_FormatDateTime($arwrk[$rowcntwrk][2], 7);
+			}
+			$this->period_id->EditValue = $arwrk;
 
 			// createon
 			$this->createon->EditAttrs["class"] = "form-control";
@@ -736,17 +827,18 @@ class cjurnal_add extends cjurnal {
 		// Check if validation required
 		if (!EW_SERVER_VALIDATE)
 			return ($gsFormError == "");
-		if (!ew_CheckInteger($this->tipejurnal_id->FormValue)) {
-			ew_AddMessage($gsFormError, $this->tipejurnal_id->FldErrMsg());
-		}
-		if (!ew_CheckInteger($this->period_id->FormValue)) {
-			ew_AddMessage($gsFormError, $this->period_id->FldErrMsg());
-		}
 		if (!ew_CheckDateDef($this->createon->FormValue)) {
 			ew_AddMessage($gsFormError, $this->createon->FldErrMsg());
 		}
 		if (!ew_CheckInteger($this->person_id->FormValue)) {
 			ew_AddMessage($gsFormError, $this->person_id->FldErrMsg());
+		}
+
+		// Validate detail grid
+		$DetailTblVar = explode(",", $this->getCurrentDetailTable());
+		if (in_array("jurnald", $DetailTblVar) && $GLOBALS["jurnald"]->DetailAdd) {
+			if (!isset($GLOBALS["jurnald_grid"])) $GLOBALS["jurnald_grid"] = new cjurnald_grid(); // get detail page object
+			$GLOBALS["jurnald_grid"]->ValidateGridForm();
 		}
 
 		// Return validate result
@@ -765,6 +857,10 @@ class cjurnal_add extends cjurnal {
 	function AddRow($rsold = NULL) {
 		global $Language, $Security;
 		$conn = &$this->Connection();
+
+		// Begin transaction
+		if ($this->getCurrentDetailTable() <> "")
+			$conn->BeginTrans();
 
 		// Load db values from rsold
 		if ($rsold) {
@@ -811,6 +907,27 @@ class cjurnal_add extends cjurnal {
 			}
 			$AddRow = FALSE;
 		}
+
+		// Add detail records
+		if ($AddRow) {
+			$DetailTblVar = explode(",", $this->getCurrentDetailTable());
+			if (in_array("jurnald", $DetailTblVar) && $GLOBALS["jurnald"]->DetailAdd) {
+				$GLOBALS["jurnald"]->jurnal_id->setSessionValue($this->id->CurrentValue); // Set master key
+				if (!isset($GLOBALS["jurnald_grid"])) $GLOBALS["jurnald_grid"] = new cjurnald_grid(); // Get detail page object
+				$AddRow = $GLOBALS["jurnald_grid"]->GridInsert();
+				if (!$AddRow)
+					$GLOBALS["jurnald"]->jurnal_id->setSessionValue(""); // Clear master key if insert failed
+			}
+		}
+
+		// Commit/Rollback transaction
+		if ($this->getCurrentDetailTable() <> "") {
+			if ($AddRow) {
+				$conn->CommitTrans(); // Commit transaction
+			} else {
+				$conn->RollbackTrans(); // Rollback transaction
+			}
+		}
 		if ($AddRow) {
 
 			// Call Row Inserted event
@@ -818,6 +935,39 @@ class cjurnal_add extends cjurnal {
 			$this->Row_Inserted($rs, $rsnew);
 		}
 		return $AddRow;
+	}
+
+	// Set up detail parms based on QueryString
+	function SetUpDetailParms() {
+
+		// Get the keys for master table
+		if (isset($_GET[EW_TABLE_SHOW_DETAIL])) {
+			$sDetailTblVar = $_GET[EW_TABLE_SHOW_DETAIL];
+			$this->setCurrentDetailTable($sDetailTblVar);
+		} else {
+			$sDetailTblVar = $this->getCurrentDetailTable();
+		}
+		if ($sDetailTblVar <> "") {
+			$DetailTblVar = explode(",", $sDetailTblVar);
+			if (in_array("jurnald", $DetailTblVar)) {
+				if (!isset($GLOBALS["jurnald_grid"]))
+					$GLOBALS["jurnald_grid"] = new cjurnald_grid;
+				if ($GLOBALS["jurnald_grid"]->DetailAdd) {
+					if ($this->CopyRecord)
+						$GLOBALS["jurnald_grid"]->CurrentMode = "copy";
+					else
+						$GLOBALS["jurnald_grid"]->CurrentMode = "add";
+					$GLOBALS["jurnald_grid"]->CurrentAction = "gridadd";
+
+					// Save current master table to detail table
+					$GLOBALS["jurnald_grid"]->setCurrentMasterTable($this->TableVar);
+					$GLOBALS["jurnald_grid"]->setStartRecordNumber(1);
+					$GLOBALS["jurnald_grid"]->jurnal_id->FldIsDetailKey = TRUE;
+					$GLOBALS["jurnald_grid"]->jurnal_id->CurrentValue = $this->id->CurrentValue;
+					$GLOBALS["jurnald_grid"]->jurnal_id->setSessionValue($GLOBALS["jurnald_grid"]->jurnal_id->CurrentValue);
+				}
+			}
+		}
 	}
 
 	// Set up Breadcrumb
@@ -835,6 +985,30 @@ class cjurnal_add extends cjurnal {
 		global $gsLanguage;
 		$pageId = $pageId ?: $this->PageID;
 		switch ($fld->FldVar) {
+		case "x_tipejurnal_id":
+			$sSqlWrk = "";
+			$sSqlWrk = "SELECT `id` AS `LinkFld`, `nama` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `tipejurnal`";
+			$sWhereWrk = "";
+			$this->tipejurnal_id->LookupFilters = array();
+			$fld->LookupFilters += array("s" => $sSqlWrk, "d" => "", "f0" => '`id` = {filter_value}', "t0" => "3", "fn0" => "");
+			$sSqlWrk = "";
+			$this->Lookup_Selecting($this->tipejurnal_id, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			if ($sSqlWrk <> "")
+				$fld->LookupFilters["s"] .= $sSqlWrk;
+			break;
+		case "x_period_id":
+			$sSqlWrk = "";
+			$sSqlWrk = "SELECT `id` AS `LinkFld`, `start` AS `DispFld`, `end` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `periode`";
+			$sWhereWrk = "";
+			$this->period_id->LookupFilters = array("df1" => "7", "df2" => "7");
+			$fld->LookupFilters += array("s" => $sSqlWrk, "d" => "", "f0" => '`id` = {filter_value}', "t0" => "3", "fn0" => "");
+			$sSqlWrk = "";
+			$this->Lookup_Selecting($this->period_id, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			if ($sSqlWrk <> "")
+				$fld->LookupFilters["s"] .= $sSqlWrk;
+			break;
 		}
 	}
 
@@ -954,12 +1128,6 @@ fjurnaladd.Validate = function() {
 	for (var i = startcnt; i <= rowcnt; i++) {
 		var infix = ($k[0]) ? String(i) : "";
 		$fobj.data("rowindex", infix);
-			elm = this.GetElements("x" + infix + "_tipejurnal_id");
-			if (elm && !ew_CheckInteger(elm.value))
-				return this.OnError(elm, "<?php echo ew_JsEncode2($jurnal->tipejurnal_id->FldErrMsg()) ?>");
-			elm = this.GetElements("x" + infix + "_period_id");
-			if (elm && !ew_CheckInteger(elm.value))
-				return this.OnError(elm, "<?php echo ew_JsEncode2($jurnal->period_id->FldErrMsg()) ?>");
 			elm = this.GetElements("x" + infix + "_createon");
 			if (elm && !ew_CheckDateDef(elm.value))
 				return this.OnError(elm, "<?php echo ew_JsEncode2($jurnal->createon->FldErrMsg()) ?>");
@@ -999,8 +1167,10 @@ fjurnaladd.ValidateRequired = false;
 <?php } ?>
 
 // Dynamic selection lists
-// Form object for search
+fjurnaladd.Lists["x_tipejurnal_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_nama","","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"tipejurnal"};
+fjurnaladd.Lists["x_period_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_start","x_end","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"periode"};
 
+// Form object for search
 </script>
 <script type="text/javascript">
 
@@ -1032,7 +1202,10 @@ $jurnal_add->ShowMessage();
 		<label id="elh_jurnal_tipejurnal_id" for="x_tipejurnal_id" class="col-sm-2 control-label ewLabel"><?php echo $jurnal->tipejurnal_id->FldCaption() ?></label>
 		<div class="col-sm-10"><div<?php echo $jurnal->tipejurnal_id->CellAttributes() ?>>
 <span id="el_jurnal_tipejurnal_id">
-<input type="text" data-table="jurnal" data-field="x_tipejurnal_id" name="x_tipejurnal_id" id="x_tipejurnal_id" size="30" placeholder="<?php echo ew_HtmlEncode($jurnal->tipejurnal_id->getPlaceHolder()) ?>" value="<?php echo $jurnal->tipejurnal_id->EditValue ?>"<?php echo $jurnal->tipejurnal_id->EditAttributes() ?>>
+<select data-table="jurnal" data-field="x_tipejurnal_id" data-value-separator="<?php echo $jurnal->tipejurnal_id->DisplayValueSeparatorAttribute() ?>" id="x_tipejurnal_id" name="x_tipejurnal_id"<?php echo $jurnal->tipejurnal_id->EditAttributes() ?>>
+<?php echo $jurnal->tipejurnal_id->SelectOptionListHtml("x_tipejurnal_id") ?>
+</select>
+<input type="hidden" name="s_x_tipejurnal_id" id="s_x_tipejurnal_id" value="<?php echo $jurnal->tipejurnal_id->LookupFilterQuery() ?>">
 </span>
 <?php echo $jurnal->tipejurnal_id->CustomMsg ?></div></div>
 	</div>
@@ -1042,7 +1215,10 @@ $jurnal_add->ShowMessage();
 		<label id="elh_jurnal_period_id" for="x_period_id" class="col-sm-2 control-label ewLabel"><?php echo $jurnal->period_id->FldCaption() ?></label>
 		<div class="col-sm-10"><div<?php echo $jurnal->period_id->CellAttributes() ?>>
 <span id="el_jurnal_period_id">
-<input type="text" data-table="jurnal" data-field="x_period_id" name="x_period_id" id="x_period_id" size="30" placeholder="<?php echo ew_HtmlEncode($jurnal->period_id->getPlaceHolder()) ?>" value="<?php echo $jurnal->period_id->EditValue ?>"<?php echo $jurnal->period_id->EditAttributes() ?>>
+<select data-table="jurnal" data-field="x_period_id" data-value-separator="<?php echo $jurnal->period_id->DisplayValueSeparatorAttribute() ?>" id="x_period_id" name="x_period_id"<?php echo $jurnal->period_id->EditAttributes() ?>>
+<?php echo $jurnal->period_id->SelectOptionListHtml("x_period_id") ?>
+</select>
+<input type="hidden" name="s_x_period_id" id="s_x_period_id" value="<?php echo $jurnal->period_id->LookupFilterQuery() ?>">
 </span>
 <?php echo $jurnal->period_id->CustomMsg ?></div></div>
 	</div>
@@ -1088,6 +1264,14 @@ $jurnal_add->ShowMessage();
 	</div>
 <?php } ?>
 </div>
+<?php
+	if (in_array("jurnald", explode(",", $jurnal->getCurrentDetailTable())) && $jurnald->DetailAdd) {
+?>
+<?php if ($jurnal->getCurrentDetailTable() <> "") { ?>
+<h4 class="ewDetailCaption"><?php echo $Language->TablePhrase("jurnald", "TblCaption") ?></h4>
+<?php } ?>
+<?php include_once "jurnaldgrid.php" ?>
+<?php } ?>
 <?php if (!$jurnal_add->IsModal) { ?>
 <div class="form-group">
 	<div class="col-sm-offset-2 col-sm-10">

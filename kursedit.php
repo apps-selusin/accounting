@@ -254,8 +254,6 @@ class ckurs_edit extends ckurs {
 		// Create form object
 		$objForm = new cFormObj();
 		$this->CurrentAction = (@$_GET["a"] <> "") ? $_GET["a"] : @$_POST["a_list"]; // Set up current action
-		$this->id->SetVisibility();
-		$this->id->Visible = !$this->IsAdd() && !$this->IsCopy() && !$this->IsGridAdd();
 		$this->matauang_id->SetVisibility();
 		$this->tanggal->SetVisibility();
 		$this->nilai->SetVisibility();
@@ -345,6 +343,15 @@ class ckurs_edit extends ckurs {
 	var $IsModal = FALSE;
 	var $DbMasterFilter;
 	var $DbDetailFilter;
+	var $DisplayRecs = 1;
+	var $StartRec;
+	var $StopRec;
+	var $TotalRecs = 0;
+	var $RecRange = 10;
+	var $Pager;
+	var $RecCnt;
+	var $RecKey = array();
+	var $Recordset;
 
 	// 
 	// Page main
@@ -358,9 +365,46 @@ class ckurs_edit extends ckurs {
 		if ($this->IsModal)
 			$gbSkipHeaderFooter = TRUE;
 
+		// Load current record
+		$bLoadCurrentRecord = FALSE;
+		$sReturnUrl = "";
+		$bMatchRecord = FALSE;
+
 		// Load key from QueryString
 		if (@$_GET["id"] <> "") {
 			$this->id->setQueryStringValue($_GET["id"]);
+			$this->RecKey["id"] = $this->id->QueryStringValue;
+		} else {
+			$bLoadCurrentRecord = TRUE;
+		}
+
+		// Load recordset
+		$this->StartRec = 1; // Initialize start position
+		if ($this->Recordset = $this->LoadRecordset()) // Load records
+			$this->TotalRecs = $this->Recordset->RecordCount(); // Get record count
+		if ($this->TotalRecs <= 0) { // No record found
+			if ($this->getSuccessMessage() == "" && $this->getFailureMessage() == "")
+				$this->setFailureMessage($Language->Phrase("NoRecord")); // Set no record message
+			$this->Page_Terminate("kurslist.php"); // Return to list page
+		} elseif ($bLoadCurrentRecord) { // Load current record position
+			$this->SetUpStartRec(); // Set up start record position
+
+			// Point to current record
+			if (intval($this->StartRec) <= intval($this->TotalRecs)) {
+				$bMatchRecord = TRUE;
+				$this->Recordset->Move($this->StartRec-1);
+			}
+		} else { // Match key values
+			while (!$this->Recordset->EOF) {
+				if (strval($this->id->CurrentValue) == strval($this->Recordset->fields('id'))) {
+					$this->setStartRecordNumber($this->StartRec); // Save record position
+					$bMatchRecord = TRUE;
+					break;
+				} else {
+					$this->StartRec++;
+					$this->Recordset->MoveNext();
+				}
+			}
 		}
 
 		// Process form if post back
@@ -369,11 +413,6 @@ class ckurs_edit extends ckurs {
 			$this->LoadFormValues(); // Get form values
 		} else {
 			$this->CurrentAction = "I"; // Default action is display
-		}
-
-		// Check if valid key
-		if ($this->id->CurrentValue == "") {
-			$this->Page_Terminate("kurslist.php"); // Invalid key, return to list
 		}
 
 		// Validate form if post back
@@ -387,9 +426,12 @@ class ckurs_edit extends ckurs {
 		}
 		switch ($this->CurrentAction) {
 			case "I": // Get a record to display
-				if (!$this->LoadRow()) { // Load record based on key
-					if ($this->getFailureMessage() == "") $this->setFailureMessage($Language->Phrase("NoRecord")); // No record found
-					$this->Page_Terminate("kurslist.php"); // No matching record, return to list
+				if (!$bMatchRecord) {
+					if ($this->getSuccessMessage() == "" && $this->getFailureMessage() == "")
+						$this->setFailureMessage($Language->Phrase("NoRecord")); // Set no record message
+					$this->Page_Terminate("kurslist.php"); // Return to list page
+				} else {
+					$this->LoadRowValues($this->Recordset); // Load row values
 				}
 				break;
 			Case "U": // Update
@@ -466,8 +508,6 @@ class ckurs_edit extends ckurs {
 
 		// Load from form
 		global $objForm;
-		if (!$this->id->FldIsDetailKey)
-			$this->id->setFormValue($objForm->GetValue("x_id"));
 		if (!$this->matauang_id->FldIsDetailKey) {
 			$this->matauang_id->setFormValue($objForm->GetValue("x_matauang_id"));
 		}
@@ -477,6 +517,8 @@ class ckurs_edit extends ckurs {
 		if (!$this->nilai->FldIsDetailKey) {
 			$this->nilai->setFormValue($objForm->GetValue("x_nilai"));
 		}
+		if (!$this->id->FldIsDetailKey)
+			$this->id->setFormValue($objForm->GetValue("x_id"));
 	}
 
 	// Restore form values
@@ -487,6 +529,32 @@ class ckurs_edit extends ckurs {
 		$this->matauang_id->CurrentValue = $this->matauang_id->FormValue;
 		$this->tanggal->CurrentValue = $this->tanggal->FormValue;
 		$this->nilai->CurrentValue = $this->nilai->FormValue;
+	}
+
+	// Load recordset
+	function LoadRecordset($offset = -1, $rowcnt = -1) {
+
+		// Load List page SQL
+		$sSql = $this->SelectSQL();
+		$conn = &$this->Connection();
+
+		// Load recordset
+		$dbtype = ew_GetConnectionType($this->DBID);
+		if ($this->UseSelectLimit) {
+			$conn->raiseErrorFn = $GLOBALS["EW_ERROR_FN"];
+			if ($dbtype == "MSSQL") {
+				$rs = $conn->SelectLimit($sSql, $rowcnt, $offset, array("_hasOrderBy" => trim($this->getOrderBy()) || trim($this->getSessionOrderBy())));
+			} else {
+				$rs = $conn->SelectLimit($sSql, $rowcnt, $offset);
+			}
+			$conn->raiseErrorFn = '';
+		} else {
+			$rs = ew_LoadRecordset($sSql, $conn);
+		}
+
+		// Call Recordset Selected event
+		$this->Recordset_Selected($rs);
+		return $rs;
 	}
 
 	// Load row based on key values
@@ -556,7 +624,27 @@ class ckurs_edit extends ckurs {
 		$this->id->ViewCustomAttributes = "";
 
 		// matauang_id
-		$this->matauang_id->ViewValue = $this->matauang_id->CurrentValue;
+		if (strval($this->matauang_id->CurrentValue) <> "") {
+			$sFilterWrk = "`id`" . ew_SearchString("=", $this->matauang_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+		$sSqlWrk = "SELECT `id`, `nama` AS `DispFld`, `kode` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `matauang`";
+		$sWhereWrk = "";
+		$this->matauang_id->LookupFilters = array();
+		ew_AddFilter($sWhereWrk, $sFilterWrk);
+		$this->Lookup_Selecting($this->matauang_id, $sWhereWrk); // Call Lookup selecting
+		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			if ($rswrk && !$rswrk->EOF) { // Lookup values found
+				$arwrk = array();
+				$arwrk[1] = $rswrk->fields('DispFld');
+				$arwrk[2] = $rswrk->fields('Disp2Fld');
+				$this->matauang_id->ViewValue = $this->matauang_id->DisplayValue($arwrk);
+				$rswrk->Close();
+			} else {
+				$this->matauang_id->ViewValue = $this->matauang_id->CurrentValue;
+			}
+		} else {
+			$this->matauang_id->ViewValue = NULL;
+		}
 		$this->matauang_id->ViewCustomAttributes = "";
 
 		// tanggal
@@ -566,11 +654,6 @@ class ckurs_edit extends ckurs {
 		// nilai
 		$this->nilai->ViewValue = $this->nilai->CurrentValue;
 		$this->nilai->ViewCustomAttributes = "";
-
-			// id
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-			$this->id->TooltipValue = "";
 
 			// matauang_id
 			$this->matauang_id->LinkCustomAttributes = "";
@@ -588,17 +671,24 @@ class ckurs_edit extends ckurs {
 			$this->nilai->TooltipValue = "";
 		} elseif ($this->RowType == EW_ROWTYPE_EDIT) { // Edit row
 
-			// id
-			$this->id->EditAttrs["class"] = "form-control";
-			$this->id->EditCustomAttributes = "";
-			$this->id->EditValue = $this->id->CurrentValue;
-			$this->id->ViewCustomAttributes = "";
-
 			// matauang_id
 			$this->matauang_id->EditAttrs["class"] = "form-control";
 			$this->matauang_id->EditCustomAttributes = "";
-			$this->matauang_id->EditValue = ew_HtmlEncode($this->matauang_id->CurrentValue);
-			$this->matauang_id->PlaceHolder = ew_RemoveHtml($this->matauang_id->FldCaption());
+			if (trim(strval($this->matauang_id->CurrentValue)) == "") {
+				$sFilterWrk = "0=1";
+			} else {
+				$sFilterWrk = "`id`" . ew_SearchString("=", $this->matauang_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+			}
+			$sSqlWrk = "SELECT `id`, `nama` AS `DispFld`, `kode` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld`, '' AS `SelectFilterFld`, '' AS `SelectFilterFld2`, '' AS `SelectFilterFld3`, '' AS `SelectFilterFld4` FROM `matauang`";
+			$sWhereWrk = "";
+			$this->matauang_id->LookupFilters = array();
+			ew_AddFilter($sWhereWrk, $sFilterWrk);
+			$this->Lookup_Selecting($this->matauang_id, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			$arwrk = ($rswrk) ? $rswrk->GetRows() : array();
+			if ($rswrk) $rswrk->Close();
+			$this->matauang_id->EditValue = $arwrk;
 
 			// tanggal
 			$this->tanggal->EditAttrs["class"] = "form-control";
@@ -613,12 +703,8 @@ class ckurs_edit extends ckurs {
 			$this->nilai->PlaceHolder = ew_RemoveHtml($this->nilai->FldCaption());
 
 			// Edit refer script
-			// id
-
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-
 			// matauang_id
+
 			$this->matauang_id->LinkCustomAttributes = "";
 			$this->matauang_id->HrefValue = "";
 
@@ -651,9 +737,6 @@ class ckurs_edit extends ckurs {
 		// Check if validation required
 		if (!EW_SERVER_VALIDATE)
 			return ($gsFormError == "");
-		if (!ew_CheckInteger($this->matauang_id->FormValue)) {
-			ew_AddMessage($gsFormError, $this->matauang_id->FldErrMsg());
-		}
 		if (!ew_CheckInteger($this->tanggal->FormValue)) {
 			ew_AddMessage($gsFormError, $this->tanggal->FldErrMsg());
 		}
@@ -752,6 +835,18 @@ class ckurs_edit extends ckurs {
 		global $gsLanguage;
 		$pageId = $pageId ?: $this->PageID;
 		switch ($fld->FldVar) {
+		case "x_matauang_id":
+			$sSqlWrk = "";
+			$sSqlWrk = "SELECT `id` AS `LinkFld`, `nama` AS `DispFld`, `kode` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `matauang`";
+			$sWhereWrk = "";
+			$this->matauang_id->LookupFilters = array();
+			$fld->LookupFilters += array("s" => $sSqlWrk, "d" => "", "f0" => '`id` = {filter_value}', "t0" => "3", "fn0" => "");
+			$sSqlWrk = "";
+			$this->Lookup_Selecting($this->matauang_id, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			if ($sSqlWrk <> "")
+				$fld->LookupFilters["s"] .= $sSqlWrk;
+			break;
 		}
 	}
 
@@ -871,9 +966,6 @@ fkursedit.Validate = function() {
 	for (var i = startcnt; i <= rowcnt; i++) {
 		var infix = ($k[0]) ? String(i) : "";
 		$fobj.data("rowindex", infix);
-			elm = this.GetElements("x" + infix + "_matauang_id");
-			if (elm && !ew_CheckInteger(elm.value))
-				return this.OnError(elm, "<?php echo ew_JsEncode2($kurs->matauang_id->FldErrMsg()) ?>");
 			elm = this.GetElements("x" + infix + "_tanggal");
 			if (elm && !ew_CheckInteger(elm.value))
 				return this.OnError(elm, "<?php echo ew_JsEncode2($kurs->tanggal->FldErrMsg()) ?>");
@@ -913,8 +1005,9 @@ fkursedit.ValidateRequired = false;
 <?php } ?>
 
 // Dynamic selection lists
-// Form object for search
+fkursedit.Lists["x_matauang_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_nama","x_kode","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"matauang"};
 
+// Form object for search
 </script>
 <script type="text/javascript">
 
@@ -941,24 +1034,15 @@ $kurs_edit->ShowMessage();
 <input type="hidden" name="modal" value="1">
 <?php } ?>
 <div>
-<?php if ($kurs->id->Visible) { // id ?>
-	<div id="r_id" class="form-group">
-		<label id="elh_kurs_id" class="col-sm-2 control-label ewLabel"><?php echo $kurs->id->FldCaption() ?></label>
-		<div class="col-sm-10"><div<?php echo $kurs->id->CellAttributes() ?>>
-<span id="el_kurs_id">
-<span<?php echo $kurs->id->ViewAttributes() ?>>
-<p class="form-control-static"><?php echo $kurs->id->EditValue ?></p></span>
-</span>
-<input type="hidden" data-table="kurs" data-field="x_id" name="x_id" id="x_id" value="<?php echo ew_HtmlEncode($kurs->id->CurrentValue) ?>">
-<?php echo $kurs->id->CustomMsg ?></div></div>
-	</div>
-<?php } ?>
 <?php if ($kurs->matauang_id->Visible) { // matauang_id ?>
 	<div id="r_matauang_id" class="form-group">
 		<label id="elh_kurs_matauang_id" for="x_matauang_id" class="col-sm-2 control-label ewLabel"><?php echo $kurs->matauang_id->FldCaption() ?></label>
 		<div class="col-sm-10"><div<?php echo $kurs->matauang_id->CellAttributes() ?>>
 <span id="el_kurs_matauang_id">
-<input type="text" data-table="kurs" data-field="x_matauang_id" name="x_matauang_id" id="x_matauang_id" size="30" placeholder="<?php echo ew_HtmlEncode($kurs->matauang_id->getPlaceHolder()) ?>" value="<?php echo $kurs->matauang_id->EditValue ?>"<?php echo $kurs->matauang_id->EditAttributes() ?>>
+<select data-table="kurs" data-field="x_matauang_id" data-value-separator="<?php echo $kurs->matauang_id->DisplayValueSeparatorAttribute() ?>" id="x_matauang_id" name="x_matauang_id"<?php echo $kurs->matauang_id->EditAttributes() ?>>
+<?php echo $kurs->matauang_id->SelectOptionListHtml("x_matauang_id") ?>
+</select>
+<input type="hidden" name="s_x_matauang_id" id="s_x_matauang_id" value="<?php echo $kurs->matauang_id->LookupFilterQuery() ?>">
 </span>
 <?php echo $kurs->matauang_id->CustomMsg ?></div></div>
 	</div>
@@ -984,6 +1068,7 @@ $kurs_edit->ShowMessage();
 	</div>
 <?php } ?>
 </div>
+<input type="hidden" data-table="kurs" data-field="x_id" name="x_id" id="x_id" value="<?php echo ew_HtmlEncode($kurs->id->CurrentValue) ?>">
 <?php if (!$kurs_edit->IsModal) { ?>
 <div class="form-group">
 	<div class="col-sm-offset-2 col-sm-10">
@@ -991,6 +1076,47 @@ $kurs_edit->ShowMessage();
 <button class="btn btn-default ewButton" name="btnCancel" id="btnCancel" type="button" data-href="<?php echo $kurs_edit->getReturnUrl() ?>"><?php echo $Language->Phrase("CancelBtn") ?></button>
 	</div>
 </div>
+<?php if (!isset($kurs_edit->Pager)) $kurs_edit->Pager = new cPrevNextPager($kurs_edit->StartRec, $kurs_edit->DisplayRecs, $kurs_edit->TotalRecs) ?>
+<?php if ($kurs_edit->Pager->RecordCount > 0 && $kurs_edit->Pager->Visible) { ?>
+<div class="ewPager">
+<span><?php echo $Language->Phrase("Page") ?>&nbsp;</span>
+<div class="ewPrevNext"><div class="input-group">
+<div class="input-group-btn">
+<!--first page button-->
+	<?php if ($kurs_edit->Pager->FirstButton->Enabled) { ?>
+	<a class="btn btn-default btn-sm" title="<?php echo $Language->Phrase("PagerFirst") ?>" href="<?php echo $kurs_edit->PageUrl() ?>start=<?php echo $kurs_edit->Pager->FirstButton->Start ?>"><span class="icon-first ewIcon"></span></a>
+	<?php } else { ?>
+	<a class="btn btn-default btn-sm disabled" title="<?php echo $Language->Phrase("PagerFirst") ?>"><span class="icon-first ewIcon"></span></a>
+	<?php } ?>
+<!--previous page button-->
+	<?php if ($kurs_edit->Pager->PrevButton->Enabled) { ?>
+	<a class="btn btn-default btn-sm" title="<?php echo $Language->Phrase("PagerPrevious") ?>" href="<?php echo $kurs_edit->PageUrl() ?>start=<?php echo $kurs_edit->Pager->PrevButton->Start ?>"><span class="icon-prev ewIcon"></span></a>
+	<?php } else { ?>
+	<a class="btn btn-default btn-sm disabled" title="<?php echo $Language->Phrase("PagerPrevious") ?>"><span class="icon-prev ewIcon"></span></a>
+	<?php } ?>
+</div>
+<!--current page number-->
+	<input class="form-control input-sm" type="text" name="<?php echo EW_TABLE_PAGE_NO ?>" value="<?php echo $kurs_edit->Pager->CurrentPage ?>">
+<div class="input-group-btn">
+<!--next page button-->
+	<?php if ($kurs_edit->Pager->NextButton->Enabled) { ?>
+	<a class="btn btn-default btn-sm" title="<?php echo $Language->Phrase("PagerNext") ?>" href="<?php echo $kurs_edit->PageUrl() ?>start=<?php echo $kurs_edit->Pager->NextButton->Start ?>"><span class="icon-next ewIcon"></span></a>
+	<?php } else { ?>
+	<a class="btn btn-default btn-sm disabled" title="<?php echo $Language->Phrase("PagerNext") ?>"><span class="icon-next ewIcon"></span></a>
+	<?php } ?>
+<!--last page button-->
+	<?php if ($kurs_edit->Pager->LastButton->Enabled) { ?>
+	<a class="btn btn-default btn-sm" title="<?php echo $Language->Phrase("PagerLast") ?>" href="<?php echo $kurs_edit->PageUrl() ?>start=<?php echo $kurs_edit->Pager->LastButton->Start ?>"><span class="icon-last ewIcon"></span></a>
+	<?php } else { ?>
+	<a class="btn btn-default btn-sm disabled" title="<?php echo $Language->Phrase("PagerLast") ?>"><span class="icon-last ewIcon"></span></a>
+	<?php } ?>
+</div>
+</div>
+</div>
+<span>&nbsp;<?php echo $Language->Phrase("of") ?>&nbsp;<?php echo $kurs_edit->Pager->PageCount ?></span>
+</div>
+<?php } ?>
+<div class="clearfix"></div>
 <?php } ?>
 </form>
 <script type="text/javascript">

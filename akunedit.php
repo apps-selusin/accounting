@@ -254,12 +254,10 @@ class cakun_edit extends cakun {
 		// Create form object
 		$objForm = new cFormObj();
 		$this->CurrentAction = (@$_GET["a"] <> "") ? $_GET["a"] : @$_POST["a_list"]; // Set up current action
-		$this->id->SetVisibility();
-		$this->id->Visible = !$this->IsAdd() && !$this->IsCopy() && !$this->IsGridAdd();
+		$this->group_id->SetVisibility();
+		$this->subgrup_id->SetVisibility();
 		$this->kode->SetVisibility();
 		$this->nama->SetVisibility();
-		$this->subgrup_id->SetVisibility();
-		$this->user_id->SetVisibility();
 		$this->matauang_id->SetVisibility();
 
 		// Global Page Loading event (in userfn*.php)
@@ -512,23 +510,23 @@ class cakun_edit extends cakun {
 
 		// Load from form
 		global $objForm;
-		if (!$this->id->FldIsDetailKey)
-			$this->id->setFormValue($objForm->GetValue("x_id"));
+		if (!$this->group_id->FldIsDetailKey) {
+			$this->group_id->setFormValue($objForm->GetValue("x_group_id"));
+		}
+		if (!$this->subgrup_id->FldIsDetailKey) {
+			$this->subgrup_id->setFormValue($objForm->GetValue("x_subgrup_id"));
+		}
 		if (!$this->kode->FldIsDetailKey) {
 			$this->kode->setFormValue($objForm->GetValue("x_kode"));
 		}
 		if (!$this->nama->FldIsDetailKey) {
 			$this->nama->setFormValue($objForm->GetValue("x_nama"));
 		}
-		if (!$this->subgrup_id->FldIsDetailKey) {
-			$this->subgrup_id->setFormValue($objForm->GetValue("x_subgrup_id"));
-		}
-		if (!$this->user_id->FldIsDetailKey) {
-			$this->user_id->setFormValue($objForm->GetValue("x_user_id"));
-		}
 		if (!$this->matauang_id->FldIsDetailKey) {
 			$this->matauang_id->setFormValue($objForm->GetValue("x_matauang_id"));
 		}
+		if (!$this->id->FldIsDetailKey)
+			$this->id->setFormValue($objForm->GetValue("x_id"));
 	}
 
 	// Restore form values
@@ -536,10 +534,10 @@ class cakun_edit extends cakun {
 		global $objForm;
 		$this->LoadRow();
 		$this->id->CurrentValue = $this->id->FormValue;
+		$this->group_id->CurrentValue = $this->group_id->FormValue;
+		$this->subgrup_id->CurrentValue = $this->subgrup_id->FormValue;
 		$this->kode->CurrentValue = $this->kode->FormValue;
 		$this->nama->CurrentValue = $this->nama->FormValue;
-		$this->subgrup_id->CurrentValue = $this->subgrup_id->FormValue;
-		$this->user_id->CurrentValue = $this->user_id->FormValue;
 		$this->matauang_id->CurrentValue = $this->matauang_id->FormValue;
 	}
 
@@ -599,9 +597,10 @@ class cakun_edit extends cakun {
 		$row = &$rs->fields;
 		$this->Row_Selected($row);
 		$this->id->setDbValue($rs->fields('id'));
+		$this->group_id->setDbValue($rs->fields('group_id'));
+		$this->subgrup_id->setDbValue($rs->fields('subgrup_id'));
 		$this->kode->setDbValue($rs->fields('kode'));
 		$this->nama->setDbValue($rs->fields('nama'));
-		$this->subgrup_id->setDbValue($rs->fields('subgrup_id'));
 		$this->user_id->setDbValue($rs->fields('user_id'));
 		$this->matauang_id->setDbValue($rs->fields('matauang_id'));
 	}
@@ -611,9 +610,10 @@ class cakun_edit extends cakun {
 		if (!$rs || !is_array($rs) && $rs->EOF) return;
 		$row = is_array($rs) ? $rs : $rs->fields;
 		$this->id->DbValue = $row['id'];
+		$this->group_id->DbValue = $row['group_id'];
+		$this->subgrup_id->DbValue = $row['subgrup_id'];
 		$this->kode->DbValue = $row['kode'];
 		$this->nama->DbValue = $row['nama'];
-		$this->subgrup_id->DbValue = $row['subgrup_id'];
 		$this->user_id->DbValue = $row['user_id'];
 		$this->matauang_id->DbValue = $row['matauang_id'];
 	}
@@ -629,9 +629,10 @@ class cakun_edit extends cakun {
 
 		// Common render codes for all row types
 		// id
+		// group_id
+		// subgrup_id
 		// kode
 		// nama
-		// subgrup_id
 		// user_id
 		// matauang_id
 
@@ -641,18 +642,33 @@ class cakun_edit extends cakun {
 		$this->id->ViewValue = $this->id->CurrentValue;
 		$this->id->ViewCustomAttributes = "";
 
-		// kode
-		$this->kode->ViewValue = $this->kode->CurrentValue;
-		$this->kode->ViewCustomAttributes = "";
-
-		// nama
-		$this->nama->ViewValue = $this->nama->CurrentValue;
-		$this->nama->ViewCustomAttributes = "";
+		// group_id
+		if (strval($this->group_id->CurrentValue) <> "") {
+			$sFilterWrk = "`id`" . ew_SearchString("=", $this->group_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+		$sSqlWrk = "SELECT `id`, `name` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `grup`";
+		$sWhereWrk = "";
+		$this->group_id->LookupFilters = array();
+		ew_AddFilter($sWhereWrk, $sFilterWrk);
+		$this->Lookup_Selecting($this->group_id, $sWhereWrk); // Call Lookup selecting
+		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			if ($rswrk && !$rswrk->EOF) { // Lookup values found
+				$arwrk = array();
+				$arwrk[1] = $rswrk->fields('DispFld');
+				$this->group_id->ViewValue = $this->group_id->DisplayValue($arwrk);
+				$rswrk->Close();
+			} else {
+				$this->group_id->ViewValue = $this->group_id->CurrentValue;
+			}
+		} else {
+			$this->group_id->ViewValue = NULL;
+		}
+		$this->group_id->ViewCustomAttributes = "";
 
 		// subgrup_id
 		if (strval($this->subgrup_id->CurrentValue) <> "") {
 			$sFilterWrk = "`id`" . ew_SearchString("=", $this->subgrup_id->CurrentValue, EW_DATATYPE_NUMBER, "");
-		$sSqlWrk = "SELECT `id`, `nama` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `subgrup`";
+		$sSqlWrk = "SELECT `id`, `kode` AS `DispFld`, `nama` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `subgrup`";
 		$sWhereWrk = "";
 		$this->subgrup_id->LookupFilters = array();
 		ew_AddFilter($sWhereWrk, $sFilterWrk);
@@ -662,6 +678,7 @@ class cakun_edit extends cakun {
 			if ($rswrk && !$rswrk->EOF) { // Lookup values found
 				$arwrk = array();
 				$arwrk[1] = $rswrk->fields('DispFld');
+				$arwrk[2] = $rswrk->fields('Disp2Fld');
 				$this->subgrup_id->ViewValue = $this->subgrup_id->DisplayValue($arwrk);
 				$rswrk->Close();
 			} else {
@@ -672,6 +689,14 @@ class cakun_edit extends cakun {
 		}
 		$this->subgrup_id->ViewCustomAttributes = "";
 
+		// kode
+		$this->kode->ViewValue = $this->kode->CurrentValue;
+		$this->kode->ViewCustomAttributes = "";
+
+		// nama
+		$this->nama->ViewValue = $this->nama->CurrentValue;
+		$this->nama->ViewCustomAttributes = "";
+
 		// user_id
 		$this->user_id->ViewValue = $this->user_id->CurrentValue;
 		$this->user_id->ViewCustomAttributes = "";
@@ -679,7 +704,7 @@ class cakun_edit extends cakun {
 		// matauang_id
 		if (strval($this->matauang_id->CurrentValue) <> "") {
 			$sFilterWrk = "`id`" . ew_SearchString("=", $this->matauang_id->CurrentValue, EW_DATATYPE_NUMBER, "");
-		$sSqlWrk = "SELECT `id`, `kode` AS `DispFld`, `nama` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `matauang`";
+		$sSqlWrk = "SELECT `id`, `nama` AS `DispFld`, `kode` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `matauang`";
 		$sWhereWrk = "";
 		$this->matauang_id->LookupFilters = array();
 		ew_AddFilter($sWhereWrk, $sFilterWrk);
@@ -700,10 +725,15 @@ class cakun_edit extends cakun {
 		}
 		$this->matauang_id->ViewCustomAttributes = "";
 
-			// id
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-			$this->id->TooltipValue = "";
+			// group_id
+			$this->group_id->LinkCustomAttributes = "";
+			$this->group_id->HrefValue = "";
+			$this->group_id->TooltipValue = "";
+
+			// subgrup_id
+			$this->subgrup_id->LinkCustomAttributes = "";
+			$this->subgrup_id->HrefValue = "";
+			$this->subgrup_id->TooltipValue = "";
 
 			// kode
 			$this->kode->LinkCustomAttributes = "";
@@ -715,27 +745,49 @@ class cakun_edit extends cakun {
 			$this->nama->HrefValue = "";
 			$this->nama->TooltipValue = "";
 
-			// subgrup_id
-			$this->subgrup_id->LinkCustomAttributes = "";
-			$this->subgrup_id->HrefValue = "";
-			$this->subgrup_id->TooltipValue = "";
-
-			// user_id
-			$this->user_id->LinkCustomAttributes = "";
-			$this->user_id->HrefValue = "";
-			$this->user_id->TooltipValue = "";
-
 			// matauang_id
 			$this->matauang_id->LinkCustomAttributes = "";
 			$this->matauang_id->HrefValue = "";
 			$this->matauang_id->TooltipValue = "";
 		} elseif ($this->RowType == EW_ROWTYPE_EDIT) { // Edit row
 
-			// id
-			$this->id->EditAttrs["class"] = "form-control";
-			$this->id->EditCustomAttributes = "";
-			$this->id->EditValue = $this->id->CurrentValue;
-			$this->id->ViewCustomAttributes = "";
+			// group_id
+			$this->group_id->EditAttrs["class"] = "form-control";
+			$this->group_id->EditCustomAttributes = "";
+			if (trim(strval($this->group_id->CurrentValue)) == "") {
+				$sFilterWrk = "0=1";
+			} else {
+				$sFilterWrk = "`id`" . ew_SearchString("=", $this->group_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+			}
+			$sSqlWrk = "SELECT `id`, `name` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld`, '' AS `SelectFilterFld`, '' AS `SelectFilterFld2`, '' AS `SelectFilterFld3`, '' AS `SelectFilterFld4` FROM `grup`";
+			$sWhereWrk = "";
+			$this->group_id->LookupFilters = array();
+			ew_AddFilter($sWhereWrk, $sFilterWrk);
+			$this->Lookup_Selecting($this->group_id, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			$arwrk = ($rswrk) ? $rswrk->GetRows() : array();
+			if ($rswrk) $rswrk->Close();
+			$this->group_id->EditValue = $arwrk;
+
+			// subgrup_id
+			$this->subgrup_id->EditAttrs["class"] = "form-control";
+			$this->subgrup_id->EditCustomAttributes = "";
+			if (trim(strval($this->subgrup_id->CurrentValue)) == "") {
+				$sFilterWrk = "0=1";
+			} else {
+				$sFilterWrk = "`id`" . ew_SearchString("=", $this->subgrup_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+			}
+			$sSqlWrk = "SELECT `id`, `kode` AS `DispFld`, `nama` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld`, `grup_id` AS `SelectFilterFld`, '' AS `SelectFilterFld2`, '' AS `SelectFilterFld3`, '' AS `SelectFilterFld4` FROM `subgrup`";
+			$sWhereWrk = "";
+			$this->subgrup_id->LookupFilters = array();
+			ew_AddFilter($sWhereWrk, $sFilterWrk);
+			$this->Lookup_Selecting($this->subgrup_id, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			$arwrk = ($rswrk) ? $rswrk->GetRows() : array();
+			if ($rswrk) $rswrk->Close();
+			$this->subgrup_id->EditValue = $arwrk;
 
 			// kode
 			$this->kode->EditAttrs["class"] = "form-control";
@@ -749,31 +801,6 @@ class cakun_edit extends cakun {
 			$this->nama->EditValue = ew_HtmlEncode($this->nama->CurrentValue);
 			$this->nama->PlaceHolder = ew_RemoveHtml($this->nama->FldCaption());
 
-			// subgrup_id
-			$this->subgrup_id->EditAttrs["class"] = "form-control";
-			$this->subgrup_id->EditCustomAttributes = "";
-			if (trim(strval($this->subgrup_id->CurrentValue)) == "") {
-				$sFilterWrk = "0=1";
-			} else {
-				$sFilterWrk = "`id`" . ew_SearchString("=", $this->subgrup_id->CurrentValue, EW_DATATYPE_NUMBER, "");
-			}
-			$sSqlWrk = "SELECT `id`, `nama` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld`, '' AS `SelectFilterFld`, '' AS `SelectFilterFld2`, '' AS `SelectFilterFld3`, '' AS `SelectFilterFld4` FROM `subgrup`";
-			$sWhereWrk = "";
-			$this->subgrup_id->LookupFilters = array();
-			ew_AddFilter($sWhereWrk, $sFilterWrk);
-			$this->Lookup_Selecting($this->subgrup_id, $sWhereWrk); // Call Lookup selecting
-			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
-			$rswrk = Conn()->Execute($sSqlWrk);
-			$arwrk = ($rswrk) ? $rswrk->GetRows() : array();
-			if ($rswrk) $rswrk->Close();
-			$this->subgrup_id->EditValue = $arwrk;
-
-			// user_id
-			$this->user_id->EditAttrs["class"] = "form-control";
-			$this->user_id->EditCustomAttributes = "";
-			$this->user_id->EditValue = ew_HtmlEncode($this->user_id->CurrentValue);
-			$this->user_id->PlaceHolder = ew_RemoveHtml($this->user_id->FldCaption());
-
 			// matauang_id
 			$this->matauang_id->EditAttrs["class"] = "form-control";
 			$this->matauang_id->EditCustomAttributes = "";
@@ -782,7 +809,7 @@ class cakun_edit extends cakun {
 			} else {
 				$sFilterWrk = "`id`" . ew_SearchString("=", $this->matauang_id->CurrentValue, EW_DATATYPE_NUMBER, "");
 			}
-			$sSqlWrk = "SELECT `id`, `kode` AS `DispFld`, `nama` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld`, '' AS `SelectFilterFld`, '' AS `SelectFilterFld2`, '' AS `SelectFilterFld3`, '' AS `SelectFilterFld4` FROM `matauang`";
+			$sSqlWrk = "SELECT `id`, `nama` AS `DispFld`, `kode` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld`, '' AS `SelectFilterFld`, '' AS `SelectFilterFld2`, '' AS `SelectFilterFld3`, '' AS `SelectFilterFld4` FROM `matauang`";
 			$sWhereWrk = "";
 			$this->matauang_id->LookupFilters = array();
 			ew_AddFilter($sWhereWrk, $sFilterWrk);
@@ -794,10 +821,14 @@ class cakun_edit extends cakun {
 			$this->matauang_id->EditValue = $arwrk;
 
 			// Edit refer script
-			// id
+			// group_id
 
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
+			$this->group_id->LinkCustomAttributes = "";
+			$this->group_id->HrefValue = "";
+
+			// subgrup_id
+			$this->subgrup_id->LinkCustomAttributes = "";
+			$this->subgrup_id->HrefValue = "";
 
 			// kode
 			$this->kode->LinkCustomAttributes = "";
@@ -806,14 +837,6 @@ class cakun_edit extends cakun {
 			// nama
 			$this->nama->LinkCustomAttributes = "";
 			$this->nama->HrefValue = "";
-
-			// subgrup_id
-			$this->subgrup_id->LinkCustomAttributes = "";
-			$this->subgrup_id->HrefValue = "";
-
-			// user_id
-			$this->user_id->LinkCustomAttributes = "";
-			$this->user_id->HrefValue = "";
 
 			// matauang_id
 			$this->matauang_id->LinkCustomAttributes = "";
@@ -840,9 +863,6 @@ class cakun_edit extends cakun {
 		// Check if validation required
 		if (!EW_SERVER_VALIDATE)
 			return ($gsFormError == "");
-		if (!ew_CheckInteger($this->user_id->FormValue)) {
-			ew_AddMessage($gsFormError, $this->user_id->FldErrMsg());
-		}
 
 		// Return validate result
 		$ValidateForm = ($gsFormError == "");
@@ -879,17 +899,17 @@ class cakun_edit extends cakun {
 			$this->LoadDbValues($rsold);
 			$rsnew = array();
 
+			// group_id
+			$this->group_id->SetDbValueDef($rsnew, $this->group_id->CurrentValue, NULL, $this->group_id->ReadOnly);
+
+			// subgrup_id
+			$this->subgrup_id->SetDbValueDef($rsnew, $this->subgrup_id->CurrentValue, NULL, $this->subgrup_id->ReadOnly);
+
 			// kode
 			$this->kode->SetDbValueDef($rsnew, $this->kode->CurrentValue, NULL, $this->kode->ReadOnly);
 
 			// nama
 			$this->nama->SetDbValueDef($rsnew, $this->nama->CurrentValue, NULL, $this->nama->ReadOnly);
-
-			// subgrup_id
-			$this->subgrup_id->SetDbValueDef($rsnew, $this->subgrup_id->CurrentValue, NULL, $this->subgrup_id->ReadOnly);
-
-			// user_id
-			$this->user_id->SetDbValueDef($rsnew, $this->user_id->CurrentValue, NULL, $this->user_id->ReadOnly);
 
 			// matauang_id
 			$this->matauang_id->SetDbValueDef($rsnew, $this->matauang_id->CurrentValue, NULL, $this->matauang_id->ReadOnly);
@@ -941,12 +961,24 @@ class cakun_edit extends cakun {
 		global $gsLanguage;
 		$pageId = $pageId ?: $this->PageID;
 		switch ($fld->FldVar) {
+		case "x_group_id":
+			$sSqlWrk = "";
+			$sSqlWrk = "SELECT `id` AS `LinkFld`, `name` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `grup`";
+			$sWhereWrk = "";
+			$this->group_id->LookupFilters = array();
+			$fld->LookupFilters += array("s" => $sSqlWrk, "d" => "", "f0" => '`id` = {filter_value}', "t0" => "3", "fn0" => "");
+			$sSqlWrk = "";
+			$this->Lookup_Selecting($this->group_id, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			if ($sSqlWrk <> "")
+				$fld->LookupFilters["s"] .= $sSqlWrk;
+			break;
 		case "x_subgrup_id":
 			$sSqlWrk = "";
-			$sSqlWrk = "SELECT `id` AS `LinkFld`, `nama` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `subgrup`";
-			$sWhereWrk = "";
+			$sSqlWrk = "SELECT `id` AS `LinkFld`, `kode` AS `DispFld`, `nama` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `subgrup`";
+			$sWhereWrk = "{filter}";
 			$this->subgrup_id->LookupFilters = array();
-			$fld->LookupFilters += array("s" => $sSqlWrk, "d" => "", "f0" => '`id` = {filter_value}', "t0" => "3", "fn0" => "");
+			$fld->LookupFilters += array("s" => $sSqlWrk, "d" => "", "f0" => '`id` = {filter_value}', "t0" => "3", "fn0" => "", "f1" => '`grup_id` IN ({filter_value})', "t1" => "3", "fn1" => "");
 			$sSqlWrk = "";
 			$this->Lookup_Selecting($this->subgrup_id, $sWhereWrk); // Call Lookup selecting
 			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
@@ -955,7 +987,7 @@ class cakun_edit extends cakun {
 			break;
 		case "x_matauang_id":
 			$sSqlWrk = "";
-			$sSqlWrk = "SELECT `id` AS `LinkFld`, `kode` AS `DispFld`, `nama` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `matauang`";
+			$sSqlWrk = "SELECT `id` AS `LinkFld`, `nama` AS `DispFld`, `kode` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `matauang`";
 			$sWhereWrk = "";
 			$this->matauang_id->LookupFilters = array();
 			$fld->LookupFilters += array("s" => $sSqlWrk, "d" => "", "f0" => '`id` = {filter_value}', "t0" => "3", "fn0" => "");
@@ -1084,9 +1116,6 @@ fakunedit.Validate = function() {
 	for (var i = startcnt; i <= rowcnt; i++) {
 		var infix = ($k[0]) ? String(i) : "";
 		$fobj.data("rowindex", infix);
-			elm = this.GetElements("x" + infix + "_user_id");
-			if (elm && !ew_CheckInteger(elm.value))
-				return this.OnError(elm, "<?php echo ew_JsEncode2($akun->user_id->FldErrMsg()) ?>");
 
 			// Fire Form_CustomValidate event
 			if (!this.Form_CustomValidate(fobj))
@@ -1120,8 +1149,9 @@ fakunedit.ValidateRequired = false;
 <?php } ?>
 
 // Dynamic selection lists
-fakunedit.Lists["x_subgrup_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_nama","","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"subgrup"};
-fakunedit.Lists["x_matauang_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_kode","x_nama","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"matauang"};
+fakunedit.Lists["x_group_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_name","","",""],"ParentFields":[],"ChildFields":["x_subgrup_id"],"FilterFields":[],"Options":[],"Template":"","LinkTable":"grup"};
+fakunedit.Lists["x_subgrup_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_kode","x_nama","",""],"ParentFields":["x_group_id"],"ChildFields":[],"FilterFields":["x_grup_id"],"Options":[],"Template":"","LinkTable":"subgrup"};
+fakunedit.Lists["x_matauang_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_nama","x_kode","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"matauang"};
 
 // Form object for search
 </script>
@@ -1150,16 +1180,31 @@ $akun_edit->ShowMessage();
 <input type="hidden" name="modal" value="1">
 <?php } ?>
 <div>
-<?php if ($akun->id->Visible) { // id ?>
-	<div id="r_id" class="form-group">
-		<label id="elh_akun_id" class="col-sm-2 control-label ewLabel"><?php echo $akun->id->FldCaption() ?></label>
-		<div class="col-sm-10"><div<?php echo $akun->id->CellAttributes() ?>>
-<span id="el_akun_id">
-<span<?php echo $akun->id->ViewAttributes() ?>>
-<p class="form-control-static"><?php echo $akun->id->EditValue ?></p></span>
+<?php if ($akun->group_id->Visible) { // group_id ?>
+	<div id="r_group_id" class="form-group">
+		<label id="elh_akun_group_id" for="x_group_id" class="col-sm-2 control-label ewLabel"><?php echo $akun->group_id->FldCaption() ?></label>
+		<div class="col-sm-10"><div<?php echo $akun->group_id->CellAttributes() ?>>
+<span id="el_akun_group_id">
+<?php $akun->group_id->EditAttrs["onchange"] = "ew_UpdateOpt.call(this); " . @$akun->group_id->EditAttrs["onchange"]; ?>
+<select data-table="akun" data-field="x_group_id" data-value-separator="<?php echo $akun->group_id->DisplayValueSeparatorAttribute() ?>" id="x_group_id" name="x_group_id"<?php echo $akun->group_id->EditAttributes() ?>>
+<?php echo $akun->group_id->SelectOptionListHtml("x_group_id") ?>
+</select>
+<input type="hidden" name="s_x_group_id" id="s_x_group_id" value="<?php echo $akun->group_id->LookupFilterQuery() ?>">
 </span>
-<input type="hidden" data-table="akun" data-field="x_id" name="x_id" id="x_id" value="<?php echo ew_HtmlEncode($akun->id->CurrentValue) ?>">
-<?php echo $akun->id->CustomMsg ?></div></div>
+<?php echo $akun->group_id->CustomMsg ?></div></div>
+	</div>
+<?php } ?>
+<?php if ($akun->subgrup_id->Visible) { // subgrup_id ?>
+	<div id="r_subgrup_id" class="form-group">
+		<label id="elh_akun_subgrup_id" for="x_subgrup_id" class="col-sm-2 control-label ewLabel"><?php echo $akun->subgrup_id->FldCaption() ?></label>
+		<div class="col-sm-10"><div<?php echo $akun->subgrup_id->CellAttributes() ?>>
+<span id="el_akun_subgrup_id">
+<select data-table="akun" data-field="x_subgrup_id" data-value-separator="<?php echo $akun->subgrup_id->DisplayValueSeparatorAttribute() ?>" id="x_subgrup_id" name="x_subgrup_id"<?php echo $akun->subgrup_id->EditAttributes() ?>>
+<?php echo $akun->subgrup_id->SelectOptionListHtml("x_subgrup_id") ?>
+</select>
+<input type="hidden" name="s_x_subgrup_id" id="s_x_subgrup_id" value="<?php echo $akun->subgrup_id->LookupFilterQuery() ?>">
+</span>
+<?php echo $akun->subgrup_id->CustomMsg ?></div></div>
 	</div>
 <?php } ?>
 <?php if ($akun->kode->Visible) { // kode ?>
@@ -1182,29 +1227,6 @@ $akun_edit->ShowMessage();
 <?php echo $akun->nama->CustomMsg ?></div></div>
 	</div>
 <?php } ?>
-<?php if ($akun->subgrup_id->Visible) { // subgrup_id ?>
-	<div id="r_subgrup_id" class="form-group">
-		<label id="elh_akun_subgrup_id" for="x_subgrup_id" class="col-sm-2 control-label ewLabel"><?php echo $akun->subgrup_id->FldCaption() ?></label>
-		<div class="col-sm-10"><div<?php echo $akun->subgrup_id->CellAttributes() ?>>
-<span id="el_akun_subgrup_id">
-<select data-table="akun" data-field="x_subgrup_id" data-value-separator="<?php echo $akun->subgrup_id->DisplayValueSeparatorAttribute() ?>" id="x_subgrup_id" name="x_subgrup_id"<?php echo $akun->subgrup_id->EditAttributes() ?>>
-<?php echo $akun->subgrup_id->SelectOptionListHtml("x_subgrup_id") ?>
-</select>
-<input type="hidden" name="s_x_subgrup_id" id="s_x_subgrup_id" value="<?php echo $akun->subgrup_id->LookupFilterQuery() ?>">
-</span>
-<?php echo $akun->subgrup_id->CustomMsg ?></div></div>
-	</div>
-<?php } ?>
-<?php if ($akun->user_id->Visible) { // user_id ?>
-	<div id="r_user_id" class="form-group">
-		<label id="elh_akun_user_id" for="x_user_id" class="col-sm-2 control-label ewLabel"><?php echo $akun->user_id->FldCaption() ?></label>
-		<div class="col-sm-10"><div<?php echo $akun->user_id->CellAttributes() ?>>
-<span id="el_akun_user_id">
-<input type="text" data-table="akun" data-field="x_user_id" name="x_user_id" id="x_user_id" size="30" placeholder="<?php echo ew_HtmlEncode($akun->user_id->getPlaceHolder()) ?>" value="<?php echo $akun->user_id->EditValue ?>"<?php echo $akun->user_id->EditAttributes() ?>>
-</span>
-<?php echo $akun->user_id->CustomMsg ?></div></div>
-	</div>
-<?php } ?>
 <?php if ($akun->matauang_id->Visible) { // matauang_id ?>
 	<div id="r_matauang_id" class="form-group">
 		<label id="elh_akun_matauang_id" for="x_matauang_id" class="col-sm-2 control-label ewLabel"><?php echo $akun->matauang_id->FldCaption() ?></label>
@@ -1219,6 +1241,7 @@ $akun_edit->ShowMessage();
 	</div>
 <?php } ?>
 </div>
+<input type="hidden" data-table="akun" data-field="x_id" name="x_id" id="x_id" value="<?php echo ew_HtmlEncode($akun->id->CurrentValue) ?>">
 <?php if (!$akun_edit->IsModal) { ?>
 <div class="form-group">
 	<div class="col-sm-offset-2 col-sm-10">

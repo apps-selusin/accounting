@@ -251,8 +251,6 @@ class ctipejurnal_delete extends ctipejurnal {
 	function Page_Init() {
 		global $gsExport, $gsCustomExport, $gsExportFile, $UserProfile, $Language, $Security, $objForm;
 		$this->CurrentAction = (@$_GET["a"] <> "") ? $_GET["a"] : @$_POST["a_list"]; // Set up current action
-		$this->id->SetVisibility();
-		$this->id->Visible = !$this->IsAdd() && !$this->IsCopy() && !$this->IsGridAdd();
 		$this->kode->SetVisibility();
 		$this->nama->SetVisibility();
 
@@ -470,11 +468,6 @@ class ctipejurnal_delete extends ctipejurnal {
 		// nama
 		$this->nama->ViewValue = $this->nama->CurrentValue;
 		$this->nama->ViewCustomAttributes = "";
-
-			// id
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-			$this->id->TooltipValue = "";
 
 			// kode
 			$this->kode->LinkCustomAttributes = "";
@@ -731,9 +724,6 @@ $tipejurnal_delete->ShowMessage();
 <?php echo $tipejurnal->TableCustomInnerHtml ?>
 	<thead>
 	<tr class="ewTableHeader">
-<?php if ($tipejurnal->id->Visible) { // id ?>
-		<th><span id="elh_tipejurnal_id" class="tipejurnal_id"><?php echo $tipejurnal->id->FldCaption() ?></span></th>
-<?php } ?>
 <?php if ($tipejurnal->kode->Visible) { // kode ?>
 		<th><span id="elh_tipejurnal_kode" class="tipejurnal_kode"><?php echo $tipejurnal->kode->FldCaption() ?></span></th>
 <?php } ?>
@@ -761,14 +751,6 @@ while (!$tipejurnal_delete->Recordset->EOF) {
 	$tipejurnal_delete->RenderRow();
 ?>
 	<tr<?php echo $tipejurnal->RowAttributes() ?>>
-<?php if ($tipejurnal->id->Visible) { // id ?>
-		<td<?php echo $tipejurnal->id->CellAttributes() ?>>
-<span id="el<?php echo $tipejurnal_delete->RowCnt ?>_tipejurnal_id" class="tipejurnal_id">
-<span<?php echo $tipejurnal->id->ViewAttributes() ?>>
-<?php echo $tipejurnal->id->ListViewValue() ?></span>
-</span>
-</td>
-<?php } ?>
 <?php if ($tipejurnal->kode->Visible) { // kode ?>
 		<td<?php echo $tipejurnal->kode->CellAttributes() ?>>
 <span id="el<?php echo $tipejurnal_delete->RowCnt ?>_tipejurnal_kode" class="tipejurnal_kode">

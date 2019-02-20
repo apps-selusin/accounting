@@ -49,15 +49,15 @@ class cperiode extends cTable {
 		$this->fields['id'] = &$this->id;
 
 		// start
-		$this->start = new cField('periode', 'periode', 'x_start', 'start', '`start`', ew_CastDateFieldForLike('`start`', 0, "DB"), 135, 0, FALSE, '`start`', FALSE, FALSE, FALSE, 'FORMATTED TEXT', 'TEXT');
+		$this->start = new cField('periode', 'periode', 'x_start', 'start', '`start`', ew_CastDateFieldForLike('`start`', 7, "DB"), 135, 7, FALSE, '`start`', FALSE, FALSE, FALSE, 'FORMATTED TEXT', 'TEXT');
 		$this->start->Sortable = TRUE; // Allow sort
-		$this->start->FldDefaultErrMsg = str_replace("%s", $GLOBALS["EW_DATE_FORMAT"], $Language->Phrase("IncorrectDate"));
+		$this->start->FldDefaultErrMsg = str_replace("%s", $GLOBALS["EW_DATE_SEPARATOR"], $Language->Phrase("IncorrectDateDMY"));
 		$this->fields['start'] = &$this->start;
 
 		// end
-		$this->end = new cField('periode', 'periode', 'x_end', 'end', '`end`', ew_CastDateFieldForLike('`end`', 0, "DB"), 135, 0, FALSE, '`end`', FALSE, FALSE, FALSE, 'FORMATTED TEXT', 'TEXT');
+		$this->end = new cField('periode', 'periode', 'x_end', 'end', '`end`', ew_CastDateFieldForLike('`end`', 7, "DB"), 135, 7, FALSE, '`end`', FALSE, FALSE, FALSE, 'FORMATTED TEXT', 'TEXT');
 		$this->end->Sortable = TRUE; // Allow sort
-		$this->end->FldDefaultErrMsg = str_replace("%s", $GLOBALS["EW_DATE_FORMAT"], $Language->Phrase("IncorrectDate"));
+		$this->end->FldDefaultErrMsg = str_replace("%s", $GLOBALS["EW_DATE_SEPARATOR"], $Language->Phrase("IncorrectDateDMY"));
 		$this->fields['end'] = &$this->end;
 
 		// user_id
@@ -73,8 +73,8 @@ class cperiode extends cTable {
 		return $this->$fldparm->Visible; // Returns original value
 	}
 
-	// Single column sort
-	function UpdateSort(&$ofld) {
+	// Multiple column sort
+	function UpdateSort(&$ofld, $ctrl) {
 		if ($this->CurrentOrder == $ofld->FldName) {
 			$sSortField = $ofld->FldExpression;
 			$sLastSort = $ofld->getSort();
@@ -84,9 +84,20 @@ class cperiode extends cTable {
 				$sThisSort = ($sLastSort == "ASC") ? "DESC" : "ASC";
 			}
 			$ofld->setSort($sThisSort);
-			$this->setSessionOrderBy($sSortField . " " . $sThisSort); // Save to Session
+			if ($ctrl) {
+				$sOrderBy = $this->getSessionOrderBy();
+				if (strpos($sOrderBy, $sSortField . " " . $sLastSort) !== FALSE) {
+					$sOrderBy = str_replace($sSortField . " " . $sLastSort, $sSortField . " " . $sThisSort, $sOrderBy);
+				} else {
+					if ($sOrderBy <> "") $sOrderBy .= ", ";
+					$sOrderBy .= $sSortField . " " . $sThisSort;
+				}
+				$this->setSessionOrderBy($sOrderBy); // Save to Session
+			} else {
+				$this->setSessionOrderBy($sSortField . " " . $sThisSort); // Save to Session
+			}
 		} else {
-			$ofld->setSort("");
+			if (!$ctrl) $ofld->setSort("");
 		}
 	}
 
@@ -581,12 +592,12 @@ class cperiode extends cTable {
 
 		// start
 		$this->start->ViewValue = $this->start->CurrentValue;
-		$this->start->ViewValue = ew_FormatDateTime($this->start->ViewValue, 0);
+		$this->start->ViewValue = ew_FormatDateTime($this->start->ViewValue, 7);
 		$this->start->ViewCustomAttributes = "";
 
 		// end
 		$this->end->ViewValue = $this->end->CurrentValue;
-		$this->end->ViewValue = ew_FormatDateTime($this->end->ViewValue, 0);
+		$this->end->ViewValue = ew_FormatDateTime($this->end->ViewValue, 7);
 		$this->end->ViewCustomAttributes = "";
 
 		// user_id
@@ -633,13 +644,13 @@ class cperiode extends cTable {
 		// start
 		$this->start->EditAttrs["class"] = "form-control";
 		$this->start->EditCustomAttributes = "";
-		$this->start->EditValue = ew_FormatDateTime($this->start->CurrentValue, 8);
+		$this->start->EditValue = ew_FormatDateTime($this->start->CurrentValue, 7);
 		$this->start->PlaceHolder = ew_RemoveHtml($this->start->FldCaption());
 
 		// end
 		$this->end->EditAttrs["class"] = "form-control";
 		$this->end->EditCustomAttributes = "";
-		$this->end->EditValue = ew_FormatDateTime($this->end->CurrentValue, 8);
+		$this->end->EditValue = ew_FormatDateTime($this->end->CurrentValue, 7);
 		$this->end->PlaceHolder = ew_RemoveHtml($this->end->FldCaption());
 
 		// user_id
@@ -675,10 +686,8 @@ class cperiode extends cTable {
 			if ($Doc->Horizontal) { // Horizontal format, write header
 				$Doc->BeginExportRow();
 				if ($ExportPageType == "view") {
-					if ($this->id->Exportable) $Doc->ExportCaption($this->id);
 					if ($this->start->Exportable) $Doc->ExportCaption($this->start);
 					if ($this->end->Exportable) $Doc->ExportCaption($this->end);
-					if ($this->user_id->Exportable) $Doc->ExportCaption($this->user_id);
 				} else {
 					if ($this->id->Exportable) $Doc->ExportCaption($this->id);
 					if ($this->start->Exportable) $Doc->ExportCaption($this->start);
@@ -715,10 +724,8 @@ class cperiode extends cTable {
 				if (!$Doc->ExportCustom) {
 					$Doc->BeginExportRow($RowCnt); // Allow CSS styles if enabled
 					if ($ExportPageType == "view") {
-						if ($this->id->Exportable) $Doc->ExportField($this->id);
 						if ($this->start->Exportable) $Doc->ExportField($this->start);
 						if ($this->end->Exportable) $Doc->ExportField($this->end);
-						if ($this->user_id->Exportable) $Doc->ExportField($this->user_id);
 					} else {
 						if ($this->id->Exportable) $Doc->ExportField($this->id);
 						if ($this->start->Exportable) $Doc->ExportField($this->start);

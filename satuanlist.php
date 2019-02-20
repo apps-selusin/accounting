@@ -922,15 +922,18 @@ class csatuan_list extends csatuan {
 	// Set up sort parameters
 	function SetUpSortOrder() {
 
+		// Check for Ctrl pressed
+		$bCtrl = (@$_GET["ctrl"] <> "");
+
 		// Check for "order" parameter
 		if (@$_GET["order"] <> "") {
 			$this->CurrentOrder = ew_StripSlashes(@$_GET["order"]);
 			$this->CurrentOrderType = @$_GET["ordertype"];
-			$this->UpdateSort($this->id); // id
-			$this->UpdateSort($this->kode); // kode
-			$this->UpdateSort($this->nama); // nama
-			$this->UpdateSort($this->keterangan); // keterangan
-			$this->UpdateSort($this->unitdasar); // unitdasar
+			$this->UpdateSort($this->id, $bCtrl); // id
+			$this->UpdateSort($this->kode, $bCtrl); // kode
+			$this->UpdateSort($this->nama, $bCtrl); // nama
+			$this->UpdateSort($this->keterangan, $bCtrl); // keterangan
+			$this->UpdateSort($this->unitdasar, $bCtrl); // unitdasar
 			$this->setStartRecordNumber(1); // Reset start position
 		}
 	}
@@ -1819,7 +1822,7 @@ $satuan_list->ListOptions->Render("header", "left");
 	<?php if ($satuan->SortUrl($satuan->id) == "") { ?>
 		<th data-name="id"><div id="elh_satuan_id" class="satuan_id"><div class="ewTableHeaderCaption"><?php echo $satuan->id->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $satuan->SortUrl($satuan->id) ?>',1);"><div id="elh_satuan_id" class="satuan_id">
+		<th data-name="id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $satuan->SortUrl($satuan->id) ?>',2);"><div id="elh_satuan_id" class="satuan_id">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $satuan->id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($satuan->id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($satuan->id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1828,7 +1831,7 @@ $satuan_list->ListOptions->Render("header", "left");
 	<?php if ($satuan->SortUrl($satuan->kode) == "") { ?>
 		<th data-name="kode"><div id="elh_satuan_kode" class="satuan_kode"><div class="ewTableHeaderCaption"><?php echo $satuan->kode->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="kode"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $satuan->SortUrl($satuan->kode) ?>',1);"><div id="elh_satuan_kode" class="satuan_kode">
+		<th data-name="kode"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $satuan->SortUrl($satuan->kode) ?>',2);"><div id="elh_satuan_kode" class="satuan_kode">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $satuan->kode->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($satuan->kode->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($satuan->kode->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1837,7 +1840,7 @@ $satuan_list->ListOptions->Render("header", "left");
 	<?php if ($satuan->SortUrl($satuan->nama) == "") { ?>
 		<th data-name="nama"><div id="elh_satuan_nama" class="satuan_nama"><div class="ewTableHeaderCaption"><?php echo $satuan->nama->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="nama"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $satuan->SortUrl($satuan->nama) ?>',1);"><div id="elh_satuan_nama" class="satuan_nama">
+		<th data-name="nama"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $satuan->SortUrl($satuan->nama) ?>',2);"><div id="elh_satuan_nama" class="satuan_nama">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $satuan->nama->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($satuan->nama->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($satuan->nama->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1846,7 +1849,7 @@ $satuan_list->ListOptions->Render("header", "left");
 	<?php if ($satuan->SortUrl($satuan->keterangan) == "") { ?>
 		<th data-name="keterangan"><div id="elh_satuan_keterangan" class="satuan_keterangan"><div class="ewTableHeaderCaption"><?php echo $satuan->keterangan->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="keterangan"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $satuan->SortUrl($satuan->keterangan) ?>',1);"><div id="elh_satuan_keterangan" class="satuan_keterangan">
+		<th data-name="keterangan"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $satuan->SortUrl($satuan->keterangan) ?>',2);"><div id="elh_satuan_keterangan" class="satuan_keterangan">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $satuan->keterangan->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($satuan->keterangan->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($satuan->keterangan->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1855,7 +1858,7 @@ $satuan_list->ListOptions->Render("header", "left");
 	<?php if ($satuan->SortUrl($satuan->unitdasar) == "") { ?>
 		<th data-name="unitdasar"><div id="elh_satuan_unitdasar" class="satuan_unitdasar"><div class="ewTableHeaderCaption"><?php echo $satuan->unitdasar->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="unitdasar"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $satuan->SortUrl($satuan->unitdasar) ?>',1);"><div id="elh_satuan_unitdasar" class="satuan_unitdasar">
+		<th data-name="unitdasar"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $satuan->SortUrl($satuan->unitdasar) ?>',2);"><div id="elh_satuan_unitdasar" class="satuan_unitdasar">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $satuan->unitdasar->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($satuan->unitdasar->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($satuan->unitdasar->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>

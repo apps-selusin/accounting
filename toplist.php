@@ -912,14 +912,17 @@ class ctop_list extends ctop {
 	// Set up sort parameters
 	function SetUpSortOrder() {
 
+		// Check for Ctrl pressed
+		$bCtrl = (@$_GET["ctrl"] <> "");
+
 		// Check for "order" parameter
 		if (@$_GET["order"] <> "") {
 			$this->CurrentOrder = ew_StripSlashes(@$_GET["order"]);
 			$this->CurrentOrderType = @$_GET["ordertype"];
-			$this->UpdateSort($this->id); // id
-			$this->UpdateSort($this->kode); // kode
-			$this->UpdateSort($this->nama); // nama
-			$this->UpdateSort($this->keterangan); // keterangan
+			$this->UpdateSort($this->id, $bCtrl); // id
+			$this->UpdateSort($this->kode, $bCtrl); // kode
+			$this->UpdateSort($this->nama, $bCtrl); // nama
+			$this->UpdateSort($this->keterangan, $bCtrl); // keterangan
 			$this->setStartRecordNumber(1); // Reset start position
 		}
 	}
@@ -1795,7 +1798,7 @@ $top_list->ListOptions->Render("header", "left");
 	<?php if ($top->SortUrl($top->id) == "") { ?>
 		<th data-name="id"><div id="elh_top_id" class="top_id"><div class="ewTableHeaderCaption"><?php echo $top->id->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $top->SortUrl($top->id) ?>',1);"><div id="elh_top_id" class="top_id">
+		<th data-name="id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $top->SortUrl($top->id) ?>',2);"><div id="elh_top_id" class="top_id">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $top->id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($top->id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($top->id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1804,7 +1807,7 @@ $top_list->ListOptions->Render("header", "left");
 	<?php if ($top->SortUrl($top->kode) == "") { ?>
 		<th data-name="kode"><div id="elh_top_kode" class="top_kode"><div class="ewTableHeaderCaption"><?php echo $top->kode->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="kode"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $top->SortUrl($top->kode) ?>',1);"><div id="elh_top_kode" class="top_kode">
+		<th data-name="kode"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $top->SortUrl($top->kode) ?>',2);"><div id="elh_top_kode" class="top_kode">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $top->kode->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($top->kode->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($top->kode->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1813,7 +1816,7 @@ $top_list->ListOptions->Render("header", "left");
 	<?php if ($top->SortUrl($top->nama) == "") { ?>
 		<th data-name="nama"><div id="elh_top_nama" class="top_nama"><div class="ewTableHeaderCaption"><?php echo $top->nama->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="nama"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $top->SortUrl($top->nama) ?>',1);"><div id="elh_top_nama" class="top_nama">
+		<th data-name="nama"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $top->SortUrl($top->nama) ?>',2);"><div id="elh_top_nama" class="top_nama">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $top->nama->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($top->nama->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($top->nama->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1822,7 +1825,7 @@ $top_list->ListOptions->Render("header", "left");
 	<?php if ($top->SortUrl($top->keterangan) == "") { ?>
 		<th data-name="keterangan"><div id="elh_top_keterangan" class="top_keterangan"><div class="ewTableHeaderCaption"><?php echo $top->keterangan->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="keterangan"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $top->SortUrl($top->keterangan) ?>',1);"><div id="elh_top_keterangan" class="top_keterangan">
+		<th data-name="keterangan"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $top->SortUrl($top->keterangan) ?>',2);"><div id="elh_top_keterangan" class="top_keterangan">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $top->keterangan->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($top->keterangan->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($top->keterangan->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>

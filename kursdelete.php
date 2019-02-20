@@ -251,8 +251,6 @@ class ckurs_delete extends ckurs {
 	function Page_Init() {
 		global $gsExport, $gsCustomExport, $gsExportFile, $UserProfile, $Language, $Security, $objForm;
 		$this->CurrentAction = (@$_GET["a"] <> "") ? $_GET["a"] : @$_POST["a_list"]; // Set up current action
-		$this->id->SetVisibility();
-		$this->id->Visible = !$this->IsAdd() && !$this->IsCopy() && !$this->IsGridAdd();
 		$this->matauang_id->SetVisibility();
 		$this->tanggal->SetVisibility();
 		$this->nilai->SetVisibility();
@@ -468,7 +466,27 @@ class ckurs_delete extends ckurs {
 		$this->id->ViewCustomAttributes = "";
 
 		// matauang_id
-		$this->matauang_id->ViewValue = $this->matauang_id->CurrentValue;
+		if (strval($this->matauang_id->CurrentValue) <> "") {
+			$sFilterWrk = "`id`" . ew_SearchString("=", $this->matauang_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+		$sSqlWrk = "SELECT `id`, `nama` AS `DispFld`, `kode` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `matauang`";
+		$sWhereWrk = "";
+		$this->matauang_id->LookupFilters = array();
+		ew_AddFilter($sWhereWrk, $sFilterWrk);
+		$this->Lookup_Selecting($this->matauang_id, $sWhereWrk); // Call Lookup selecting
+		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			if ($rswrk && !$rswrk->EOF) { // Lookup values found
+				$arwrk = array();
+				$arwrk[1] = $rswrk->fields('DispFld');
+				$arwrk[2] = $rswrk->fields('Disp2Fld');
+				$this->matauang_id->ViewValue = $this->matauang_id->DisplayValue($arwrk);
+				$rswrk->Close();
+			} else {
+				$this->matauang_id->ViewValue = $this->matauang_id->CurrentValue;
+			}
+		} else {
+			$this->matauang_id->ViewValue = NULL;
+		}
 		$this->matauang_id->ViewCustomAttributes = "";
 
 		// tanggal
@@ -478,11 +496,6 @@ class ckurs_delete extends ckurs {
 		// nilai
 		$this->nilai->ViewValue = $this->nilai->CurrentValue;
 		$this->nilai->ViewCustomAttributes = "";
-
-			// id
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-			$this->id->TooltipValue = "";
 
 			// matauang_id
 			$this->matauang_id->LinkCustomAttributes = "";
@@ -712,8 +725,9 @@ fkursdelete.ValidateRequired = false;
 <?php } ?>
 
 // Dynamic selection lists
-// Form object for search
+fkursdelete.Lists["x_matauang_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_nama","x_kode","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"matauang"};
 
+// Form object for search
 </script>
 <script type="text/javascript">
 
@@ -744,9 +758,6 @@ $kurs_delete->ShowMessage();
 <?php echo $kurs->TableCustomInnerHtml ?>
 	<thead>
 	<tr class="ewTableHeader">
-<?php if ($kurs->id->Visible) { // id ?>
-		<th><span id="elh_kurs_id" class="kurs_id"><?php echo $kurs->id->FldCaption() ?></span></th>
-<?php } ?>
 <?php if ($kurs->matauang_id->Visible) { // matauang_id ?>
 		<th><span id="elh_kurs_matauang_id" class="kurs_matauang_id"><?php echo $kurs->matauang_id->FldCaption() ?></span></th>
 <?php } ?>
@@ -777,14 +788,6 @@ while (!$kurs_delete->Recordset->EOF) {
 	$kurs_delete->RenderRow();
 ?>
 	<tr<?php echo $kurs->RowAttributes() ?>>
-<?php if ($kurs->id->Visible) { // id ?>
-		<td<?php echo $kurs->id->CellAttributes() ?>>
-<span id="el<?php echo $kurs_delete->RowCnt ?>_kurs_id" class="kurs_id">
-<span<?php echo $kurs->id->ViewAttributes() ?>>
-<?php echo $kurs->id->ListViewValue() ?></span>
-</span>
-</td>
-<?php } ?>
 <?php if ($kurs->matauang_id->Visible) { // matauang_id ?>
 		<td<?php echo $kurs->matauang_id->CellAttributes() ?>>
 <span id="el<?php echo $kurs_delete->RowCnt ?>_kurs_matauang_id" class="kurs_matauang_id">

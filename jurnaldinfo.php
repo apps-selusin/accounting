@@ -34,9 +34,9 @@ class cjurnald extends cTable {
 		$this->ExportPageSize = "a4"; // Page size (PDF only)
 		$this->ExportExcelPageOrientation = ""; // Page orientation (PHPExcel only)
 		$this->ExportExcelPageSize = ""; // Page size (PHPExcel only)
-		$this->DetailAdd = FALSE; // Allow detail add
-		$this->DetailEdit = FALSE; // Allow detail edit
-		$this->DetailView = FALSE; // Allow detail view
+		$this->DetailAdd = TRUE; // Allow detail add
+		$this->DetailEdit = TRUE; // Allow detail edit
+		$this->DetailView = TRUE; // Allow detail view
 		$this->ShowMultipleDetails = FALSE; // Show multiple details
 		$this->GridAddRowCount = 5;
 		$this->AllowAddDeleteRow = ew_AllowAddDeleteRow(); // Allow add/delete row
@@ -56,8 +56,10 @@ class cjurnald extends cTable {
 		$this->fields['jurnal_id'] = &$this->jurnal_id;
 
 		// akun_id
-		$this->akun_id = new cField('jurnald', 'jurnald', 'x_akun_id', 'akun_id', '`akun_id`', '`akun_id`', 3, -1, FALSE, '`akun_id`', FALSE, FALSE, FALSE, 'FORMATTED TEXT', 'TEXT');
+		$this->akun_id = new cField('jurnald', 'jurnald', 'x_akun_id', 'akun_id', '`akun_id`', '`akun_id`', 3, -1, FALSE, '`akun_id`', FALSE, FALSE, FALSE, 'FORMATTED TEXT', 'SELECT');
 		$this->akun_id->Sortable = TRUE; // Allow sort
+		$this->akun_id->UsePleaseSelect = TRUE; // Use PleaseSelect by default
+		$this->akun_id->PleaseSelectText = $Language->Phrase("PleaseSelect"); // PleaseSelect text
 		$this->akun_id->FldDefaultErrMsg = $Language->Phrase("IncorrectInteger");
 		$this->fields['akun_id'] = &$this->akun_id;
 
@@ -80,8 +82,8 @@ class cjurnald extends cTable {
 		return $this->$fldparm->Visible; // Returns original value
 	}
 
-	// Single column sort
-	function UpdateSort(&$ofld) {
+	// Multiple column sort
+	function UpdateSort(&$ofld, $ctrl) {
 		if ($this->CurrentOrder == $ofld->FldName) {
 			$sSortField = $ofld->FldExpression;
 			$sLastSort = $ofld->getSort();
@@ -91,10 +93,68 @@ class cjurnald extends cTable {
 				$sThisSort = ($sLastSort == "ASC") ? "DESC" : "ASC";
 			}
 			$ofld->setSort($sThisSort);
-			$this->setSessionOrderBy($sSortField . " " . $sThisSort); // Save to Session
+			if ($ctrl) {
+				$sOrderBy = $this->getSessionOrderBy();
+				if (strpos($sOrderBy, $sSortField . " " . $sLastSort) !== FALSE) {
+					$sOrderBy = str_replace($sSortField . " " . $sLastSort, $sSortField . " " . $sThisSort, $sOrderBy);
+				} else {
+					if ($sOrderBy <> "") $sOrderBy .= ", ";
+					$sOrderBy .= $sSortField . " " . $sThisSort;
+				}
+				$this->setSessionOrderBy($sOrderBy); // Save to Session
+			} else {
+				$this->setSessionOrderBy($sSortField . " " . $sThisSort); // Save to Session
+			}
 		} else {
-			$ofld->setSort("");
+			if (!$ctrl) $ofld->setSort("");
 		}
+	}
+
+	// Current master table name
+	function getCurrentMasterTable() {
+		return @$_SESSION[EW_PROJECT_NAME . "_" . $this->TableVar . "_" . EW_TABLE_MASTER_TABLE];
+	}
+
+	function setCurrentMasterTable($v) {
+		$_SESSION[EW_PROJECT_NAME . "_" . $this->TableVar . "_" . EW_TABLE_MASTER_TABLE] = $v;
+	}
+
+	// Session master WHERE clause
+	function GetMasterFilter() {
+
+		// Master filter
+		$sMasterFilter = "";
+		if ($this->getCurrentMasterTable() == "jurnal") {
+			if ($this->jurnal_id->getSessionValue() <> "")
+				$sMasterFilter .= "`id`=" . ew_QuotedValue($this->jurnal_id->getSessionValue(), EW_DATATYPE_NUMBER, "DB");
+			else
+				return "";
+		}
+		return $sMasterFilter;
+	}
+
+	// Session detail WHERE clause
+	function GetDetailFilter() {
+
+		// Detail filter
+		$sDetailFilter = "";
+		if ($this->getCurrentMasterTable() == "jurnal") {
+			if ($this->jurnal_id->getSessionValue() <> "")
+				$sDetailFilter .= "`jurnal_id`=" . ew_QuotedValue($this->jurnal_id->getSessionValue(), EW_DATATYPE_NUMBER, "DB");
+			else
+				return "";
+		}
+		return $sDetailFilter;
+	}
+
+	// Master filter
+	function SqlMasterFilter_jurnal() {
+		return "`id`=@id@";
+	}
+
+	// Detail filter
+	function SqlDetailFilter_jurnal() {
+		return "`jurnal_id`=@jurnal_id@";
 	}
 
 	// Table level SQL
@@ -467,6 +527,10 @@ class cjurnald extends cTable {
 
 	// Add master url
 	function AddMasterUrl($url) {
+		if ($this->getCurrentMasterTable() == "jurnal" && strpos($url, EW_TABLE_SHOW_MASTER . "=") === FALSE) {
+			$url .= (strpos($url, "?") !== FALSE ? "&" : "?") . EW_TABLE_SHOW_MASTER . "=" . $this->getCurrentMasterTable();
+			$url .= "&fk_id=" . urlencode($this->jurnal_id->CurrentValue);
+		}
 		return $url;
 	}
 
@@ -593,7 +657,26 @@ class cjurnald extends cTable {
 		$this->jurnal_id->ViewCustomAttributes = "";
 
 		// akun_id
-		$this->akun_id->ViewValue = $this->akun_id->CurrentValue;
+		if (strval($this->akun_id->CurrentValue) <> "") {
+			$sFilterWrk = "`id`" . ew_SearchString("=", $this->akun_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+		$sSqlWrk = "SELECT `id`, `nama` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `akun`";
+		$sWhereWrk = "";
+		$this->akun_id->LookupFilters = array();
+		ew_AddFilter($sWhereWrk, $sFilterWrk);
+		$this->Lookup_Selecting($this->akun_id, $sWhereWrk); // Call Lookup selecting
+		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			if ($rswrk && !$rswrk->EOF) { // Lookup values found
+				$arwrk = array();
+				$arwrk[1] = $rswrk->fields('DispFld');
+				$this->akun_id->ViewValue = $this->akun_id->DisplayValue($arwrk);
+				$rswrk->Close();
+			} else {
+				$this->akun_id->ViewValue = $this->akun_id->CurrentValue;
+			}
+		} else {
+			$this->akun_id->ViewValue = NULL;
+		}
 		$this->akun_id->ViewCustomAttributes = "";
 
 		// debet
@@ -649,14 +732,18 @@ class cjurnald extends cTable {
 		// jurnal_id
 		$this->jurnal_id->EditAttrs["class"] = "form-control";
 		$this->jurnal_id->EditCustomAttributes = "";
+		if ($this->jurnal_id->getSessionValue() <> "") {
+			$this->jurnal_id->CurrentValue = $this->jurnal_id->getSessionValue();
+		$this->jurnal_id->ViewValue = $this->jurnal_id->CurrentValue;
+		$this->jurnal_id->ViewCustomAttributes = "";
+		} else {
 		$this->jurnal_id->EditValue = $this->jurnal_id->CurrentValue;
 		$this->jurnal_id->PlaceHolder = ew_RemoveHtml($this->jurnal_id->FldCaption());
+		}
 
 		// akun_id
 		$this->akun_id->EditAttrs["class"] = "form-control";
 		$this->akun_id->EditCustomAttributes = "";
-		$this->akun_id->EditValue = $this->akun_id->CurrentValue;
-		$this->akun_id->PlaceHolder = ew_RemoveHtml($this->akun_id->FldCaption());
 
 		// debet
 		$this->debet->EditAttrs["class"] = "form-control";

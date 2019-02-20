@@ -789,16 +789,119 @@ class cExportXml extends cExportBase {
 	}
 }
 
+// Include dompdf
+include_once "dompdf070/src/Autoloader.php";
+$DompdfAutoloader = new \Dompdf\Autoloader();
+$DompdfAutoloader->register();
+
 //
 // Class for export to PDF
 //
 class cExportPdf extends cExportBase {
-	var $PageOrientation = "portrait"; // To be setup after creating an instance
-	var $PageSize = "a4"; // To be setup after creating an instance
+
+	// Table header
+	function ExportTableHeader() {
+		$this->Text .= "<table class=\"ewTable\">\r\n";
+	}
+
+	// Export a value (caption, field value, or aggregate)
+	function ExportValueEx(&$fld, $val, $usestyle = TRUE) {
+		$wrkval = strval($val);
+		$wrkval = "<td" . (($usestyle && EW_EXPORT_CSS_STYLES) ? $fld->CellStyles() : "") . ">" . $wrkval . "</td>\r\n";
+		$this->Line .= $wrkval;
+		$this->Text .= $wrkval;
+	}
+
+	// Begin a row
+	function BeginExportRow($rowcnt = 0, $usestyle = TRUE) {
+		$this->FldCnt = 0;
+		if ($this->Horizontal) {
+			if ($rowcnt == -1)
+				$this->Table->CssClass = "ewTableFooter";
+			elseif ($rowcnt == 0)
+				$this->Table->CssClass = "ewTableHeader";
+			else
+				$this->Table->CssClass = (($rowcnt % 2) == 1) ? "ewTableRow" : "ewTableAltRow";
+			$this->Line = "<tr" . (($usestyle && EW_EXPORT_CSS_STYLES) ? $this->Table->RowStyles() : "") . ">";
+			$this->Text .= $this->Line;
+		}
+	}
+
+	// End a row
+	function EndExportRow() {
+		if ($this->Horizontal) {
+			$this->Line .= "</tr>";
+			$this->Text .= "</tr>";
+			$this->Header = $this->Line;
+		}
+	}
+
+	// Page break
+	function ExportPageBreak() {
+		if ($this->Horizontal) {
+			$this->Text .= "</table>\r\n"; // end current table
+			$this->Text .= "<p style=\"page-break-after:always;\">&nbsp;</p>\r\n"; // page break
+			$this->Text .= "<table class=\"ewTable ewTableBorder\">\r\n"; // new page header
+			$this->Text .= $this->Header;
+		}
+	}
+
+	// Export a field
+	function ExportField(&$fld) {
+		$ExportValue = $fld->ExportValue();
+		if ($fld->FldViewTag == "IMAGE") {
+			$ExportValue = ew_GetFileImgTag($fld, $fld->GetTempImage());
+		} elseif (is_array($fld->HrefValue2)) { // Export custom view tag
+			$ar = $fld->HrefValue2;
+			$fn = is_array($ar) ? @$ar["exportfn"] : ""; // Get export function name
+			if (is_callable($fn)) $ExportValue = $fn($ar);
+		} else {
+			$ExportValue = str_replace("<br>", "\r\n", $ExportValue);
+			$ExportValue = strip_tags($ExportValue);
+			$ExportValue = str_replace("\r\n", "<br>", $ExportValue);
+		}
+		if ($this->Horizontal) {
+			$this->ExportValueEx($fld, $ExportValue);
+		} else { // Vertical, export as a row
+			$this->FldCnt++;
+			$fld->CellCssClass = ($this->FldCnt % 2 == 1) ? "ewTableRow" : "ewTableAltRow";
+			$this->Text .= "<tr><td" . ((EW_EXPORT_CSS_STYLES) ? $fld->CellStyles() : "") . ">" . $fld->ExportCaption() . "</td>";
+			$this->Text .= "<td" . ((EW_EXPORT_CSS_STYLES) ? $fld->CellStyles() : "") . ">" .
+				$ExportValue . "</td></tr>";
+		}
+	}
+
+	// Add HTML tags
+	function ExportHeaderAndFooter() {
+		$header = "<html><head>\r\n";
+		$header .= $this->CharsetMetaTag();
+		if (EW_EXPORT_CSS_STYLES && EW_PDF_STYLESHEET_FILENAME <> "")
+			$header .= "<style type=\"text/css\">" . file_get_contents(EW_PDF_STYLESHEET_FILENAME) . "</style>\r\n";
+		$header .= "</" . "head>\r\n<body>\r\n";
+		$this->Text = $header . $this->Text . "</body></html>";
+	}
 
 	// Export
 	function Export() {
-		echo $this->Text;
+		global $gsExportFile;
+		@ini_set("memory_limit", EW_PDF_MEMORY_LIMIT);
+		set_time_limit(EW_PDF_TIME_LIMIT);
+		$txt = $this->Text;
+		if (EW_DEBUG_ENABLED) // Add debug message
+			$txt = str_replace("</body>", ew_DebugMsg() . "</body>", $txt);
+		$dompdf = new \Dompdf\Dompdf(array("pdf_backend" => "Cpdf"));
+		$dompdf->load_html($txt);
+		$dompdf->set_paper($this->Table->ExportPageSize, $this->Table->ExportPageOrientation);
+		$dompdf->render();
+		if (!EW_DEBUG_ENABLED && ob_get_length())
+			ob_end_clean();
+		$dompdf->stream($gsExportFile, array("Attachment" => 1)); // 0 to open in browser, 1 to download
+		ew_DeleteTmpImages();
+	}
+
+	// Destructor
+	function __destruct() {
+		ew_DeleteTmpImages();
 	}
 }
 /**
@@ -1139,7 +1242,7 @@ class cBreadcrumb {
 	// Constructor
 	function __construct() {
 		global $Language;
-		$this->Links[] = array("home", "HomePage", "index.php", "ewHome", "", FALSE); // Home
+		$this->Links[] = array("home", "HomePage", "cf01_home.php", "ewHome", "", FALSE); // Home
 	}
 
 	// Check if an item exists

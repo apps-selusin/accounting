@@ -901,13 +901,16 @@ class ckelompok_list extends ckelompok {
 	// Set up sort parameters
 	function SetUpSortOrder() {
 
+		// Check for Ctrl pressed
+		$bCtrl = (@$_GET["ctrl"] <> "");
+
 		// Check for "order" parameter
 		if (@$_GET["order"] <> "") {
 			$this->CurrentOrder = ew_StripSlashes(@$_GET["order"]);
 			$this->CurrentOrderType = @$_GET["ordertype"];
-			$this->UpdateSort($this->id); // id
-			$this->UpdateSort($this->kode); // kode
-			$this->UpdateSort($this->nama); // nama
+			$this->UpdateSort($this->id, $bCtrl); // id
+			$this->UpdateSort($this->kode, $bCtrl); // kode
+			$this->UpdateSort($this->nama, $bCtrl); // nama
 			$this->setStartRecordNumber(1); // Reset start position
 		}
 	}
@@ -1770,7 +1773,7 @@ $kelompok_list->ListOptions->Render("header", "left");
 	<?php if ($kelompok->SortUrl($kelompok->id) == "") { ?>
 		<th data-name="id"><div id="elh_kelompok_id" class="kelompok_id"><div class="ewTableHeaderCaption"><?php echo $kelompok->id->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $kelompok->SortUrl($kelompok->id) ?>',1);"><div id="elh_kelompok_id" class="kelompok_id">
+		<th data-name="id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $kelompok->SortUrl($kelompok->id) ?>',2);"><div id="elh_kelompok_id" class="kelompok_id">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $kelompok->id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($kelompok->id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($kelompok->id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1779,7 +1782,7 @@ $kelompok_list->ListOptions->Render("header", "left");
 	<?php if ($kelompok->SortUrl($kelompok->kode) == "") { ?>
 		<th data-name="kode"><div id="elh_kelompok_kode" class="kelompok_kode"><div class="ewTableHeaderCaption"><?php echo $kelompok->kode->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="kode"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $kelompok->SortUrl($kelompok->kode) ?>',1);"><div id="elh_kelompok_kode" class="kelompok_kode">
+		<th data-name="kode"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $kelompok->SortUrl($kelompok->kode) ?>',2);"><div id="elh_kelompok_kode" class="kelompok_kode">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $kelompok->kode->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($kelompok->kode->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($kelompok->kode->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1788,7 +1791,7 @@ $kelompok_list->ListOptions->Render("header", "left");
 	<?php if ($kelompok->SortUrl($kelompok->nama) == "") { ?>
 		<th data-name="nama"><div id="elh_kelompok_nama" class="kelompok_nama"><div class="ewTableHeaderCaption"><?php echo $kelompok->nama->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="nama"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $kelompok->SortUrl($kelompok->nama) ?>',1);"><div id="elh_kelompok_nama" class="kelompok_nama">
+		<th data-name="nama"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $kelompok->SortUrl($kelompok->nama) ?>',2);"><div id="elh_kelompok_nama" class="kelompok_nama">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $kelompok->nama->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($kelompok->nama->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($kelompok->nama->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>

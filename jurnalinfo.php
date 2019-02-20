@@ -52,14 +52,18 @@ class cjurnal extends cTable {
 		$this->fields['id'] = &$this->id;
 
 		// tipejurnal_id
-		$this->tipejurnal_id = new cField('jurnal', 'jurnal', 'x_tipejurnal_id', 'tipejurnal_id', '`tipejurnal_id`', '`tipejurnal_id`', 3, -1, FALSE, '`tipejurnal_id`', FALSE, FALSE, FALSE, 'FORMATTED TEXT', 'TEXT');
+		$this->tipejurnal_id = new cField('jurnal', 'jurnal', 'x_tipejurnal_id', 'tipejurnal_id', '`tipejurnal_id`', '`tipejurnal_id`', 3, -1, FALSE, '`tipejurnal_id`', FALSE, FALSE, FALSE, 'FORMATTED TEXT', 'SELECT');
 		$this->tipejurnal_id->Sortable = TRUE; // Allow sort
+		$this->tipejurnal_id->UsePleaseSelect = TRUE; // Use PleaseSelect by default
+		$this->tipejurnal_id->PleaseSelectText = $Language->Phrase("PleaseSelect"); // PleaseSelect text
 		$this->tipejurnal_id->FldDefaultErrMsg = $Language->Phrase("IncorrectInteger");
 		$this->fields['tipejurnal_id'] = &$this->tipejurnal_id;
 
 		// period_id
-		$this->period_id = new cField('jurnal', 'jurnal', 'x_period_id', 'period_id', '`period_id`', '`period_id`', 3, -1, FALSE, '`period_id`', FALSE, FALSE, FALSE, 'FORMATTED TEXT', 'TEXT');
+		$this->period_id = new cField('jurnal', 'jurnal', 'x_period_id', 'period_id', '`period_id`', '`period_id`', 3, -1, FALSE, '`period_id`', FALSE, FALSE, FALSE, 'FORMATTED TEXT', 'SELECT');
 		$this->period_id->Sortable = TRUE; // Allow sort
+		$this->period_id->UsePleaseSelect = TRUE; // Use PleaseSelect by default
+		$this->period_id->PleaseSelectText = $Language->Phrase("PleaseSelect"); // PleaseSelect text
 		$this->period_id->FldDefaultErrMsg = $Language->Phrase("IncorrectInteger");
 		$this->fields['period_id'] = &$this->period_id;
 
@@ -92,8 +96,8 @@ class cjurnal extends cTable {
 		return $this->$fldparm->Visible; // Returns original value
 	}
 
-	// Single column sort
-	function UpdateSort(&$ofld) {
+	// Multiple column sort
+	function UpdateSort(&$ofld, $ctrl) {
 		if ($this->CurrentOrder == $ofld->FldName) {
 			$sSortField = $ofld->FldExpression;
 			$sLastSort = $ofld->getSort();
@@ -103,10 +107,45 @@ class cjurnal extends cTable {
 				$sThisSort = ($sLastSort == "ASC") ? "DESC" : "ASC";
 			}
 			$ofld->setSort($sThisSort);
-			$this->setSessionOrderBy($sSortField . " " . $sThisSort); // Save to Session
+			if ($ctrl) {
+				$sOrderBy = $this->getSessionOrderBy();
+				if (strpos($sOrderBy, $sSortField . " " . $sLastSort) !== FALSE) {
+					$sOrderBy = str_replace($sSortField . " " . $sLastSort, $sSortField . " " . $sThisSort, $sOrderBy);
+				} else {
+					if ($sOrderBy <> "") $sOrderBy .= ", ";
+					$sOrderBy .= $sSortField . " " . $sThisSort;
+				}
+				$this->setSessionOrderBy($sOrderBy); // Save to Session
+			} else {
+				$this->setSessionOrderBy($sSortField . " " . $sThisSort); // Save to Session
+			}
 		} else {
-			$ofld->setSort("");
+			if (!$ctrl) $ofld->setSort("");
 		}
+	}
+
+	// Current detail table name
+	function getCurrentDetailTable() {
+		return @$_SESSION[EW_PROJECT_NAME . "_" . $this->TableVar . "_" . EW_TABLE_DETAIL_TABLE];
+	}
+
+	function setCurrentDetailTable($v) {
+		$_SESSION[EW_PROJECT_NAME . "_" . $this->TableVar . "_" . EW_TABLE_DETAIL_TABLE] = $v;
+	}
+
+	// Get detail url
+	function GetDetailUrl() {
+
+		// Detail url
+		$sDetailUrl = "";
+		if ($this->getCurrentDetailTable() == "jurnald") {
+			$sDetailUrl = $GLOBALS["jurnald"]->GetListUrl() . "?" . EW_TABLE_SHOW_MASTER . "=" . $this->TableVar;
+			$sDetailUrl .= "&fk_id=" . urlencode($this->id->CurrentValue);
+		}
+		if ($sDetailUrl == "") {
+			$sDetailUrl = "jurnallist.php";
+		}
+		return $sDetailUrl;
 	}
 
 	// Table level SQL
@@ -450,7 +489,10 @@ class cjurnal extends cTable {
 
 	// Edit URL
 	function GetEditUrl($parm = "") {
-		$url = $this->KeyUrl("jurnaledit.php", $this->UrlParm($parm));
+		if ($parm <> "")
+			$url = $this->KeyUrl("jurnaledit.php", $this->UrlParm($parm));
+		else
+			$url = $this->KeyUrl("jurnaledit.php", $this->UrlParm(EW_TABLE_SHOW_DETAIL . "="));
 		return $this->AddMasterUrl($url);
 	}
 
@@ -462,7 +504,10 @@ class cjurnal extends cTable {
 
 	// Copy URL
 	function GetCopyUrl($parm = "") {
-		$url = $this->KeyUrl("jurnaladd.php", $this->UrlParm($parm));
+		if ($parm <> "")
+			$url = $this->KeyUrl("jurnaladd.php", $this->UrlParm($parm));
+		else
+			$url = $this->KeyUrl("jurnaladd.php", $this->UrlParm(EW_TABLE_SHOW_DETAIL . "="));
 		return $this->AddMasterUrl($url);
 	}
 
@@ -605,11 +650,50 @@ class cjurnal extends cTable {
 		$this->id->ViewCustomAttributes = "";
 
 		// tipejurnal_id
-		$this->tipejurnal_id->ViewValue = $this->tipejurnal_id->CurrentValue;
+		if (strval($this->tipejurnal_id->CurrentValue) <> "") {
+			$sFilterWrk = "`id`" . ew_SearchString("=", $this->tipejurnal_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+		$sSqlWrk = "SELECT `id`, `nama` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `tipejurnal`";
+		$sWhereWrk = "";
+		$this->tipejurnal_id->LookupFilters = array();
+		ew_AddFilter($sWhereWrk, $sFilterWrk);
+		$this->Lookup_Selecting($this->tipejurnal_id, $sWhereWrk); // Call Lookup selecting
+		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			if ($rswrk && !$rswrk->EOF) { // Lookup values found
+				$arwrk = array();
+				$arwrk[1] = $rswrk->fields('DispFld');
+				$this->tipejurnal_id->ViewValue = $this->tipejurnal_id->DisplayValue($arwrk);
+				$rswrk->Close();
+			} else {
+				$this->tipejurnal_id->ViewValue = $this->tipejurnal_id->CurrentValue;
+			}
+		} else {
+			$this->tipejurnal_id->ViewValue = NULL;
+		}
 		$this->tipejurnal_id->ViewCustomAttributes = "";
 
 		// period_id
-		$this->period_id->ViewValue = $this->period_id->CurrentValue;
+		if (strval($this->period_id->CurrentValue) <> "") {
+			$sFilterWrk = "`id`" . ew_SearchString("=", $this->period_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+		$sSqlWrk = "SELECT `id`, `start` AS `DispFld`, `end` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `periode`";
+		$sWhereWrk = "";
+		$this->period_id->LookupFilters = array("df1" => "7", "df2" => "7");
+		ew_AddFilter($sWhereWrk, $sFilterWrk);
+		$this->Lookup_Selecting($this->period_id, $sWhereWrk); // Call Lookup selecting
+		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			if ($rswrk && !$rswrk->EOF) { // Lookup values found
+				$arwrk = array();
+				$arwrk[1] = ew_FormatDateTime($rswrk->fields('DispFld'), 7);
+				$arwrk[2] = ew_FormatDateTime($rswrk->fields('Disp2Fld'), 7);
+				$this->period_id->ViewValue = $this->period_id->DisplayValue($arwrk);
+				$rswrk->Close();
+			} else {
+				$this->period_id->ViewValue = $this->period_id->CurrentValue;
+			}
+		} else {
+			$this->period_id->ViewValue = NULL;
+		}
 		$this->period_id->ViewCustomAttributes = "";
 
 		// createon
@@ -684,14 +768,10 @@ class cjurnal extends cTable {
 		// tipejurnal_id
 		$this->tipejurnal_id->EditAttrs["class"] = "form-control";
 		$this->tipejurnal_id->EditCustomAttributes = "";
-		$this->tipejurnal_id->EditValue = $this->tipejurnal_id->CurrentValue;
-		$this->tipejurnal_id->PlaceHolder = ew_RemoveHtml($this->tipejurnal_id->FldCaption());
 
 		// period_id
 		$this->period_id->EditAttrs["class"] = "form-control";
 		$this->period_id->EditCustomAttributes = "";
-		$this->period_id->EditValue = $this->period_id->CurrentValue;
-		$this->period_id->PlaceHolder = ew_RemoveHtml($this->period_id->FldCaption());
 
 		// createon
 		$this->createon->EditAttrs["class"] = "form-control";

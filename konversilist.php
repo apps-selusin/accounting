@@ -610,16 +610,19 @@ class ckonversi_list extends ckonversi {
 	// Set up sort parameters
 	function SetUpSortOrder() {
 
+		// Check for Ctrl pressed
+		$bCtrl = (@$_GET["ctrl"] <> "");
+
 		// Check for "order" parameter
 		if (@$_GET["order"] <> "") {
 			$this->CurrentOrder = ew_StripSlashes(@$_GET["order"]);
 			$this->CurrentOrderType = @$_GET["ordertype"];
-			$this->UpdateSort($this->id); // id
-			$this->UpdateSort($this->satuan_id); // satuan_id
-			$this->UpdateSort($this->nilai); // nilai
-			$this->UpdateSort($this->satuan_id2); // satuan_id2
-			$this->UpdateSort($this->operasi); // operasi
-			$this->UpdateSort($this->id_FK); // id_FK
+			$this->UpdateSort($this->id, $bCtrl); // id
+			$this->UpdateSort($this->satuan_id, $bCtrl); // satuan_id
+			$this->UpdateSort($this->nilai, $bCtrl); // nilai
+			$this->UpdateSort($this->satuan_id2, $bCtrl); // satuan_id2
+			$this->UpdateSort($this->operasi, $bCtrl); // operasi
+			$this->UpdateSort($this->id_FK, $bCtrl); // id_FK
 			$this->setStartRecordNumber(1); // Reset start position
 		}
 	}
@@ -1469,7 +1472,7 @@ $konversi_list->ListOptions->Render("header", "left");
 	<?php if ($konversi->SortUrl($konversi->id) == "") { ?>
 		<th data-name="id"><div id="elh_konversi_id" class="konversi_id"><div class="ewTableHeaderCaption"><?php echo $konversi->id->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $konversi->SortUrl($konversi->id) ?>',1);"><div id="elh_konversi_id" class="konversi_id">
+		<th data-name="id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $konversi->SortUrl($konversi->id) ?>',2);"><div id="elh_konversi_id" class="konversi_id">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $konversi->id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($konversi->id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($konversi->id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1478,7 +1481,7 @@ $konversi_list->ListOptions->Render("header", "left");
 	<?php if ($konversi->SortUrl($konversi->satuan_id) == "") { ?>
 		<th data-name="satuan_id"><div id="elh_konversi_satuan_id" class="konversi_satuan_id"><div class="ewTableHeaderCaption"><?php echo $konversi->satuan_id->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="satuan_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $konversi->SortUrl($konversi->satuan_id) ?>',1);"><div id="elh_konversi_satuan_id" class="konversi_satuan_id">
+		<th data-name="satuan_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $konversi->SortUrl($konversi->satuan_id) ?>',2);"><div id="elh_konversi_satuan_id" class="konversi_satuan_id">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $konversi->satuan_id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($konversi->satuan_id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($konversi->satuan_id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1487,7 +1490,7 @@ $konversi_list->ListOptions->Render("header", "left");
 	<?php if ($konversi->SortUrl($konversi->nilai) == "") { ?>
 		<th data-name="nilai"><div id="elh_konversi_nilai" class="konversi_nilai"><div class="ewTableHeaderCaption"><?php echo $konversi->nilai->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="nilai"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $konversi->SortUrl($konversi->nilai) ?>',1);"><div id="elh_konversi_nilai" class="konversi_nilai">
+		<th data-name="nilai"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $konversi->SortUrl($konversi->nilai) ?>',2);"><div id="elh_konversi_nilai" class="konversi_nilai">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $konversi->nilai->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($konversi->nilai->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($konversi->nilai->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1496,7 +1499,7 @@ $konversi_list->ListOptions->Render("header", "left");
 	<?php if ($konversi->SortUrl($konversi->satuan_id2) == "") { ?>
 		<th data-name="satuan_id2"><div id="elh_konversi_satuan_id2" class="konversi_satuan_id2"><div class="ewTableHeaderCaption"><?php echo $konversi->satuan_id2->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="satuan_id2"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $konversi->SortUrl($konversi->satuan_id2) ?>',1);"><div id="elh_konversi_satuan_id2" class="konversi_satuan_id2">
+		<th data-name="satuan_id2"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $konversi->SortUrl($konversi->satuan_id2) ?>',2);"><div id="elh_konversi_satuan_id2" class="konversi_satuan_id2">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $konversi->satuan_id2->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($konversi->satuan_id2->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($konversi->satuan_id2->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1505,7 +1508,7 @@ $konversi_list->ListOptions->Render("header", "left");
 	<?php if ($konversi->SortUrl($konversi->operasi) == "") { ?>
 		<th data-name="operasi"><div id="elh_konversi_operasi" class="konversi_operasi"><div class="ewTableHeaderCaption"><?php echo $konversi->operasi->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="operasi"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $konversi->SortUrl($konversi->operasi) ?>',1);"><div id="elh_konversi_operasi" class="konversi_operasi">
+		<th data-name="operasi"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $konversi->SortUrl($konversi->operasi) ?>',2);"><div id="elh_konversi_operasi" class="konversi_operasi">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $konversi->operasi->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($konversi->operasi->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($konversi->operasi->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1514,7 +1517,7 @@ $konversi_list->ListOptions->Render("header", "left");
 	<?php if ($konversi->SortUrl($konversi->id_FK) == "") { ?>
 		<th data-name="id_FK"><div id="elh_konversi_id_FK" class="konversi_id_FK"><div class="ewTableHeaderCaption"><?php echo $konversi->id_FK->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="id_FK"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $konversi->SortUrl($konversi->id_FK) ?>',1);"><div id="elh_konversi_id_FK" class="konversi_id_FK">
+		<th data-name="id_FK"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $konversi->SortUrl($konversi->id_FK) ?>',2);"><div id="elh_konversi_id_FK" class="konversi_id_FK">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $konversi->id_FK->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($konversi->id_FK->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($konversi->id_FK->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>

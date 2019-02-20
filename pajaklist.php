@@ -911,14 +911,17 @@ class cpajak_list extends cpajak {
 	// Set up sort parameters
 	function SetUpSortOrder() {
 
+		// Check for Ctrl pressed
+		$bCtrl = (@$_GET["ctrl"] <> "");
+
 		// Check for "order" parameter
 		if (@$_GET["order"] <> "") {
 			$this->CurrentOrder = ew_StripSlashes(@$_GET["order"]);
 			$this->CurrentOrderType = @$_GET["ordertype"];
-			$this->UpdateSort($this->id); // id
-			$this->UpdateSort($this->kode); // kode
-			$this->UpdateSort($this->nama); // nama
-			$this->UpdateSort($this->nilai); // nilai
+			$this->UpdateSort($this->id, $bCtrl); // id
+			$this->UpdateSort($this->kode, $bCtrl); // kode
+			$this->UpdateSort($this->nama, $bCtrl); // nama
+			$this->UpdateSort($this->nilai, $bCtrl); // nilai
 			$this->setStartRecordNumber(1); // Reset start position
 		}
 	}
@@ -1798,7 +1801,7 @@ $pajak_list->ListOptions->Render("header", "left");
 	<?php if ($pajak->SortUrl($pajak->id) == "") { ?>
 		<th data-name="id"><div id="elh_pajak_id" class="pajak_id"><div class="ewTableHeaderCaption"><?php echo $pajak->id->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $pajak->SortUrl($pajak->id) ?>',1);"><div id="elh_pajak_id" class="pajak_id">
+		<th data-name="id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $pajak->SortUrl($pajak->id) ?>',2);"><div id="elh_pajak_id" class="pajak_id">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $pajak->id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($pajak->id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($pajak->id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1807,7 +1810,7 @@ $pajak_list->ListOptions->Render("header", "left");
 	<?php if ($pajak->SortUrl($pajak->kode) == "") { ?>
 		<th data-name="kode"><div id="elh_pajak_kode" class="pajak_kode"><div class="ewTableHeaderCaption"><?php echo $pajak->kode->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="kode"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $pajak->SortUrl($pajak->kode) ?>',1);"><div id="elh_pajak_kode" class="pajak_kode">
+		<th data-name="kode"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $pajak->SortUrl($pajak->kode) ?>',2);"><div id="elh_pajak_kode" class="pajak_kode">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $pajak->kode->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($pajak->kode->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($pajak->kode->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1816,7 +1819,7 @@ $pajak_list->ListOptions->Render("header", "left");
 	<?php if ($pajak->SortUrl($pajak->nama) == "") { ?>
 		<th data-name="nama"><div id="elh_pajak_nama" class="pajak_nama"><div class="ewTableHeaderCaption"><?php echo $pajak->nama->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="nama"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $pajak->SortUrl($pajak->nama) ?>',1);"><div id="elh_pajak_nama" class="pajak_nama">
+		<th data-name="nama"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $pajak->SortUrl($pajak->nama) ?>',2);"><div id="elh_pajak_nama" class="pajak_nama">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $pajak->nama->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($pajak->nama->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($pajak->nama->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1825,7 +1828,7 @@ $pajak_list->ListOptions->Render("header", "left");
 	<?php if ($pajak->SortUrl($pajak->nilai) == "") { ?>
 		<th data-name="nilai"><div id="elh_pajak_nilai" class="pajak_nilai"><div class="ewTableHeaderCaption"><?php echo $pajak->nilai->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="nilai"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $pajak->SortUrl($pajak->nilai) ?>',1);"><div id="elh_pajak_nilai" class="pajak_nilai">
+		<th data-name="nilai"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $pajak->SortUrl($pajak->nilai) ?>',2);"><div id="elh_pajak_nilai" class="pajak_nilai">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $pajak->nilai->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($pajak->nilai->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($pajak->nilai->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>

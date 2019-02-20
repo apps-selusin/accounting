@@ -901,13 +901,16 @@ class ctype_list extends ctype {
 	// Set up sort parameters
 	function SetUpSortOrder() {
 
+		// Check for Ctrl pressed
+		$bCtrl = (@$_GET["ctrl"] <> "");
+
 		// Check for "order" parameter
 		if (@$_GET["order"] <> "") {
 			$this->CurrentOrder = ew_StripSlashes(@$_GET["order"]);
 			$this->CurrentOrderType = @$_GET["ordertype"];
-			$this->UpdateSort($this->id); // id
-			$this->UpdateSort($this->kode); // kode
-			$this->UpdateSort($this->nama); // nama
+			$this->UpdateSort($this->id, $bCtrl); // id
+			$this->UpdateSort($this->kode, $bCtrl); // kode
+			$this->UpdateSort($this->nama, $bCtrl); // nama
 			$this->setStartRecordNumber(1); // Reset start position
 		}
 	}
@@ -1770,7 +1773,7 @@ $type_list->ListOptions->Render("header", "left");
 	<?php if ($type->SortUrl($type->id) == "") { ?>
 		<th data-name="id"><div id="elh_type_id" class="type_id"><div class="ewTableHeaderCaption"><?php echo $type->id->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $type->SortUrl($type->id) ?>',1);"><div id="elh_type_id" class="type_id">
+		<th data-name="id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $type->SortUrl($type->id) ?>',2);"><div id="elh_type_id" class="type_id">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $type->id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($type->id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($type->id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1779,7 +1782,7 @@ $type_list->ListOptions->Render("header", "left");
 	<?php if ($type->SortUrl($type->kode) == "") { ?>
 		<th data-name="kode"><div id="elh_type_kode" class="type_kode"><div class="ewTableHeaderCaption"><?php echo $type->kode->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="kode"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $type->SortUrl($type->kode) ?>',1);"><div id="elh_type_kode" class="type_kode">
+		<th data-name="kode"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $type->SortUrl($type->kode) ?>',2);"><div id="elh_type_kode" class="type_kode">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $type->kode->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($type->kode->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($type->kode->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1788,7 +1791,7 @@ $type_list->ListOptions->Render("header", "left");
 	<?php if ($type->SortUrl($type->nama) == "") { ?>
 		<th data-name="nama"><div id="elh_type_nama" class="type_nama"><div class="ewTableHeaderCaption"><?php echo $type->nama->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="nama"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $type->SortUrl($type->nama) ?>',1);"><div id="elh_type_nama" class="type_nama">
+		<th data-name="nama"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $type->SortUrl($type->nama) ?>',2);"><div id="elh_type_nama" class="type_nama">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $type->nama->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($type->nama->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($type->nama->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>

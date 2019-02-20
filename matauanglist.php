@@ -342,8 +342,6 @@ class cmatauang_list extends cmatauang {
 
 		// Set up list options
 		$this->SetupListOptions();
-		$this->id->SetVisibility();
-		$this->id->Visible = !$this->IsAdd() && !$this->IsCopy() && !$this->IsGridAdd();
 		$this->kode->SetVisibility();
 		$this->nama->SetVisibility();
 
@@ -901,13 +899,15 @@ class cmatauang_list extends cmatauang {
 	// Set up sort parameters
 	function SetUpSortOrder() {
 
+		// Check for Ctrl pressed
+		$bCtrl = (@$_GET["ctrl"] <> "");
+
 		// Check for "order" parameter
 		if (@$_GET["order"] <> "") {
 			$this->CurrentOrder = ew_StripSlashes(@$_GET["order"]);
 			$this->CurrentOrderType = @$_GET["ordertype"];
-			$this->UpdateSort($this->id); // id
-			$this->UpdateSort($this->kode); // kode
-			$this->UpdateSort($this->nama); // nama
+			$this->UpdateSort($this->kode, $bCtrl); // kode
+			$this->UpdateSort($this->nama, $bCtrl); // nama
 			$this->setStartRecordNumber(1); // Reset start position
 		}
 	}
@@ -919,6 +919,7 @@ class cmatauang_list extends cmatauang {
 			if ($this->getSqlOrderBy() <> "") {
 				$sOrderBy = $this->getSqlOrderBy();
 				$this->setSessionOrderBy($sOrderBy);
+				$this->kode->setSort("ASC");
 			}
 		}
 	}
@@ -940,7 +941,6 @@ class cmatauang_list extends cmatauang {
 			if ($this->Command == "resetsort") {
 				$sOrderBy = "";
 				$this->setSessionOrderBy($sOrderBy);
-				$this->id->setSort("");
 				$this->kode->setSort("");
 				$this->nama->setSort("");
 			}
@@ -1001,6 +1001,14 @@ class cmatauang_list extends cmatauang {
 		$item->ShowInDropDown = FALSE;
 		$item->ShowInButtonGroup = FALSE;
 
+		// "sequence"
+		$item = &$this->ListOptions->Add("sequence");
+		$item->CssStyle = "white-space: nowrap;";
+		$item->Visible = TRUE;
+		$item->OnLeft = TRUE; // Always on left
+		$item->ShowInDropDown = FALSE;
+		$item->ShowInButtonGroup = FALSE;
+
 		// Drop down button for ListOptions
 		$this->ListOptions->UseImageAndText = TRUE;
 		$this->ListOptions->UseDropDownButton = FALSE;
@@ -1021,6 +1029,10 @@ class cmatauang_list extends cmatauang {
 	function RenderListOptions() {
 		global $Security, $Language, $objForm;
 		$this->ListOptions->LoadDefault();
+
+		// "sequence"
+		$oListOpt = &$this->ListOptions->Items["sequence"];
+		$oListOpt->Body = ew_FormatSeqNo($this->RecCnt);
 
 		// "view"
 		$oListOpt = &$this->ListOptions->Items["view"];
@@ -1455,11 +1467,6 @@ class cmatauang_list extends cmatauang {
 		$this->nama->ViewValue = $this->nama->CurrentValue;
 		$this->nama->ViewCustomAttributes = "";
 
-			// id
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-			$this->id->TooltipValue = "";
-
 			// kode
 			$this->kode->LinkCustomAttributes = "";
 			$this->kode->HrefValue = "";
@@ -1766,20 +1773,11 @@ $matauang_list->RenderListOptions();
 // Render list options (header, left)
 $matauang_list->ListOptions->Render("header", "left");
 ?>
-<?php if ($matauang->id->Visible) { // id ?>
-	<?php if ($matauang->SortUrl($matauang->id) == "") { ?>
-		<th data-name="id"><div id="elh_matauang_id" class="matauang_id"><div class="ewTableHeaderCaption"><?php echo $matauang->id->FldCaption() ?></div></div></th>
-	<?php } else { ?>
-		<th data-name="id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $matauang->SortUrl($matauang->id) ?>',1);"><div id="elh_matauang_id" class="matauang_id">
-			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $matauang->id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($matauang->id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($matauang->id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
-        </div></div></th>
-	<?php } ?>
-<?php } ?>		
 <?php if ($matauang->kode->Visible) { // kode ?>
 	<?php if ($matauang->SortUrl($matauang->kode) == "") { ?>
 		<th data-name="kode"><div id="elh_matauang_kode" class="matauang_kode"><div class="ewTableHeaderCaption"><?php echo $matauang->kode->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="kode"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $matauang->SortUrl($matauang->kode) ?>',1);"><div id="elh_matauang_kode" class="matauang_kode">
+		<th data-name="kode"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $matauang->SortUrl($matauang->kode) ?>',2);"><div id="elh_matauang_kode" class="matauang_kode">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $matauang->kode->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($matauang->kode->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($matauang->kode->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1788,7 +1786,7 @@ $matauang_list->ListOptions->Render("header", "left");
 	<?php if ($matauang->SortUrl($matauang->nama) == "") { ?>
 		<th data-name="nama"><div id="elh_matauang_nama" class="matauang_nama"><div class="ewTableHeaderCaption"><?php echo $matauang->nama->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="nama"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $matauang->SortUrl($matauang->nama) ?>',1);"><div id="elh_matauang_nama" class="matauang_nama">
+		<th data-name="nama"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $matauang->SortUrl($matauang->nama) ?>',2);"><div id="elh_matauang_nama" class="matauang_nama">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $matauang->nama->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($matauang->nama->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($matauang->nama->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1858,21 +1856,13 @@ while ($matauang_list->RecCnt < $matauang_list->StopRec) {
 // Render list options (body, left)
 $matauang_list->ListOptions->Render("body", "left", $matauang_list->RowCnt);
 ?>
-	<?php if ($matauang->id->Visible) { // id ?>
-		<td data-name="id"<?php echo $matauang->id->CellAttributes() ?>>
-<span id="el<?php echo $matauang_list->RowCnt ?>_matauang_id" class="matauang_id">
-<span<?php echo $matauang->id->ViewAttributes() ?>>
-<?php echo $matauang->id->ListViewValue() ?></span>
-</span>
-<a id="<?php echo $matauang_list->PageObjName . "_row_" . $matauang_list->RowCnt ?>"></a></td>
-	<?php } ?>
 	<?php if ($matauang->kode->Visible) { // kode ?>
 		<td data-name="kode"<?php echo $matauang->kode->CellAttributes() ?>>
 <span id="el<?php echo $matauang_list->RowCnt ?>_matauang_kode" class="matauang_kode">
 <span<?php echo $matauang->kode->ViewAttributes() ?>>
 <?php echo $matauang->kode->ListViewValue() ?></span>
 </span>
-</td>
+<a id="<?php echo $matauang_list->PageObjName . "_row_" . $matauang_list->RowCnt ?>"></a></td>
 	<?php } ?>
 	<?php if ($matauang->nama->Visible) { // nama ?>
 		<td data-name="nama"<?php echo $matauang->nama->CellAttributes() ?>>

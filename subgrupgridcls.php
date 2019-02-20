@@ -284,8 +284,6 @@ class csubgrup_grid extends csubgrup {
 
 		// Set up list options
 		$this->SetupListOptions();
-		$this->id->SetVisibility();
-		$this->id->Visible = !$this->IsAdd() && !$this->IsCopy() && !$this->IsGridAdd();
 		$this->grup_id->SetVisibility();
 		$this->kode->SetVisibility();
 		$this->nama->SetVisibility();
@@ -305,6 +303,14 @@ class csubgrup_grid extends csubgrup {
 
 		// Process auto fill
 		if (@$_POST["ajax"] == "autofill") {
+
+			// Process auto fill for detail table 'akun'
+			if (@$_POST["grid"] == "fakungrid") {
+				if (!isset($GLOBALS["akun_grid"])) $GLOBALS["akun_grid"] = new cakun_grid;
+				$GLOBALS["akun_grid"]->Page_Init();
+				$this->Page_Terminate();
+				exit();
+			}
 			$results = $this->GetAutoFill(@$_POST["name"], @$_POST["q"]);
 			if ($results) {
 
@@ -913,6 +919,14 @@ class csubgrup_grid extends csubgrup {
 		$item->Visible = TRUE;
 		$item->OnLeft = FALSE;
 
+		// "sequence"
+		$item = &$this->ListOptions->Add("sequence");
+		$item->CssStyle = "white-space: nowrap;";
+		$item->Visible = TRUE;
+		$item->OnLeft = TRUE; // Always on left
+		$item->ShowInDropDown = FALSE;
+		$item->ShowInButtonGroup = FALSE;
+
 		// Drop down button for ListOptions
 		$this->ListOptions->UseImageAndText = TRUE;
 		$this->ListOptions->UseDropDownButton = FALSE;
@@ -961,6 +975,10 @@ class csubgrup_grid extends csubgrup {
 				$oListOpt->Body = "<a class=\"ewGridLink ewGridDelete\" title=\"" . ew_HtmlTitle($Language->Phrase("DeleteLink")) . "\" data-caption=\"" . ew_HtmlTitle($Language->Phrase("DeleteLink")) . "\" onclick=\"return ew_DeleteGridRow(this, " . $this->RowIndex . ");\">" . $Language->Phrase("DeleteLink") . "</a>";
 			}
 		}
+
+		// "sequence"
+		$oListOpt = &$this->ListOptions->Items["sequence"];
+		$oListOpt->Body = ew_FormatSeqNo($this->RecCnt);
 		if ($this->CurrentMode == "view") { // View mode
 
 		// "view"
@@ -1102,8 +1120,6 @@ class csubgrup_grid extends csubgrup {
 
 	// Load default values
 	function LoadDefaultValues() {
-		$this->id->CurrentValue = NULL;
-		$this->id->OldValue = $this->id->CurrentValue;
 		$this->grup_id->CurrentValue = NULL;
 		$this->grup_id->OldValue = $this->grup_id->CurrentValue;
 		$this->kode->CurrentValue = NULL;
@@ -1118,8 +1134,6 @@ class csubgrup_grid extends csubgrup {
 		// Load from form
 		global $objForm;
 		$objForm->FormName = $this->FormName;
-		if (!$this->id->FldIsDetailKey && $this->CurrentAction <> "gridadd" && $this->CurrentAction <> "add")
-			$this->id->setFormValue($objForm->GetValue("x_id"));
 		if (!$this->grup_id->FldIsDetailKey) {
 			$this->grup_id->setFormValue($objForm->GetValue("x_grup_id"));
 		}
@@ -1132,6 +1146,8 @@ class csubgrup_grid extends csubgrup {
 			$this->nama->setFormValue($objForm->GetValue("x_nama"));
 		}
 		$this->nama->setOldValue($objForm->GetValue("o_nama"));
+		if (!$this->id->FldIsDetailKey && $this->CurrentAction <> "gridadd" && $this->CurrentAction <> "add")
+			$this->id->setFormValue($objForm->GetValue("x_id"));
 	}
 
 	// Restore form values
@@ -1270,7 +1286,26 @@ class csubgrup_grid extends csubgrup {
 		$this->id->ViewCustomAttributes = "";
 
 		// grup_id
-		$this->grup_id->ViewValue = $this->grup_id->CurrentValue;
+		if (strval($this->grup_id->CurrentValue) <> "") {
+			$sFilterWrk = "`id`" . ew_SearchString("=", $this->grup_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+		$sSqlWrk = "SELECT `id`, `name` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `grup`";
+		$sWhereWrk = "";
+		$this->grup_id->LookupFilters = array();
+		ew_AddFilter($sWhereWrk, $sFilterWrk);
+		$this->Lookup_Selecting($this->grup_id, $sWhereWrk); // Call Lookup selecting
+		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			if ($rswrk && !$rswrk->EOF) { // Lookup values found
+				$arwrk = array();
+				$arwrk[1] = $rswrk->fields('DispFld');
+				$this->grup_id->ViewValue = $this->grup_id->DisplayValue($arwrk);
+				$rswrk->Close();
+			} else {
+				$this->grup_id->ViewValue = $this->grup_id->CurrentValue;
+			}
+		} else {
+			$this->grup_id->ViewValue = NULL;
+		}
 		$this->grup_id->ViewCustomAttributes = "";
 
 		// kode
@@ -1280,11 +1315,6 @@ class csubgrup_grid extends csubgrup {
 		// nama
 		$this->nama->ViewValue = $this->nama->CurrentValue;
 		$this->nama->ViewCustomAttributes = "";
-
-			// id
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-			$this->id->TooltipValue = "";
 
 			// grup_id
 			$this->grup_id->LinkCustomAttributes = "";
@@ -1302,19 +1332,49 @@ class csubgrup_grid extends csubgrup {
 			$this->nama->TooltipValue = "";
 		} elseif ($this->RowType == EW_ROWTYPE_ADD) { // Add row
 
-			// id
 			// grup_id
-
 			$this->grup_id->EditAttrs["class"] = "form-control";
 			$this->grup_id->EditCustomAttributes = "";
 			if ($this->grup_id->getSessionValue() <> "") {
 				$this->grup_id->CurrentValue = $this->grup_id->getSessionValue();
 				$this->grup_id->OldValue = $this->grup_id->CurrentValue;
-			$this->grup_id->ViewValue = $this->grup_id->CurrentValue;
+			if (strval($this->grup_id->CurrentValue) <> "") {
+				$sFilterWrk = "`id`" . ew_SearchString("=", $this->grup_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+			$sSqlWrk = "SELECT `id`, `name` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `grup`";
+			$sWhereWrk = "";
+			$this->grup_id->LookupFilters = array();
+			ew_AddFilter($sWhereWrk, $sFilterWrk);
+			$this->Lookup_Selecting($this->grup_id, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+				$rswrk = Conn()->Execute($sSqlWrk);
+				if ($rswrk && !$rswrk->EOF) { // Lookup values found
+					$arwrk = array();
+					$arwrk[1] = $rswrk->fields('DispFld');
+					$this->grup_id->ViewValue = $this->grup_id->DisplayValue($arwrk);
+					$rswrk->Close();
+				} else {
+					$this->grup_id->ViewValue = $this->grup_id->CurrentValue;
+				}
+			} else {
+				$this->grup_id->ViewValue = NULL;
+			}
 			$this->grup_id->ViewCustomAttributes = "";
 			} else {
-			$this->grup_id->EditValue = ew_HtmlEncode($this->grup_id->CurrentValue);
-			$this->grup_id->PlaceHolder = ew_RemoveHtml($this->grup_id->FldCaption());
+			if (trim(strval($this->grup_id->CurrentValue)) == "") {
+				$sFilterWrk = "0=1";
+			} else {
+				$sFilterWrk = "`id`" . ew_SearchString("=", $this->grup_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+			}
+			$sSqlWrk = "SELECT `id`, `name` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld`, '' AS `SelectFilterFld`, '' AS `SelectFilterFld2`, '' AS `SelectFilterFld3`, '' AS `SelectFilterFld4` FROM `grup`";
+			$sWhereWrk = "";
+			$this->grup_id->LookupFilters = array();
+			ew_AddFilter($sWhereWrk, $sFilterWrk);
+			$this->Lookup_Selecting($this->grup_id, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			$arwrk = ($rswrk) ? $rswrk->GetRows() : array();
+			if ($rswrk) $rswrk->Close();
+			$this->grup_id->EditValue = $arwrk;
 			}
 
 			// kode
@@ -1330,12 +1390,8 @@ class csubgrup_grid extends csubgrup {
 			$this->nama->PlaceHolder = ew_RemoveHtml($this->nama->FldCaption());
 
 			// Add refer script
-			// id
-
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-
 			// grup_id
+
 			$this->grup_id->LinkCustomAttributes = "";
 			$this->grup_id->HrefValue = "";
 
@@ -1348,23 +1404,49 @@ class csubgrup_grid extends csubgrup {
 			$this->nama->HrefValue = "";
 		} elseif ($this->RowType == EW_ROWTYPE_EDIT) { // Edit row
 
-			// id
-			$this->id->EditAttrs["class"] = "form-control";
-			$this->id->EditCustomAttributes = "";
-			$this->id->EditValue = $this->id->CurrentValue;
-			$this->id->ViewCustomAttributes = "";
-
 			// grup_id
 			$this->grup_id->EditAttrs["class"] = "form-control";
 			$this->grup_id->EditCustomAttributes = "";
 			if ($this->grup_id->getSessionValue() <> "") {
 				$this->grup_id->CurrentValue = $this->grup_id->getSessionValue();
 				$this->grup_id->OldValue = $this->grup_id->CurrentValue;
-			$this->grup_id->ViewValue = $this->grup_id->CurrentValue;
+			if (strval($this->grup_id->CurrentValue) <> "") {
+				$sFilterWrk = "`id`" . ew_SearchString("=", $this->grup_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+			$sSqlWrk = "SELECT `id`, `name` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `grup`";
+			$sWhereWrk = "";
+			$this->grup_id->LookupFilters = array();
+			ew_AddFilter($sWhereWrk, $sFilterWrk);
+			$this->Lookup_Selecting($this->grup_id, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+				$rswrk = Conn()->Execute($sSqlWrk);
+				if ($rswrk && !$rswrk->EOF) { // Lookup values found
+					$arwrk = array();
+					$arwrk[1] = $rswrk->fields('DispFld');
+					$this->grup_id->ViewValue = $this->grup_id->DisplayValue($arwrk);
+					$rswrk->Close();
+				} else {
+					$this->grup_id->ViewValue = $this->grup_id->CurrentValue;
+				}
+			} else {
+				$this->grup_id->ViewValue = NULL;
+			}
 			$this->grup_id->ViewCustomAttributes = "";
 			} else {
-			$this->grup_id->EditValue = ew_HtmlEncode($this->grup_id->CurrentValue);
-			$this->grup_id->PlaceHolder = ew_RemoveHtml($this->grup_id->FldCaption());
+			if (trim(strval($this->grup_id->CurrentValue)) == "") {
+				$sFilterWrk = "0=1";
+			} else {
+				$sFilterWrk = "`id`" . ew_SearchString("=", $this->grup_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+			}
+			$sSqlWrk = "SELECT `id`, `name` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld`, '' AS `SelectFilterFld`, '' AS `SelectFilterFld2`, '' AS `SelectFilterFld3`, '' AS `SelectFilterFld4` FROM `grup`";
+			$sWhereWrk = "";
+			$this->grup_id->LookupFilters = array();
+			ew_AddFilter($sWhereWrk, $sFilterWrk);
+			$this->Lookup_Selecting($this->grup_id, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			$arwrk = ($rswrk) ? $rswrk->GetRows() : array();
+			if ($rswrk) $rswrk->Close();
+			$this->grup_id->EditValue = $arwrk;
 			}
 
 			// kode
@@ -1380,12 +1462,8 @@ class csubgrup_grid extends csubgrup {
 			$this->nama->PlaceHolder = ew_RemoveHtml($this->nama->FldCaption());
 
 			// Edit refer script
-			// id
-
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-
 			// grup_id
+
 			$this->grup_id->LinkCustomAttributes = "";
 			$this->grup_id->HrefValue = "";
 
@@ -1415,9 +1493,6 @@ class csubgrup_grid extends csubgrup {
 		// Check if validation required
 		if (!EW_SERVER_VALIDATE)
 			return ($gsFormError == "");
-		if (!ew_CheckInteger($this->grup_id->FormValue)) {
-			ew_AddMessage($gsFormError, $this->grup_id->FldErrMsg());
-		}
 
 		// Return validate result
 		$ValidateForm = ($gsFormError == "");
@@ -1539,6 +1614,28 @@ class csubgrup_grid extends csubgrup {
 			// nama
 			$this->nama->SetDbValueDef($rsnew, $this->nama->CurrentValue, NULL, $this->nama->ReadOnly);
 
+			// Check referential integrity for master table 'grup'
+			$bValidMasterRecord = TRUE;
+			$sMasterFilter = $this->SqlMasterFilter_grup();
+			$KeyValue = isset($rsnew['grup_id']) ? $rsnew['grup_id'] : $rsold['grup_id'];
+			if (strval($KeyValue) <> "") {
+				$sMasterFilter = str_replace("@id@", ew_AdjustSql($KeyValue), $sMasterFilter);
+			} else {
+				$bValidMasterRecord = FALSE;
+			}
+			if ($bValidMasterRecord) {
+				if (!isset($GLOBALS["grup"])) $GLOBALS["grup"] = new cgrup();
+				$rsmaster = $GLOBALS["grup"]->LoadRs($sMasterFilter);
+				$bValidMasterRecord = ($rsmaster && !$rsmaster->EOF);
+				$rsmaster->Close();
+			}
+			if (!$bValidMasterRecord) {
+				$sRelatedRecordMsg = str_replace("%t", "grup", $Language->Phrase("RelatedRecordRequired"));
+				$this->setFailureMessage($sRelatedRecordMsg);
+				$rs->Close();
+				return FALSE;
+			}
+
 			// Call Row Updating event
 			$bUpdateRow = $this->Row_Updating($rsold, $rsnew);
 			if ($bUpdateRow) {
@@ -1579,6 +1676,26 @@ class csubgrup_grid extends csubgrup {
 			if ($this->getCurrentMasterTable() == "grup") {
 				$this->grup_id->CurrentValue = $this->grup_id->getSessionValue();
 			}
+
+		// Check referential integrity for master table 'grup'
+		$bValidMasterRecord = TRUE;
+		$sMasterFilter = $this->SqlMasterFilter_grup();
+		if (strval($this->grup_id->CurrentValue) <> "") {
+			$sMasterFilter = str_replace("@id@", ew_AdjustSql($this->grup_id->CurrentValue, "DB"), $sMasterFilter);
+		} else {
+			$bValidMasterRecord = FALSE;
+		}
+		if ($bValidMasterRecord) {
+			if (!isset($GLOBALS["grup"])) $GLOBALS["grup"] = new cgrup();
+			$rsmaster = $GLOBALS["grup"]->LoadRs($sMasterFilter);
+			$bValidMasterRecord = ($rsmaster && !$rsmaster->EOF);
+			$rsmaster->Close();
+		}
+		if (!$bValidMasterRecord) {
+			$sRelatedRecordMsg = str_replace("%t", "grup", $Language->Phrase("RelatedRecordRequired"));
+			$this->setFailureMessage($sRelatedRecordMsg);
+			return FALSE;
+		}
 		$conn = &$this->Connection();
 
 		// Load db values from rsold
@@ -1644,6 +1761,18 @@ class csubgrup_grid extends csubgrup {
 		global $gsLanguage;
 		$pageId = $pageId ?: $this->PageID;
 		switch ($fld->FldVar) {
+		case "x_grup_id":
+			$sSqlWrk = "";
+			$sSqlWrk = "SELECT `id` AS `LinkFld`, `name` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `grup`";
+			$sWhereWrk = "";
+			$this->grup_id->LookupFilters = array();
+			$fld->LookupFilters += array("s" => $sSqlWrk, "d" => "", "f0" => '`id` = {filter_value}', "t0" => "3", "fn0" => "");
+			$sSqlWrk = "";
+			$this->Lookup_Selecting($this->grup_id, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			if ($sSqlWrk <> "")
+				$fld->LookupFilters["s"] .= $sSqlWrk;
+			break;
 		}
 	}
 

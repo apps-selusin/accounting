@@ -900,13 +900,16 @@ class cklasifikasi_list extends cklasifikasi {
 	// Set up sort parameters
 	function SetUpSortOrder() {
 
+		// Check for Ctrl pressed
+		$bCtrl = (@$_GET["ctrl"] <> "");
+
 		// Check for "order" parameter
 		if (@$_GET["order"] <> "") {
 			$this->CurrentOrder = ew_StripSlashes(@$_GET["order"]);
 			$this->CurrentOrderType = @$_GET["ordertype"];
-			$this->UpdateSort($this->id); // id
-			$this->UpdateSort($this->kode); // kode
-			$this->UpdateSort($this->nama); // nama
+			$this->UpdateSort($this->id, $bCtrl); // id
+			$this->UpdateSort($this->kode, $bCtrl); // kode
+			$this->UpdateSort($this->nama, $bCtrl); // nama
 			$this->setStartRecordNumber(1); // Reset start position
 		}
 	}
@@ -1769,7 +1772,7 @@ $klasifikasi_list->ListOptions->Render("header", "left");
 	<?php if ($klasifikasi->SortUrl($klasifikasi->id) == "") { ?>
 		<th data-name="id"><div id="elh_klasifikasi_id" class="klasifikasi_id"><div class="ewTableHeaderCaption"><?php echo $klasifikasi->id->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $klasifikasi->SortUrl($klasifikasi->id) ?>',1);"><div id="elh_klasifikasi_id" class="klasifikasi_id">
+		<th data-name="id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $klasifikasi->SortUrl($klasifikasi->id) ?>',2);"><div id="elh_klasifikasi_id" class="klasifikasi_id">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $klasifikasi->id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($klasifikasi->id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($klasifikasi->id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1778,7 +1781,7 @@ $klasifikasi_list->ListOptions->Render("header", "left");
 	<?php if ($klasifikasi->SortUrl($klasifikasi->kode) == "") { ?>
 		<th data-name="kode"><div id="elh_klasifikasi_kode" class="klasifikasi_kode"><div class="ewTableHeaderCaption"><?php echo $klasifikasi->kode->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="kode"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $klasifikasi->SortUrl($klasifikasi->kode) ?>',1);"><div id="elh_klasifikasi_kode" class="klasifikasi_kode">
+		<th data-name="kode"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $klasifikasi->SortUrl($klasifikasi->kode) ?>',2);"><div id="elh_klasifikasi_kode" class="klasifikasi_kode">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $klasifikasi->kode->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($klasifikasi->kode->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($klasifikasi->kode->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1787,7 +1790,7 @@ $klasifikasi_list->ListOptions->Render("header", "left");
 	<?php if ($klasifikasi->SortUrl($klasifikasi->nama) == "") { ?>
 		<th data-name="nama"><div id="elh_klasifikasi_nama" class="klasifikasi_nama"><div class="ewTableHeaderCaption"><?php echo $klasifikasi->nama->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="nama"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $klasifikasi->SortUrl($klasifikasi->nama) ?>',1);"><div id="elh_klasifikasi_nama" class="klasifikasi_nama">
+		<th data-name="nama"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $klasifikasi->SortUrl($klasifikasi->nama) ?>',2);"><div id="elh_klasifikasi_nama" class="klasifikasi_nama">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $klasifikasi->nama->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($klasifikasi->nama->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($klasifikasi->nama->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>

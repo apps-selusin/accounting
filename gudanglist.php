@@ -912,14 +912,17 @@ class cgudang_list extends cgudang {
 	// Set up sort parameters
 	function SetUpSortOrder() {
 
+		// Check for Ctrl pressed
+		$bCtrl = (@$_GET["ctrl"] <> "");
+
 		// Check for "order" parameter
 		if (@$_GET["order"] <> "") {
 			$this->CurrentOrder = ew_StripSlashes(@$_GET["order"]);
 			$this->CurrentOrderType = @$_GET["ordertype"];
-			$this->UpdateSort($this->id); // id
-			$this->UpdateSort($this->kode); // kode
-			$this->UpdateSort($this->nama); // nama
-			$this->UpdateSort($this->lokasi); // lokasi
+			$this->UpdateSort($this->id, $bCtrl); // id
+			$this->UpdateSort($this->kode, $bCtrl); // kode
+			$this->UpdateSort($this->nama, $bCtrl); // nama
+			$this->UpdateSort($this->lokasi, $bCtrl); // lokasi
 			$this->setStartRecordNumber(1); // Reset start position
 		}
 	}
@@ -1795,7 +1798,7 @@ $gudang_list->ListOptions->Render("header", "left");
 	<?php if ($gudang->SortUrl($gudang->id) == "") { ?>
 		<th data-name="id"><div id="elh_gudang_id" class="gudang_id"><div class="ewTableHeaderCaption"><?php echo $gudang->id->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $gudang->SortUrl($gudang->id) ?>',1);"><div id="elh_gudang_id" class="gudang_id">
+		<th data-name="id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $gudang->SortUrl($gudang->id) ?>',2);"><div id="elh_gudang_id" class="gudang_id">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $gudang->id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($gudang->id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($gudang->id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1804,7 +1807,7 @@ $gudang_list->ListOptions->Render("header", "left");
 	<?php if ($gudang->SortUrl($gudang->kode) == "") { ?>
 		<th data-name="kode"><div id="elh_gudang_kode" class="gudang_kode"><div class="ewTableHeaderCaption"><?php echo $gudang->kode->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="kode"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $gudang->SortUrl($gudang->kode) ?>',1);"><div id="elh_gudang_kode" class="gudang_kode">
+		<th data-name="kode"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $gudang->SortUrl($gudang->kode) ?>',2);"><div id="elh_gudang_kode" class="gudang_kode">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $gudang->kode->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($gudang->kode->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($gudang->kode->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1813,7 +1816,7 @@ $gudang_list->ListOptions->Render("header", "left");
 	<?php if ($gudang->SortUrl($gudang->nama) == "") { ?>
 		<th data-name="nama"><div id="elh_gudang_nama" class="gudang_nama"><div class="ewTableHeaderCaption"><?php echo $gudang->nama->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="nama"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $gudang->SortUrl($gudang->nama) ?>',1);"><div id="elh_gudang_nama" class="gudang_nama">
+		<th data-name="nama"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $gudang->SortUrl($gudang->nama) ?>',2);"><div id="elh_gudang_nama" class="gudang_nama">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $gudang->nama->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($gudang->nama->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($gudang->nama->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1822,7 +1825,7 @@ $gudang_list->ListOptions->Render("header", "left");
 	<?php if ($gudang->SortUrl($gudang->lokasi) == "") { ?>
 		<th data-name="lokasi"><div id="elh_gudang_lokasi" class="gudang_lokasi"><div class="ewTableHeaderCaption"><?php echo $gudang->lokasi->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="lokasi"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $gudang->SortUrl($gudang->lokasi) ?>',1);"><div id="elh_gudang_lokasi" class="gudang_lokasi">
+		<th data-name="lokasi"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $gudang->SortUrl($gudang->lokasi) ?>',2);"><div id="elh_gudang_lokasi" class="gudang_lokasi">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $gudang->lokasi->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($gudang->lokasi->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($gudang->lokasi->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>

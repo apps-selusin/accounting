@@ -6,7 +6,6 @@ ob_start(); // Turn on output buffering
 <?php include_once ((EW_USE_ADODB) ? "adodb5/adodb.inc.php" : "ewmysql13.php") ?>
 <?php include_once "phpfn13.php" ?>
 <?php include_once "subgrupinfo.php" ?>
-<?php include_once "grupinfo.php" ?>
 <?php include_once "userfn13.php" ?>
 <?php
 
@@ -275,9 +274,6 @@ class csubgrup_view extends csubgrup {
 		$this->ExportCsvUrl = $this->PageUrl() . "export=csv" . $KeyUrl;
 		$this->ExportPdfUrl = $this->PageUrl() . "export=pdf" . $KeyUrl;
 
-		// Table object (grup)
-		if (!isset($GLOBALS['grup'])) $GLOBALS['grup'] = new cgrup();
-
 		// Page ID
 		if (!defined("EW_PAGE_ID"))
 			define("EW_PAGE_ID", 'view', TRUE);
@@ -312,8 +308,6 @@ class csubgrup_view extends csubgrup {
 	function Page_Init() {
 		global $gsExport, $gsCustomExport, $gsExportFile, $UserProfile, $Language, $Security, $objForm;
 		$this->CurrentAction = (@$_GET["a"] <> "") ? $_GET["a"] : @$_POST["a_list"]; // Set up current action
-		$this->id->SetVisibility();
-		$this->id->Visible = !$this->IsAdd() && !$this->IsCopy() && !$this->IsGridAdd();
 		$this->grup_id->SetVisibility();
 		$this->kode->SetVisibility();
 		$this->nama->SetVisibility();
@@ -416,9 +410,6 @@ class csubgrup_view extends csubgrup {
 		$bLoadCurrentRecord = FALSE;
 		$sReturnUrl = "";
 		$bMatchRecord = FALSE;
-
-		// Set up master/detail parameters
-		$this->SetUpMasterParms();
 		if ($this->IsPageRequest()) { // Validate request
 			if (@$_GET["id"] <> "") {
 				$this->id->setQueryStringValue($_GET["id"]);
@@ -672,7 +663,26 @@ class csubgrup_view extends csubgrup {
 		$this->id->ViewCustomAttributes = "";
 
 		// grup_id
-		$this->grup_id->ViewValue = $this->grup_id->CurrentValue;
+		if (strval($this->grup_id->CurrentValue) <> "") {
+			$sFilterWrk = "`id`" . ew_SearchString("=", $this->grup_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+		$sSqlWrk = "SELECT `id`, `name` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `grup`";
+		$sWhereWrk = "";
+		$this->grup_id->LookupFilters = array();
+		ew_AddFilter($sWhereWrk, $sFilterWrk);
+		$this->Lookup_Selecting($this->grup_id, $sWhereWrk); // Call Lookup selecting
+		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			if ($rswrk && !$rswrk->EOF) { // Lookup values found
+				$arwrk = array();
+				$arwrk[1] = $rswrk->fields('DispFld');
+				$this->grup_id->ViewValue = $this->grup_id->DisplayValue($arwrk);
+				$rswrk->Close();
+			} else {
+				$this->grup_id->ViewValue = $this->grup_id->CurrentValue;
+			}
+		} else {
+			$this->grup_id->ViewValue = NULL;
+		}
 		$this->grup_id->ViewCustomAttributes = "";
 
 		// kode
@@ -682,11 +692,6 @@ class csubgrup_view extends csubgrup {
 		// nama
 		$this->nama->ViewValue = $this->nama->CurrentValue;
 		$this->nama->ViewCustomAttributes = "";
-
-			// id
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-			$this->id->TooltipValue = "";
 
 			// grup_id
 			$this->grup_id->LinkCustomAttributes = "";
@@ -707,67 +712,6 @@ class csubgrup_view extends csubgrup {
 		// Call Row Rendered event
 		if ($this->RowType <> EW_ROWTYPE_AGGREGATEINIT)
 			$this->Row_Rendered();
-	}
-
-	// Set up master/detail based on QueryString
-	function SetUpMasterParms() {
-		$bValidMaster = FALSE;
-
-		// Get the keys for master table
-		if (isset($_GET[EW_TABLE_SHOW_MASTER])) {
-			$sMasterTblVar = $_GET[EW_TABLE_SHOW_MASTER];
-			if ($sMasterTblVar == "") {
-				$bValidMaster = TRUE;
-				$this->DbMasterFilter = "";
-				$this->DbDetailFilter = "";
-			}
-			if ($sMasterTblVar == "grup") {
-				$bValidMaster = TRUE;
-				if (@$_GET["fk_id"] <> "") {
-					$GLOBALS["grup"]->id->setQueryStringValue($_GET["fk_id"]);
-					$this->grup_id->setQueryStringValue($GLOBALS["grup"]->id->QueryStringValue);
-					$this->grup_id->setSessionValue($this->grup_id->QueryStringValue);
-					if (!is_numeric($GLOBALS["grup"]->id->QueryStringValue)) $bValidMaster = FALSE;
-				} else {
-					$bValidMaster = FALSE;
-				}
-			}
-		} elseif (isset($_POST[EW_TABLE_SHOW_MASTER])) {
-			$sMasterTblVar = $_POST[EW_TABLE_SHOW_MASTER];
-			if ($sMasterTblVar == "") {
-				$bValidMaster = TRUE;
-				$this->DbMasterFilter = "";
-				$this->DbDetailFilter = "";
-			}
-			if ($sMasterTblVar == "grup") {
-				$bValidMaster = TRUE;
-				if (@$_POST["fk_id"] <> "") {
-					$GLOBALS["grup"]->id->setFormValue($_POST["fk_id"]);
-					$this->grup_id->setFormValue($GLOBALS["grup"]->id->FormValue);
-					$this->grup_id->setSessionValue($this->grup_id->FormValue);
-					if (!is_numeric($GLOBALS["grup"]->id->FormValue)) $bValidMaster = FALSE;
-				} else {
-					$bValidMaster = FALSE;
-				}
-			}
-		}
-		if ($bValidMaster) {
-
-			// Save current master table
-			$this->setCurrentMasterTable($sMasterTblVar);
-			$this->setSessionWhere($this->GetDetailFilter());
-
-			// Reset start record counter (new master key)
-			$this->StartRec = 1;
-			$this->setStartRecordNumber($this->StartRec);
-
-			// Clear previous master key from Session
-			if ($sMasterTblVar <> "grup") {
-				if ($this->grup_id->CurrentValue == "") $this->grup_id->setSessionValue("");
-			}
-		}
-		$this->DbMasterFilter = $this->GetMasterFilter(); // Get master filter
-		$this->DbDetailFilter = $this->GetDetailFilter(); // Get detail filter
 	}
 
 	// Set up Breadcrumb
@@ -924,8 +868,9 @@ fsubgrupview.ValidateRequired = false;
 <?php } ?>
 
 // Dynamic selection lists
-// Form object for search
+fsubgrupview.Lists["x_grup_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_name","","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"grup"};
 
+// Form object for search
 </script>
 <script type="text/javascript">
 
@@ -958,17 +903,6 @@ $subgrup_view->ShowMessage();
 <input type="hidden" name="modal" value="1">
 <?php } ?>
 <table class="table table-bordered table-striped ewViewTable">
-<?php if ($subgrup->id->Visible) { // id ?>
-	<tr id="r_id">
-		<td><span id="elh_subgrup_id"><?php echo $subgrup->id->FldCaption() ?></span></td>
-		<td data-name="id"<?php echo $subgrup->id->CellAttributes() ?>>
-<span id="el_subgrup_id">
-<span<?php echo $subgrup->id->ViewAttributes() ?>>
-<?php echo $subgrup->id->ViewValue ?></span>
-</span>
-</td>
-	</tr>
-<?php } ?>
 <?php if ($subgrup->grup_id->Visible) { // grup_id ?>
 	<tr id="r_grup_id">
 		<td><span id="elh_subgrup_grup_id"><?php echo $subgrup->grup_id->FldCaption() ?></span></td>

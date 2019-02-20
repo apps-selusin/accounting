@@ -6,7 +6,6 @@ ob_start(); // Turn on output buffering
 <?php include_once ((EW_USE_ADODB) ? "adodb5/adodb.inc.php" : "ewmysql13.php") ?>
 <?php include_once "phpfn13.php" ?>
 <?php include_once "grupinfo.php" ?>
-<?php include_once "subgrupgridcls.php" ?>
 <?php include_once "userfn13.php" ?>
 <?php
 
@@ -255,8 +254,6 @@ class cgrup_edit extends cgrup {
 		// Create form object
 		$objForm = new cFormObj();
 		$this->CurrentAction = (@$_GET["a"] <> "") ? $_GET["a"] : @$_POST["a_list"]; // Set up current action
-		$this->id->SetVisibility();
-		$this->id->Visible = !$this->IsAdd() && !$this->IsCopy() && !$this->IsGridAdd();
 		$this->name->SetVisibility();
 
 		// Global Page Loading event (in userfn*.php)
@@ -274,14 +271,6 @@ class cgrup_edit extends cgrup {
 
 		// Process auto fill
 		if (@$_POST["ajax"] == "autofill") {
-
-			// Process auto fill for detail table 'subgrup'
-			if (@$_POST["grid"] == "fsubgrupgrid") {
-				if (!isset($GLOBALS["subgrup_grid"])) $GLOBALS["subgrup_grid"] = new csubgrup_grid;
-				$GLOBALS["subgrup_grid"]->Page_Init();
-				$this->Page_Terminate();
-				exit();
-			}
 			$results = $this->GetAutoFill(@$_POST["name"], @$_POST["q"]);
 			if ($results) {
 
@@ -420,9 +409,6 @@ class cgrup_edit extends cgrup {
 		if (@$_POST["a_edit"] <> "") {
 			$this->CurrentAction = $_POST["a_edit"]; // Get action code
 			$this->LoadFormValues(); // Get form values
-
-			// Set up detail parameters
-			$this->SetUpDetailParms();
 		} else {
 			$this->CurrentAction = "I"; // Default action is display
 		}
@@ -445,15 +431,9 @@ class cgrup_edit extends cgrup {
 				} else {
 					$this->LoadRowValues($this->Recordset); // Load row values
 				}
-
-				// Set up detail parameters
-				$this->SetUpDetailParms();
 				break;
 			Case "U": // Update
-				if ($this->getCurrentDetailTable() <> "") // Master/detail edit
-					$sReturnUrl = $this->GetViewUrl(EW_TABLE_SHOW_DETAIL . "=" . $this->getCurrentDetailTable()); // Master/Detail view page
-				else
-					$sReturnUrl = $this->getReturnUrl();
+				$sReturnUrl = $this->getReturnUrl();
 				if (ew_GetPageName($sReturnUrl) == "gruplist.php")
 					$sReturnUrl = $this->AddMasterUrl($sReturnUrl); // List page, return to list page with correct master key if necessary
 				$this->SendEmail = TRUE; // Send email on update success
@@ -466,9 +446,6 @@ class cgrup_edit extends cgrup {
 				} else {
 					$this->EventCancelled = TRUE; // Event cancelled
 					$this->RestoreFormValues(); // Restore form values if update failed
-
-					// Set up detail parameters
-					$this->SetUpDetailParms();
 				}
 		}
 
@@ -529,11 +506,11 @@ class cgrup_edit extends cgrup {
 
 		// Load from form
 		global $objForm;
-		if (!$this->id->FldIsDetailKey)
-			$this->id->setFormValue($objForm->GetValue("x_id"));
 		if (!$this->name->FldIsDetailKey) {
 			$this->name->setFormValue($objForm->GetValue("x_name"));
 		}
+		if (!$this->id->FldIsDetailKey)
+			$this->id->setFormValue($objForm->GetValue("x_id"));
 	}
 
 	// Restore form values
@@ -634,22 +611,11 @@ class cgrup_edit extends cgrup {
 		$this->name->ViewValue = $this->name->CurrentValue;
 		$this->name->ViewCustomAttributes = "";
 
-			// id
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-			$this->id->TooltipValue = "";
-
 			// name
 			$this->name->LinkCustomAttributes = "";
 			$this->name->HrefValue = "";
 			$this->name->TooltipValue = "";
 		} elseif ($this->RowType == EW_ROWTYPE_EDIT) { // Edit row
-
-			// id
-			$this->id->EditAttrs["class"] = "form-control";
-			$this->id->EditCustomAttributes = "";
-			$this->id->EditValue = $this->id->CurrentValue;
-			$this->id->ViewCustomAttributes = "";
 
 			// name
 			$this->name->EditAttrs["class"] = "form-control";
@@ -658,12 +624,8 @@ class cgrup_edit extends cgrup {
 			$this->name->PlaceHolder = ew_RemoveHtml($this->name->FldCaption());
 
 			// Edit refer script
-			// id
-
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-
 			// name
+
 			$this->name->LinkCustomAttributes = "";
 			$this->name->HrefValue = "";
 		}
@@ -688,13 +650,6 @@ class cgrup_edit extends cgrup {
 		// Check if validation required
 		if (!EW_SERVER_VALIDATE)
 			return ($gsFormError == "");
-
-		// Validate detail grid
-		$DetailTblVar = explode(",", $this->getCurrentDetailTable());
-		if (in_array("subgrup", $DetailTblVar) && $GLOBALS["subgrup"]->DetailEdit) {
-			if (!isset($GLOBALS["subgrup_grid"])) $GLOBALS["subgrup_grid"] = new csubgrup_grid(); // get detail page object
-			$GLOBALS["subgrup_grid"]->ValidateGridForm();
-		}
 
 		// Return validate result
 		$ValidateForm = ($gsFormError == "");
@@ -726,10 +681,6 @@ class cgrup_edit extends cgrup {
 			$EditRow = FALSE; // Update Failed
 		} else {
 
-			// Begin transaction
-			if ($this->getCurrentDetailTable() <> "")
-				$conn->BeginTrans();
-
 			// Save old values
 			$rsold = &$rs->fields;
 			$this->LoadDbValues($rsold);
@@ -748,24 +699,6 @@ class cgrup_edit extends cgrup {
 					$EditRow = TRUE; // No field to update
 				$conn->raiseErrorFn = '';
 				if ($EditRow) {
-				}
-
-				// Update detail records
-				$DetailTblVar = explode(",", $this->getCurrentDetailTable());
-				if ($EditRow) {
-					if (in_array("subgrup", $DetailTblVar) && $GLOBALS["subgrup"]->DetailEdit) {
-						if (!isset($GLOBALS["subgrup_grid"])) $GLOBALS["subgrup_grid"] = new csubgrup_grid(); // Get detail page object
-						$EditRow = $GLOBALS["subgrup_grid"]->GridUpdate();
-					}
-				}
-
-				// Commit/Rollback transaction
-				if ($this->getCurrentDetailTable() <> "") {
-					if ($EditRow) {
-						$conn->CommitTrans(); // Commit transaction
-					} else {
-						$conn->RollbackTrans(); // Rollback transaction
-					}
 				}
 			} else {
 				if ($this->getSuccessMessage() <> "" || $this->getFailureMessage() <> "") {
@@ -786,36 +719,6 @@ class cgrup_edit extends cgrup {
 			$this->Row_Updated($rsold, $rsnew);
 		$rs->Close();
 		return $EditRow;
-	}
-
-	// Set up detail parms based on QueryString
-	function SetUpDetailParms() {
-
-		// Get the keys for master table
-		if (isset($_GET[EW_TABLE_SHOW_DETAIL])) {
-			$sDetailTblVar = $_GET[EW_TABLE_SHOW_DETAIL];
-			$this->setCurrentDetailTable($sDetailTblVar);
-		} else {
-			$sDetailTblVar = $this->getCurrentDetailTable();
-		}
-		if ($sDetailTblVar <> "") {
-			$DetailTblVar = explode(",", $sDetailTblVar);
-			if (in_array("subgrup", $DetailTblVar)) {
-				if (!isset($GLOBALS["subgrup_grid"]))
-					$GLOBALS["subgrup_grid"] = new csubgrup_grid;
-				if ($GLOBALS["subgrup_grid"]->DetailEdit) {
-					$GLOBALS["subgrup_grid"]->CurrentMode = "edit";
-					$GLOBALS["subgrup_grid"]->CurrentAction = "gridedit";
-
-					// Save current master table to detail table
-					$GLOBALS["subgrup_grid"]->setCurrentMasterTable($this->TableVar);
-					$GLOBALS["subgrup_grid"]->setStartRecordNumber(1);
-					$GLOBALS["subgrup_grid"]->grup_id->FldIsDetailKey = TRUE;
-					$GLOBALS["subgrup_grid"]->grup_id->CurrentValue = $this->id->CurrentValue;
-					$GLOBALS["subgrup_grid"]->grup_id->setSessionValue($GLOBALS["subgrup_grid"]->grup_id->CurrentValue);
-				}
-			}
-		}
 	}
 
 	// Set up Breadcrumb
@@ -1013,18 +916,6 @@ $grup_edit->ShowMessage();
 <input type="hidden" name="modal" value="1">
 <?php } ?>
 <div>
-<?php if ($grup->id->Visible) { // id ?>
-	<div id="r_id" class="form-group">
-		<label id="elh_grup_id" class="col-sm-2 control-label ewLabel"><?php echo $grup->id->FldCaption() ?></label>
-		<div class="col-sm-10"><div<?php echo $grup->id->CellAttributes() ?>>
-<span id="el_grup_id">
-<span<?php echo $grup->id->ViewAttributes() ?>>
-<p class="form-control-static"><?php echo $grup->id->EditValue ?></p></span>
-</span>
-<input type="hidden" data-table="grup" data-field="x_id" name="x_id" id="x_id" value="<?php echo ew_HtmlEncode($grup->id->CurrentValue) ?>">
-<?php echo $grup->id->CustomMsg ?></div></div>
-	</div>
-<?php } ?>
 <?php if ($grup->name->Visible) { // name ?>
 	<div id="r_name" class="form-group">
 		<label id="elh_grup_name" for="x_name" class="col-sm-2 control-label ewLabel"><?php echo $grup->name->FldCaption() ?></label>
@@ -1036,14 +927,7 @@ $grup_edit->ShowMessage();
 	</div>
 <?php } ?>
 </div>
-<?php
-	if (in_array("subgrup", explode(",", $grup->getCurrentDetailTable())) && $subgrup->DetailEdit) {
-?>
-<?php if ($grup->getCurrentDetailTable() <> "") { ?>
-<h4 class="ewDetailCaption"><?php echo $Language->TablePhrase("subgrup", "TblCaption") ?></h4>
-<?php } ?>
-<?php include_once "subgrupgrid.php" ?>
-<?php } ?>
+<input type="hidden" data-table="grup" data-field="x_id" name="x_id" id="x_id" value="<?php echo ew_HtmlEncode($grup->id->CurrentValue) ?>">
 <?php if (!$grup_edit->IsModal) { ?>
 <div class="form-group">
 	<div class="col-sm-offset-2 col-sm-10">

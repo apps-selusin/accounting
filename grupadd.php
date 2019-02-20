@@ -6,7 +6,6 @@ ob_start(); // Turn on output buffering
 <?php include_once ((EW_USE_ADODB) ? "adodb5/adodb.inc.php" : "ewmysql13.php") ?>
 <?php include_once "phpfn13.php" ?>
 <?php include_once "grupinfo.php" ?>
-<?php include_once "subgrupgridcls.php" ?>
 <?php include_once "userfn13.php" ?>
 <?php
 
@@ -272,14 +271,6 @@ class cgrup_add extends cgrup {
 
 		// Process auto fill
 		if (@$_POST["ajax"] == "autofill") {
-
-			// Process auto fill for detail table 'subgrup'
-			if (@$_POST["grid"] == "fsubgrupgrid") {
-				if (!isset($GLOBALS["subgrup_grid"])) $GLOBALS["subgrup_grid"] = new csubgrup_grid;
-				$GLOBALS["subgrup_grid"]->Page_Init();
-				$this->Page_Terminate();
-				exit();
-			}
 			$results = $this->GetAutoFill(@$_POST["name"], @$_POST["q"]);
 			if ($results) {
 
@@ -393,9 +384,6 @@ class cgrup_add extends cgrup {
 		// Set up Breadcrumb
 		$this->SetupBreadcrumb();
 
-		// Set up detail parameters
-		$this->SetUpDetailParms();
-
 		// Validate form if post back
 		if (@$_POST["a_add"] <> "") {
 			if (!$this->ValidateForm()) {
@@ -418,19 +406,13 @@ class cgrup_add extends cgrup {
 					if ($this->getFailureMessage() == "") $this->setFailureMessage($Language->Phrase("NoRecord")); // No record found
 					$this->Page_Terminate("gruplist.php"); // No matching record, return to list
 				}
-
-				// Set up detail parameters
-				$this->SetUpDetailParms();
 				break;
 			case "A": // Add new record
 				$this->SendEmail = TRUE; // Send email on add success
 				if ($this->AddRow($this->OldRecordset)) { // Add successful
 					if ($this->getSuccessMessage() == "")
 						$this->setSuccessMessage($Language->Phrase("AddSuccess")); // Set up success message
-					if ($this->getCurrentDetailTable() <> "") // Master/detail add
-						$sReturnUrl = $this->GetDetailUrl();
-					else
-						$sReturnUrl = $this->getReturnUrl();
+					$sReturnUrl = $this->getReturnUrl();
 					if (ew_GetPageName($sReturnUrl) == "gruplist.php")
 						$sReturnUrl = $this->AddMasterUrl($sReturnUrl); // List page, return to list page with correct master key if necessary
 					elseif (ew_GetPageName($sReturnUrl) == "grupview.php")
@@ -439,9 +421,6 @@ class cgrup_add extends cgrup {
 				} else {
 					$this->EventCancelled = TRUE; // Event cancelled
 					$this->RestoreFormValues(); // Add failed, restore form values
-
-					// Set up detail parameters
-					$this->SetUpDetailParms();
 				}
 		}
 
@@ -610,13 +589,6 @@ class cgrup_add extends cgrup {
 		if (!EW_SERVER_VALIDATE)
 			return ($gsFormError == "");
 
-		// Validate detail grid
-		$DetailTblVar = explode(",", $this->getCurrentDetailTable());
-		if (in_array("subgrup", $DetailTblVar) && $GLOBALS["subgrup"]->DetailAdd) {
-			if (!isset($GLOBALS["subgrup_grid"])) $GLOBALS["subgrup_grid"] = new csubgrup_grid(); // get detail page object
-			$GLOBALS["subgrup_grid"]->ValidateGridForm();
-		}
-
 		// Return validate result
 		$ValidateForm = ($gsFormError == "");
 
@@ -633,10 +605,6 @@ class cgrup_add extends cgrup {
 	function AddRow($rsold = NULL) {
 		global $Language, $Security;
 		$conn = &$this->Connection();
-
-		// Begin transaction
-		if ($this->getCurrentDetailTable() <> "")
-			$conn->BeginTrans();
 
 		// Load db values from rsold
 		if ($rsold) {
@@ -668,27 +636,6 @@ class cgrup_add extends cgrup {
 			}
 			$AddRow = FALSE;
 		}
-
-		// Add detail records
-		if ($AddRow) {
-			$DetailTblVar = explode(",", $this->getCurrentDetailTable());
-			if (in_array("subgrup", $DetailTblVar) && $GLOBALS["subgrup"]->DetailAdd) {
-				$GLOBALS["subgrup"]->grup_id->setSessionValue($this->id->CurrentValue); // Set master key
-				if (!isset($GLOBALS["subgrup_grid"])) $GLOBALS["subgrup_grid"] = new csubgrup_grid(); // Get detail page object
-				$AddRow = $GLOBALS["subgrup_grid"]->GridInsert();
-				if (!$AddRow)
-					$GLOBALS["subgrup"]->grup_id->setSessionValue(""); // Clear master key if insert failed
-			}
-		}
-
-		// Commit/Rollback transaction
-		if ($this->getCurrentDetailTable() <> "") {
-			if ($AddRow) {
-				$conn->CommitTrans(); // Commit transaction
-			} else {
-				$conn->RollbackTrans(); // Rollback transaction
-			}
-		}
 		if ($AddRow) {
 
 			// Call Row Inserted event
@@ -696,39 +643,6 @@ class cgrup_add extends cgrup {
 			$this->Row_Inserted($rs, $rsnew);
 		}
 		return $AddRow;
-	}
-
-	// Set up detail parms based on QueryString
-	function SetUpDetailParms() {
-
-		// Get the keys for master table
-		if (isset($_GET[EW_TABLE_SHOW_DETAIL])) {
-			$sDetailTblVar = $_GET[EW_TABLE_SHOW_DETAIL];
-			$this->setCurrentDetailTable($sDetailTblVar);
-		} else {
-			$sDetailTblVar = $this->getCurrentDetailTable();
-		}
-		if ($sDetailTblVar <> "") {
-			$DetailTblVar = explode(",", $sDetailTblVar);
-			if (in_array("subgrup", $DetailTblVar)) {
-				if (!isset($GLOBALS["subgrup_grid"]))
-					$GLOBALS["subgrup_grid"] = new csubgrup_grid;
-				if ($GLOBALS["subgrup_grid"]->DetailAdd) {
-					if ($this->CopyRecord)
-						$GLOBALS["subgrup_grid"]->CurrentMode = "copy";
-					else
-						$GLOBALS["subgrup_grid"]->CurrentMode = "add";
-					$GLOBALS["subgrup_grid"]->CurrentAction = "gridadd";
-
-					// Save current master table to detail table
-					$GLOBALS["subgrup_grid"]->setCurrentMasterTable($this->TableVar);
-					$GLOBALS["subgrup_grid"]->setStartRecordNumber(1);
-					$GLOBALS["subgrup_grid"]->grup_id->FldIsDetailKey = TRUE;
-					$GLOBALS["subgrup_grid"]->grup_id->CurrentValue = $this->id->CurrentValue;
-					$GLOBALS["subgrup_grid"]->grup_id->setSessionValue($GLOBALS["subgrup_grid"]->grup_id->CurrentValue);
-				}
-			}
-		}
 	}
 
 	// Set up Breadcrumb
@@ -937,14 +851,6 @@ $grup_add->ShowMessage();
 	</div>
 <?php } ?>
 </div>
-<?php
-	if (in_array("subgrup", explode(",", $grup->getCurrentDetailTable())) && $subgrup->DetailAdd) {
-?>
-<?php if ($grup->getCurrentDetailTable() <> "") { ?>
-<h4 class="ewDetailCaption"><?php echo $Language->TablePhrase("subgrup", "TblCaption") ?></h4>
-<?php } ?>
-<?php include_once "subgrupgrid.php" ?>
-<?php } ?>
 <?php if (!$grup_add->IsModal) { ?>
 <div class="form-group">
 	<div class="col-sm-offset-2 col-sm-10">

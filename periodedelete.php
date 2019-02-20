@@ -251,11 +251,8 @@ class cperiode_delete extends cperiode {
 	function Page_Init() {
 		global $gsExport, $gsCustomExport, $gsExportFile, $UserProfile, $Language, $Security, $objForm;
 		$this->CurrentAction = (@$_GET["a"] <> "") ? $_GET["a"] : @$_POST["a_list"]; // Set up current action
-		$this->id->SetVisibility();
-		$this->id->Visible = !$this->IsAdd() && !$this->IsCopy() && !$this->IsGridAdd();
 		$this->start->SetVisibility();
 		$this->end->SetVisibility();
-		$this->user_id->SetVisibility();
 
 		// Global Page Loading event (in userfn*.php)
 		Page_Loading();
@@ -469,22 +466,17 @@ class cperiode_delete extends cperiode {
 
 		// start
 		$this->start->ViewValue = $this->start->CurrentValue;
-		$this->start->ViewValue = ew_FormatDateTime($this->start->ViewValue, 0);
+		$this->start->ViewValue = ew_FormatDateTime($this->start->ViewValue, 7);
 		$this->start->ViewCustomAttributes = "";
 
 		// end
 		$this->end->ViewValue = $this->end->CurrentValue;
-		$this->end->ViewValue = ew_FormatDateTime($this->end->ViewValue, 0);
+		$this->end->ViewValue = ew_FormatDateTime($this->end->ViewValue, 7);
 		$this->end->ViewCustomAttributes = "";
 
 		// user_id
 		$this->user_id->ViewValue = $this->user_id->CurrentValue;
 		$this->user_id->ViewCustomAttributes = "";
-
-			// id
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-			$this->id->TooltipValue = "";
 
 			// start
 			$this->start->LinkCustomAttributes = "";
@@ -495,11 +487,6 @@ class cperiode_delete extends cperiode {
 			$this->end->LinkCustomAttributes = "";
 			$this->end->HrefValue = "";
 			$this->end->TooltipValue = "";
-
-			// user_id
-			$this->user_id->LinkCustomAttributes = "";
-			$this->user_id->HrefValue = "";
-			$this->user_id->TooltipValue = "";
 		}
 
 		// Call Row Rendered event
@@ -746,17 +733,11 @@ $periode_delete->ShowMessage();
 <?php echo $periode->TableCustomInnerHtml ?>
 	<thead>
 	<tr class="ewTableHeader">
-<?php if ($periode->id->Visible) { // id ?>
-		<th><span id="elh_periode_id" class="periode_id"><?php echo $periode->id->FldCaption() ?></span></th>
-<?php } ?>
 <?php if ($periode->start->Visible) { // start ?>
 		<th><span id="elh_periode_start" class="periode_start"><?php echo $periode->start->FldCaption() ?></span></th>
 <?php } ?>
 <?php if ($periode->end->Visible) { // end ?>
 		<th><span id="elh_periode_end" class="periode_end"><?php echo $periode->end->FldCaption() ?></span></th>
-<?php } ?>
-<?php if ($periode->user_id->Visible) { // user_id ?>
-		<th><span id="elh_periode_user_id" class="periode_user_id"><?php echo $periode->user_id->FldCaption() ?></span></th>
 <?php } ?>
 	</tr>
 	</thead>
@@ -779,14 +760,6 @@ while (!$periode_delete->Recordset->EOF) {
 	$periode_delete->RenderRow();
 ?>
 	<tr<?php echo $periode->RowAttributes() ?>>
-<?php if ($periode->id->Visible) { // id ?>
-		<td<?php echo $periode->id->CellAttributes() ?>>
-<span id="el<?php echo $periode_delete->RowCnt ?>_periode_id" class="periode_id">
-<span<?php echo $periode->id->ViewAttributes() ?>>
-<?php echo $periode->id->ListViewValue() ?></span>
-</span>
-</td>
-<?php } ?>
 <?php if ($periode->start->Visible) { // start ?>
 		<td<?php echo $periode->start->CellAttributes() ?>>
 <span id="el<?php echo $periode_delete->RowCnt ?>_periode_start" class="periode_start">
@@ -800,14 +773,6 @@ while (!$periode_delete->Recordset->EOF) {
 <span id="el<?php echo $periode_delete->RowCnt ?>_periode_end" class="periode_end">
 <span<?php echo $periode->end->ViewAttributes() ?>>
 <?php echo $periode->end->ListViewValue() ?></span>
-</span>
-</td>
-<?php } ?>
-<?php if ($periode->user_id->Visible) { // user_id ?>
-		<td<?php echo $periode->user_id->CellAttributes() ?>>
-<span id="el<?php echo $periode_delete->RowCnt ?>_periode_user_id" class="periode_user_id">
-<span<?php echo $periode->user_id->ViewAttributes() ?>>
-<?php echo $periode->user_id->ListViewValue() ?></span>
 </span>
 </td>
 <?php } ?>

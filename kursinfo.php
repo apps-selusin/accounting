@@ -49,8 +49,10 @@ class ckurs extends cTable {
 		$this->fields['id'] = &$this->id;
 
 		// matauang_id
-		$this->matauang_id = new cField('kurs', 'kurs', 'x_matauang_id', 'matauang_id', '`matauang_id`', '`matauang_id`', 3, -1, FALSE, '`matauang_id`', FALSE, FALSE, FALSE, 'FORMATTED TEXT', 'TEXT');
+		$this->matauang_id = new cField('kurs', 'kurs', 'x_matauang_id', 'matauang_id', '`matauang_id`', '`matauang_id`', 3, -1, FALSE, '`matauang_id`', FALSE, FALSE, FALSE, 'FORMATTED TEXT', 'SELECT');
 		$this->matauang_id->Sortable = TRUE; // Allow sort
+		$this->matauang_id->UsePleaseSelect = TRUE; // Use PleaseSelect by default
+		$this->matauang_id->PleaseSelectText = $Language->Phrase("PleaseSelect"); // PleaseSelect text
 		$this->matauang_id->FldDefaultErrMsg = $Language->Phrase("IncorrectInteger");
 		$this->fields['matauang_id'] = &$this->matauang_id;
 
@@ -73,8 +75,8 @@ class ckurs extends cTable {
 		return $this->$fldparm->Visible; // Returns original value
 	}
 
-	// Single column sort
-	function UpdateSort(&$ofld) {
+	// Multiple column sort
+	function UpdateSort(&$ofld, $ctrl) {
 		if ($this->CurrentOrder == $ofld->FldName) {
 			$sSortField = $ofld->FldExpression;
 			$sLastSort = $ofld->getSort();
@@ -84,9 +86,20 @@ class ckurs extends cTable {
 				$sThisSort = ($sLastSort == "ASC") ? "DESC" : "ASC";
 			}
 			$ofld->setSort($sThisSort);
-			$this->setSessionOrderBy($sSortField . " " . $sThisSort); // Save to Session
+			if ($ctrl) {
+				$sOrderBy = $this->getSessionOrderBy();
+				if (strpos($sOrderBy, $sSortField . " " . $sLastSort) !== FALSE) {
+					$sOrderBy = str_replace($sSortField . " " . $sLastSort, $sSortField . " " . $sThisSort, $sOrderBy);
+				} else {
+					if ($sOrderBy <> "") $sOrderBy .= ", ";
+					$sOrderBy .= $sSortField . " " . $sThisSort;
+				}
+				$this->setSessionOrderBy($sOrderBy); // Save to Session
+			} else {
+				$this->setSessionOrderBy($sSortField . " " . $sThisSort); // Save to Session
+			}
 		} else {
-			$ofld->setSort("");
+			if (!$ctrl) $ofld->setSort("");
 		}
 	}
 
@@ -580,7 +593,27 @@ class ckurs extends cTable {
 		$this->id->ViewCustomAttributes = "";
 
 		// matauang_id
-		$this->matauang_id->ViewValue = $this->matauang_id->CurrentValue;
+		if (strval($this->matauang_id->CurrentValue) <> "") {
+			$sFilterWrk = "`id`" . ew_SearchString("=", $this->matauang_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+		$sSqlWrk = "SELECT `id`, `nama` AS `DispFld`, `kode` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `matauang`";
+		$sWhereWrk = "";
+		$this->matauang_id->LookupFilters = array();
+		ew_AddFilter($sWhereWrk, $sFilterWrk);
+		$this->Lookup_Selecting($this->matauang_id, $sWhereWrk); // Call Lookup selecting
+		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			if ($rswrk && !$rswrk->EOF) { // Lookup values found
+				$arwrk = array();
+				$arwrk[1] = $rswrk->fields('DispFld');
+				$arwrk[2] = $rswrk->fields('Disp2Fld');
+				$this->matauang_id->ViewValue = $this->matauang_id->DisplayValue($arwrk);
+				$rswrk->Close();
+			} else {
+				$this->matauang_id->ViewValue = $this->matauang_id->CurrentValue;
+			}
+		} else {
+			$this->matauang_id->ViewValue = NULL;
+		}
 		$this->matauang_id->ViewCustomAttributes = "";
 
 		// tanggal
@@ -631,8 +664,6 @@ class ckurs extends cTable {
 		// matauang_id
 		$this->matauang_id->EditAttrs["class"] = "form-control";
 		$this->matauang_id->EditCustomAttributes = "";
-		$this->matauang_id->EditValue = $this->matauang_id->CurrentValue;
-		$this->matauang_id->PlaceHolder = ew_RemoveHtml($this->matauang_id->FldCaption());
 
 		// tanggal
 		$this->tanggal->EditAttrs["class"] = "form-control";
@@ -673,7 +704,6 @@ class ckurs extends cTable {
 			if ($Doc->Horizontal) { // Horizontal format, write header
 				$Doc->BeginExportRow();
 				if ($ExportPageType == "view") {
-					if ($this->id->Exportable) $Doc->ExportCaption($this->id);
 					if ($this->matauang_id->Exportable) $Doc->ExportCaption($this->matauang_id);
 					if ($this->tanggal->Exportable) $Doc->ExportCaption($this->tanggal);
 					if ($this->nilai->Exportable) $Doc->ExportCaption($this->nilai);
@@ -713,7 +743,6 @@ class ckurs extends cTable {
 				if (!$Doc->ExportCustom) {
 					$Doc->BeginExportRow($RowCnt); // Allow CSS styles if enabled
 					if ($ExportPageType == "view") {
-						if ($this->id->Exportable) $Doc->ExportField($this->id);
 						if ($this->matauang_id->Exportable) $Doc->ExportField($this->matauang_id);
 						if ($this->tanggal->Exportable) $Doc->ExportField($this->tanggal);
 						if ($this->nilai->Exportable) $Doc->ExportField($this->nilai);

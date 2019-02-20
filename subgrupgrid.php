@@ -40,9 +40,6 @@ fsubgrupgrid.Validate = function() {
 		var checkrow = (gridinsert) ? !this.EmptyRow(infix) : true;
 		if (checkrow) {
 			addcnt++;
-			elm = this.GetElements("x" + infix + "_grup_id");
-			if (elm && !ew_CheckInteger(elm.value))
-				return this.OnError(elm, "<?php echo ew_JsEncode2($subgrup->grup_id->FldErrMsg()) ?>");
 
 			// Fire Form_CustomValidate event
 			if (!this.Form_CustomValidate(fobj))
@@ -77,8 +74,9 @@ fsubgrupgrid.ValidateRequired = false;
 <?php } ?>
 
 // Dynamic selection lists
-// Form object for search
+fsubgrupgrid.Lists["x_grup_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_name","","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"grup"};
 
+// Form object for search
 </script>
 <?php } ?>
 <?php
@@ -148,15 +146,6 @@ $subgrup_grid->RenderListOptions();
 // Render list options (header, left)
 $subgrup_grid->ListOptions->Render("header", "left");
 ?>
-<?php if ($subgrup->id->Visible) { // id ?>
-	<?php if ($subgrup->SortUrl($subgrup->id) == "") { ?>
-		<th data-name="id"><div id="elh_subgrup_id" class="subgrup_id"><div class="ewTableHeaderCaption"><?php echo $subgrup->id->FldCaption() ?></div></div></th>
-	<?php } else { ?>
-		<th data-name="id"><div><div id="elh_subgrup_id" class="subgrup_id">
-			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $subgrup->id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($subgrup->id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($subgrup->id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
-        </div></div></th>
-	<?php } ?>
-<?php } ?>		
 <?php if ($subgrup->grup_id->Visible) { // grup_id ?>
 	<?php if ($subgrup->SortUrl($subgrup->grup_id) == "") { ?>
 		<th data-name="grup_id"><div id="elh_subgrup_grup_id" class="subgrup_grup_id"><div class="ewTableHeaderCaption"><?php echo $subgrup->grup_id->FldCaption() ?></div></div></th>
@@ -293,33 +282,6 @@ while ($subgrup_grid->RecCnt < $subgrup_grid->StopRec) {
 // Render list options (body, left)
 $subgrup_grid->ListOptions->Render("body", "left", $subgrup_grid->RowCnt);
 ?>
-	<?php if ($subgrup->id->Visible) { // id ?>
-		<td data-name="id"<?php echo $subgrup->id->CellAttributes() ?>>
-<?php if ($subgrup->RowType == EW_ROWTYPE_ADD) { // Add record ?>
-<input type="hidden" data-table="subgrup" data-field="x_id" name="o<?php echo $subgrup_grid->RowIndex ?>_id" id="o<?php echo $subgrup_grid->RowIndex ?>_id" value="<?php echo ew_HtmlEncode($subgrup->id->OldValue) ?>">
-<?php } ?>
-<?php if ($subgrup->RowType == EW_ROWTYPE_EDIT) { // Edit record ?>
-<span id="el<?php echo $subgrup_grid->RowCnt ?>_subgrup_id" class="form-group subgrup_id">
-<span<?php echo $subgrup->id->ViewAttributes() ?>>
-<p class="form-control-static"><?php echo $subgrup->id->EditValue ?></p></span>
-</span>
-<input type="hidden" data-table="subgrup" data-field="x_id" name="x<?php echo $subgrup_grid->RowIndex ?>_id" id="x<?php echo $subgrup_grid->RowIndex ?>_id" value="<?php echo ew_HtmlEncode($subgrup->id->CurrentValue) ?>">
-<?php } ?>
-<?php if ($subgrup->RowType == EW_ROWTYPE_VIEW) { // View record ?>
-<span id="el<?php echo $subgrup_grid->RowCnt ?>_subgrup_id" class="subgrup_id">
-<span<?php echo $subgrup->id->ViewAttributes() ?>>
-<?php echo $subgrup->id->ListViewValue() ?></span>
-</span>
-<?php if ($subgrup->CurrentAction <> "F") { ?>
-<input type="hidden" data-table="subgrup" data-field="x_id" name="x<?php echo $subgrup_grid->RowIndex ?>_id" id="x<?php echo $subgrup_grid->RowIndex ?>_id" value="<?php echo ew_HtmlEncode($subgrup->id->FormValue) ?>">
-<input type="hidden" data-table="subgrup" data-field="x_id" name="o<?php echo $subgrup_grid->RowIndex ?>_id" id="o<?php echo $subgrup_grid->RowIndex ?>_id" value="<?php echo ew_HtmlEncode($subgrup->id->OldValue) ?>">
-<?php } else { ?>
-<input type="hidden" data-table="subgrup" data-field="x_id" name="fsubgrupgrid$x<?php echo $subgrup_grid->RowIndex ?>_id" id="fsubgrupgrid$x<?php echo $subgrup_grid->RowIndex ?>_id" value="<?php echo ew_HtmlEncode($subgrup->id->FormValue) ?>">
-<input type="hidden" data-table="subgrup" data-field="x_id" name="fsubgrupgrid$o<?php echo $subgrup_grid->RowIndex ?>_id" id="fsubgrupgrid$o<?php echo $subgrup_grid->RowIndex ?>_id" value="<?php echo ew_HtmlEncode($subgrup->id->OldValue) ?>">
-<?php } ?>
-<?php } ?>
-<a id="<?php echo $subgrup_grid->PageObjName . "_row_" . $subgrup_grid->RowCnt ?>"></a></td>
-	<?php } ?>
 	<?php if ($subgrup->grup_id->Visible) { // grup_id ?>
 		<td data-name="grup_id"<?php echo $subgrup->grup_id->CellAttributes() ?>>
 <?php if ($subgrup->RowType == EW_ROWTYPE_ADD) { // Add record ?>
@@ -331,7 +293,10 @@ $subgrup_grid->ListOptions->Render("body", "left", $subgrup_grid->RowCnt);
 <input type="hidden" id="x<?php echo $subgrup_grid->RowIndex ?>_grup_id" name="x<?php echo $subgrup_grid->RowIndex ?>_grup_id" value="<?php echo ew_HtmlEncode($subgrup->grup_id->CurrentValue) ?>">
 <?php } else { ?>
 <span id="el<?php echo $subgrup_grid->RowCnt ?>_subgrup_grup_id" class="form-group subgrup_grup_id">
-<input type="text" data-table="subgrup" data-field="x_grup_id" name="x<?php echo $subgrup_grid->RowIndex ?>_grup_id" id="x<?php echo $subgrup_grid->RowIndex ?>_grup_id" size="30" placeholder="<?php echo ew_HtmlEncode($subgrup->grup_id->getPlaceHolder()) ?>" value="<?php echo $subgrup->grup_id->EditValue ?>"<?php echo $subgrup->grup_id->EditAttributes() ?>>
+<select data-table="subgrup" data-field="x_grup_id" data-value-separator="<?php echo $subgrup->grup_id->DisplayValueSeparatorAttribute() ?>" id="x<?php echo $subgrup_grid->RowIndex ?>_grup_id" name="x<?php echo $subgrup_grid->RowIndex ?>_grup_id"<?php echo $subgrup->grup_id->EditAttributes() ?>>
+<?php echo $subgrup->grup_id->SelectOptionListHtml("x<?php echo $subgrup_grid->RowIndex ?>_grup_id") ?>
+</select>
+<input type="hidden" name="s_x<?php echo $subgrup_grid->RowIndex ?>_grup_id" id="s_x<?php echo $subgrup_grid->RowIndex ?>_grup_id" value="<?php echo $subgrup->grup_id->LookupFilterQuery() ?>">
 </span>
 <?php } ?>
 <input type="hidden" data-table="subgrup" data-field="x_grup_id" name="o<?php echo $subgrup_grid->RowIndex ?>_grup_id" id="o<?php echo $subgrup_grid->RowIndex ?>_grup_id" value="<?php echo ew_HtmlEncode($subgrup->grup_id->OldValue) ?>">
@@ -345,7 +310,10 @@ $subgrup_grid->ListOptions->Render("body", "left", $subgrup_grid->RowCnt);
 <input type="hidden" id="x<?php echo $subgrup_grid->RowIndex ?>_grup_id" name="x<?php echo $subgrup_grid->RowIndex ?>_grup_id" value="<?php echo ew_HtmlEncode($subgrup->grup_id->CurrentValue) ?>">
 <?php } else { ?>
 <span id="el<?php echo $subgrup_grid->RowCnt ?>_subgrup_grup_id" class="form-group subgrup_grup_id">
-<input type="text" data-table="subgrup" data-field="x_grup_id" name="x<?php echo $subgrup_grid->RowIndex ?>_grup_id" id="x<?php echo $subgrup_grid->RowIndex ?>_grup_id" size="30" placeholder="<?php echo ew_HtmlEncode($subgrup->grup_id->getPlaceHolder()) ?>" value="<?php echo $subgrup->grup_id->EditValue ?>"<?php echo $subgrup->grup_id->EditAttributes() ?>>
+<select data-table="subgrup" data-field="x_grup_id" data-value-separator="<?php echo $subgrup->grup_id->DisplayValueSeparatorAttribute() ?>" id="x<?php echo $subgrup_grid->RowIndex ?>_grup_id" name="x<?php echo $subgrup_grid->RowIndex ?>_grup_id"<?php echo $subgrup->grup_id->EditAttributes() ?>>
+<?php echo $subgrup->grup_id->SelectOptionListHtml("x<?php echo $subgrup_grid->RowIndex ?>_grup_id") ?>
+</select>
+<input type="hidden" name="s_x<?php echo $subgrup_grid->RowIndex ?>_grup_id" id="s_x<?php echo $subgrup_grid->RowIndex ?>_grup_id" value="<?php echo $subgrup->grup_id->LookupFilterQuery() ?>">
 </span>
 <?php } ?>
 <?php } ?>
@@ -362,8 +330,15 @@ $subgrup_grid->ListOptions->Render("body", "left", $subgrup_grid->RowCnt);
 <input type="hidden" data-table="subgrup" data-field="x_grup_id" name="fsubgrupgrid$o<?php echo $subgrup_grid->RowIndex ?>_grup_id" id="fsubgrupgrid$o<?php echo $subgrup_grid->RowIndex ?>_grup_id" value="<?php echo ew_HtmlEncode($subgrup->grup_id->OldValue) ?>">
 <?php } ?>
 <?php } ?>
-</td>
+<a id="<?php echo $subgrup_grid->PageObjName . "_row_" . $subgrup_grid->RowCnt ?>"></a></td>
 	<?php } ?>
+<?php if ($subgrup->RowType == EW_ROWTYPE_ADD) { // Add record ?>
+<input type="hidden" data-table="subgrup" data-field="x_id" name="x<?php echo $subgrup_grid->RowIndex ?>_id" id="x<?php echo $subgrup_grid->RowIndex ?>_id" value="<?php echo ew_HtmlEncode($subgrup->id->CurrentValue) ?>">
+<input type="hidden" data-table="subgrup" data-field="x_id" name="o<?php echo $subgrup_grid->RowIndex ?>_id" id="o<?php echo $subgrup_grid->RowIndex ?>_id" value="<?php echo ew_HtmlEncode($subgrup->id->OldValue) ?>">
+<?php } ?>
+<?php if ($subgrup->RowType == EW_ROWTYPE_EDIT || $subgrup->CurrentMode == "edit") { ?>
+<input type="hidden" data-table="subgrup" data-field="x_id" name="x<?php echo $subgrup_grid->RowIndex ?>_id" id="x<?php echo $subgrup_grid->RowIndex ?>_id" value="<?php echo ew_HtmlEncode($subgrup->id->CurrentValue) ?>">
+<?php } ?>
 	<?php if ($subgrup->kode->Visible) { // kode ?>
 		<td data-name="kode"<?php echo $subgrup->kode->CellAttributes() ?>>
 <?php if ($subgrup->RowType == EW_ROWTYPE_ADD) { // Add record ?>
@@ -462,19 +437,6 @@ fsubgrupgrid.UpdateOpts(<?php echo $subgrup_grid->RowIndex ?>);
 // Render list options (body, left)
 $subgrup_grid->ListOptions->Render("body", "left", $subgrup_grid->RowIndex);
 ?>
-	<?php if ($subgrup->id->Visible) { // id ?>
-		<td data-name="id">
-<?php if ($subgrup->CurrentAction <> "F") { ?>
-<?php } else { ?>
-<span id="el$rowindex$_subgrup_id" class="form-group subgrup_id">
-<span<?php echo $subgrup->id->ViewAttributes() ?>>
-<p class="form-control-static"><?php echo $subgrup->id->ViewValue ?></p></span>
-</span>
-<input type="hidden" data-table="subgrup" data-field="x_id" name="x<?php echo $subgrup_grid->RowIndex ?>_id" id="x<?php echo $subgrup_grid->RowIndex ?>_id" value="<?php echo ew_HtmlEncode($subgrup->id->FormValue) ?>">
-<?php } ?>
-<input type="hidden" data-table="subgrup" data-field="x_id" name="o<?php echo $subgrup_grid->RowIndex ?>_id" id="o<?php echo $subgrup_grid->RowIndex ?>_id" value="<?php echo ew_HtmlEncode($subgrup->id->OldValue) ?>">
-</td>
-	<?php } ?>
 	<?php if ($subgrup->grup_id->Visible) { // grup_id ?>
 		<td data-name="grup_id">
 <?php if ($subgrup->CurrentAction <> "F") { ?>
@@ -486,7 +448,10 @@ $subgrup_grid->ListOptions->Render("body", "left", $subgrup_grid->RowIndex);
 <input type="hidden" id="x<?php echo $subgrup_grid->RowIndex ?>_grup_id" name="x<?php echo $subgrup_grid->RowIndex ?>_grup_id" value="<?php echo ew_HtmlEncode($subgrup->grup_id->CurrentValue) ?>">
 <?php } else { ?>
 <span id="el$rowindex$_subgrup_grup_id" class="form-group subgrup_grup_id">
-<input type="text" data-table="subgrup" data-field="x_grup_id" name="x<?php echo $subgrup_grid->RowIndex ?>_grup_id" id="x<?php echo $subgrup_grid->RowIndex ?>_grup_id" size="30" placeholder="<?php echo ew_HtmlEncode($subgrup->grup_id->getPlaceHolder()) ?>" value="<?php echo $subgrup->grup_id->EditValue ?>"<?php echo $subgrup->grup_id->EditAttributes() ?>>
+<select data-table="subgrup" data-field="x_grup_id" data-value-separator="<?php echo $subgrup->grup_id->DisplayValueSeparatorAttribute() ?>" id="x<?php echo $subgrup_grid->RowIndex ?>_grup_id" name="x<?php echo $subgrup_grid->RowIndex ?>_grup_id"<?php echo $subgrup->grup_id->EditAttributes() ?>>
+<?php echo $subgrup->grup_id->SelectOptionListHtml("x<?php echo $subgrup_grid->RowIndex ?>_grup_id") ?>
+</select>
+<input type="hidden" name="s_x<?php echo $subgrup_grid->RowIndex ?>_grup_id" id="s_x<?php echo $subgrup_grid->RowIndex ?>_grup_id" value="<?php echo $subgrup->grup_id->LookupFilterQuery() ?>">
 </span>
 <?php } ?>
 <?php } else { ?>

@@ -6,7 +6,6 @@ ob_start(); // Turn on output buffering
 <?php include_once ((EW_USE_ADODB) ? "adodb5/adodb.inc.php" : "ewmysql13.php") ?>
 <?php include_once "phpfn13.php" ?>
 <?php include_once "subgrupinfo.php" ?>
-<?php include_once "grupinfo.php" ?>
 <?php include_once "userfn13.php" ?>
 <?php
 
@@ -231,9 +230,6 @@ class csubgrup_edit extends csubgrup {
 			$GLOBALS["Table"] = &$GLOBALS["subgrup"];
 		}
 
-		// Table object (grup)
-		if (!isset($GLOBALS['grup'])) $GLOBALS['grup'] = new cgrup();
-
 		// Page ID
 		if (!defined("EW_PAGE_ID"))
 			define("EW_PAGE_ID", 'edit', TRUE);
@@ -258,8 +254,6 @@ class csubgrup_edit extends csubgrup {
 		// Create form object
 		$objForm = new cFormObj();
 		$this->CurrentAction = (@$_GET["a"] <> "") ? $_GET["a"] : @$_POST["a_list"]; // Set up current action
-		$this->id->SetVisibility();
-		$this->id->Visible = !$this->IsAdd() && !$this->IsCopy() && !$this->IsGridAdd();
 		$this->grup_id->SetVisibility();
 		$this->kode->SetVisibility();
 		$this->nama->SetVisibility();
@@ -383,9 +377,6 @@ class csubgrup_edit extends csubgrup {
 		} else {
 			$bLoadCurrentRecord = TRUE;
 		}
-
-		// Set up master detail parameters
-		$this->SetUpMasterParms();
 
 		// Load recordset
 		$this->StartRec = 1; // Initialize start position
@@ -517,8 +508,6 @@ class csubgrup_edit extends csubgrup {
 
 		// Load from form
 		global $objForm;
-		if (!$this->id->FldIsDetailKey)
-			$this->id->setFormValue($objForm->GetValue("x_id"));
 		if (!$this->grup_id->FldIsDetailKey) {
 			$this->grup_id->setFormValue($objForm->GetValue("x_grup_id"));
 		}
@@ -528,6 +517,8 @@ class csubgrup_edit extends csubgrup {
 		if (!$this->nama->FldIsDetailKey) {
 			$this->nama->setFormValue($objForm->GetValue("x_nama"));
 		}
+		if (!$this->id->FldIsDetailKey)
+			$this->id->setFormValue($objForm->GetValue("x_id"));
 	}
 
 	// Restore form values
@@ -633,7 +624,26 @@ class csubgrup_edit extends csubgrup {
 		$this->id->ViewCustomAttributes = "";
 
 		// grup_id
-		$this->grup_id->ViewValue = $this->grup_id->CurrentValue;
+		if (strval($this->grup_id->CurrentValue) <> "") {
+			$sFilterWrk = "`id`" . ew_SearchString("=", $this->grup_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+		$sSqlWrk = "SELECT `id`, `name` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `grup`";
+		$sWhereWrk = "";
+		$this->grup_id->LookupFilters = array();
+		ew_AddFilter($sWhereWrk, $sFilterWrk);
+		$this->Lookup_Selecting($this->grup_id, $sWhereWrk); // Call Lookup selecting
+		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			if ($rswrk && !$rswrk->EOF) { // Lookup values found
+				$arwrk = array();
+				$arwrk[1] = $rswrk->fields('DispFld');
+				$this->grup_id->ViewValue = $this->grup_id->DisplayValue($arwrk);
+				$rswrk->Close();
+			} else {
+				$this->grup_id->ViewValue = $this->grup_id->CurrentValue;
+			}
+		} else {
+			$this->grup_id->ViewValue = NULL;
+		}
 		$this->grup_id->ViewCustomAttributes = "";
 
 		// kode
@@ -643,11 +653,6 @@ class csubgrup_edit extends csubgrup {
 		// nama
 		$this->nama->ViewValue = $this->nama->CurrentValue;
 		$this->nama->ViewCustomAttributes = "";
-
-			// id
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-			$this->id->TooltipValue = "";
 
 			// grup_id
 			$this->grup_id->LinkCustomAttributes = "";
@@ -665,23 +670,24 @@ class csubgrup_edit extends csubgrup {
 			$this->nama->TooltipValue = "";
 		} elseif ($this->RowType == EW_ROWTYPE_EDIT) { // Edit row
 
-			// id
-			$this->id->EditAttrs["class"] = "form-control";
-			$this->id->EditCustomAttributes = "";
-			$this->id->EditValue = $this->id->CurrentValue;
-			$this->id->ViewCustomAttributes = "";
-
 			// grup_id
 			$this->grup_id->EditAttrs["class"] = "form-control";
 			$this->grup_id->EditCustomAttributes = "";
-			if ($this->grup_id->getSessionValue() <> "") {
-				$this->grup_id->CurrentValue = $this->grup_id->getSessionValue();
-			$this->grup_id->ViewValue = $this->grup_id->CurrentValue;
-			$this->grup_id->ViewCustomAttributes = "";
+			if (trim(strval($this->grup_id->CurrentValue)) == "") {
+				$sFilterWrk = "0=1";
 			} else {
-			$this->grup_id->EditValue = ew_HtmlEncode($this->grup_id->CurrentValue);
-			$this->grup_id->PlaceHolder = ew_RemoveHtml($this->grup_id->FldCaption());
+				$sFilterWrk = "`id`" . ew_SearchString("=", $this->grup_id->CurrentValue, EW_DATATYPE_NUMBER, "");
 			}
+			$sSqlWrk = "SELECT `id`, `name` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld`, '' AS `SelectFilterFld`, '' AS `SelectFilterFld2`, '' AS `SelectFilterFld3`, '' AS `SelectFilterFld4` FROM `grup`";
+			$sWhereWrk = "";
+			$this->grup_id->LookupFilters = array();
+			ew_AddFilter($sWhereWrk, $sFilterWrk);
+			$this->Lookup_Selecting($this->grup_id, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			$arwrk = ($rswrk) ? $rswrk->GetRows() : array();
+			if ($rswrk) $rswrk->Close();
+			$this->grup_id->EditValue = $arwrk;
 
 			// kode
 			$this->kode->EditAttrs["class"] = "form-control";
@@ -696,12 +702,8 @@ class csubgrup_edit extends csubgrup {
 			$this->nama->PlaceHolder = ew_RemoveHtml($this->nama->FldCaption());
 
 			// Edit refer script
-			// id
-
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-
 			// grup_id
+
 			$this->grup_id->LinkCustomAttributes = "";
 			$this->grup_id->HrefValue = "";
 
@@ -734,9 +736,6 @@ class csubgrup_edit extends csubgrup {
 		// Check if validation required
 		if (!EW_SERVER_VALIDATE)
 			return ($gsFormError == "");
-		if (!ew_CheckInteger($this->grup_id->FormValue)) {
-			ew_AddMessage($gsFormError, $this->grup_id->FldErrMsg());
-		}
 
 		// Return validate result
 		$ValidateForm = ($gsFormError == "");
@@ -814,67 +813,6 @@ class csubgrup_edit extends csubgrup {
 		return $EditRow;
 	}
 
-	// Set up master/detail based on QueryString
-	function SetUpMasterParms() {
-		$bValidMaster = FALSE;
-
-		// Get the keys for master table
-		if (isset($_GET[EW_TABLE_SHOW_MASTER])) {
-			$sMasterTblVar = $_GET[EW_TABLE_SHOW_MASTER];
-			if ($sMasterTblVar == "") {
-				$bValidMaster = TRUE;
-				$this->DbMasterFilter = "";
-				$this->DbDetailFilter = "";
-			}
-			if ($sMasterTblVar == "grup") {
-				$bValidMaster = TRUE;
-				if (@$_GET["fk_id"] <> "") {
-					$GLOBALS["grup"]->id->setQueryStringValue($_GET["fk_id"]);
-					$this->grup_id->setQueryStringValue($GLOBALS["grup"]->id->QueryStringValue);
-					$this->grup_id->setSessionValue($this->grup_id->QueryStringValue);
-					if (!is_numeric($GLOBALS["grup"]->id->QueryStringValue)) $bValidMaster = FALSE;
-				} else {
-					$bValidMaster = FALSE;
-				}
-			}
-		} elseif (isset($_POST[EW_TABLE_SHOW_MASTER])) {
-			$sMasterTblVar = $_POST[EW_TABLE_SHOW_MASTER];
-			if ($sMasterTblVar == "") {
-				$bValidMaster = TRUE;
-				$this->DbMasterFilter = "";
-				$this->DbDetailFilter = "";
-			}
-			if ($sMasterTblVar == "grup") {
-				$bValidMaster = TRUE;
-				if (@$_POST["fk_id"] <> "") {
-					$GLOBALS["grup"]->id->setFormValue($_POST["fk_id"]);
-					$this->grup_id->setFormValue($GLOBALS["grup"]->id->FormValue);
-					$this->grup_id->setSessionValue($this->grup_id->FormValue);
-					if (!is_numeric($GLOBALS["grup"]->id->FormValue)) $bValidMaster = FALSE;
-				} else {
-					$bValidMaster = FALSE;
-				}
-			}
-		}
-		if ($bValidMaster) {
-
-			// Save current master table
-			$this->setCurrentMasterTable($sMasterTblVar);
-			$this->setSessionWhere($this->GetDetailFilter());
-
-			// Reset start record counter (new master key)
-			$this->StartRec = 1;
-			$this->setStartRecordNumber($this->StartRec);
-
-			// Clear previous master key from Session
-			if ($sMasterTblVar <> "grup") {
-				if ($this->grup_id->CurrentValue == "") $this->grup_id->setSessionValue("");
-			}
-		}
-		$this->DbMasterFilter = $this->GetMasterFilter(); // Get master filter
-		$this->DbDetailFilter = $this->GetDetailFilter(); // Get detail filter
-	}
-
 	// Set up Breadcrumb
 	function SetupBreadcrumb() {
 		global $Breadcrumb, $Language;
@@ -890,6 +828,18 @@ class csubgrup_edit extends csubgrup {
 		global $gsLanguage;
 		$pageId = $pageId ?: $this->PageID;
 		switch ($fld->FldVar) {
+		case "x_grup_id":
+			$sSqlWrk = "";
+			$sSqlWrk = "SELECT `id` AS `LinkFld`, `name` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `grup`";
+			$sWhereWrk = "";
+			$this->grup_id->LookupFilters = array();
+			$fld->LookupFilters += array("s" => $sSqlWrk, "d" => "", "f0" => '`id` = {filter_value}', "t0" => "3", "fn0" => "");
+			$sSqlWrk = "";
+			$this->Lookup_Selecting($this->grup_id, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			if ($sSqlWrk <> "")
+				$fld->LookupFilters["s"] .= $sSqlWrk;
+			break;
 		}
 	}
 
@@ -1009,9 +959,6 @@ fsubgrupedit.Validate = function() {
 	for (var i = startcnt; i <= rowcnt; i++) {
 		var infix = ($k[0]) ? String(i) : "";
 		$fobj.data("rowindex", infix);
-			elm = this.GetElements("x" + infix + "_grup_id");
-			if (elm && !ew_CheckInteger(elm.value))
-				return this.OnError(elm, "<?php echo ew_JsEncode2($subgrup->grup_id->FldErrMsg()) ?>");
 
 			// Fire Form_CustomValidate event
 			if (!this.Form_CustomValidate(fobj))
@@ -1045,8 +992,9 @@ fsubgrupedit.ValidateRequired = false;
 <?php } ?>
 
 // Dynamic selection lists
-// Form object for search
+fsubgrupedit.Lists["x_grup_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_name","","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"grup"};
 
+// Form object for search
 </script>
 <script type="text/javascript">
 
@@ -1072,38 +1020,17 @@ $subgrup_edit->ShowMessage();
 <?php if ($subgrup_edit->IsModal) { ?>
 <input type="hidden" name="modal" value="1">
 <?php } ?>
-<?php if ($subgrup->getCurrentMasterTable() == "grup") { ?>
-<input type="hidden" name="<?php echo EW_TABLE_SHOW_MASTER ?>" value="grup">
-<input type="hidden" name="fk_id" value="<?php echo $subgrup->grup_id->getSessionValue() ?>">
-<?php } ?>
 <div>
-<?php if ($subgrup->id->Visible) { // id ?>
-	<div id="r_id" class="form-group">
-		<label id="elh_subgrup_id" class="col-sm-2 control-label ewLabel"><?php echo $subgrup->id->FldCaption() ?></label>
-		<div class="col-sm-10"><div<?php echo $subgrup->id->CellAttributes() ?>>
-<span id="el_subgrup_id">
-<span<?php echo $subgrup->id->ViewAttributes() ?>>
-<p class="form-control-static"><?php echo $subgrup->id->EditValue ?></p></span>
-</span>
-<input type="hidden" data-table="subgrup" data-field="x_id" name="x_id" id="x_id" value="<?php echo ew_HtmlEncode($subgrup->id->CurrentValue) ?>">
-<?php echo $subgrup->id->CustomMsg ?></div></div>
-	</div>
-<?php } ?>
 <?php if ($subgrup->grup_id->Visible) { // grup_id ?>
 	<div id="r_grup_id" class="form-group">
 		<label id="elh_subgrup_grup_id" for="x_grup_id" class="col-sm-2 control-label ewLabel"><?php echo $subgrup->grup_id->FldCaption() ?></label>
 		<div class="col-sm-10"><div<?php echo $subgrup->grup_id->CellAttributes() ?>>
-<?php if ($subgrup->grup_id->getSessionValue() <> "") { ?>
 <span id="el_subgrup_grup_id">
-<span<?php echo $subgrup->grup_id->ViewAttributes() ?>>
-<p class="form-control-static"><?php echo $subgrup->grup_id->ViewValue ?></p></span>
+<select data-table="subgrup" data-field="x_grup_id" data-value-separator="<?php echo $subgrup->grup_id->DisplayValueSeparatorAttribute() ?>" id="x_grup_id" name="x_grup_id"<?php echo $subgrup->grup_id->EditAttributes() ?>>
+<?php echo $subgrup->grup_id->SelectOptionListHtml("x_grup_id") ?>
+</select>
+<input type="hidden" name="s_x_grup_id" id="s_x_grup_id" value="<?php echo $subgrup->grup_id->LookupFilterQuery() ?>">
 </span>
-<input type="hidden" id="x_grup_id" name="x_grup_id" value="<?php echo ew_HtmlEncode($subgrup->grup_id->CurrentValue) ?>">
-<?php } else { ?>
-<span id="el_subgrup_grup_id">
-<input type="text" data-table="subgrup" data-field="x_grup_id" name="x_grup_id" id="x_grup_id" size="30" placeholder="<?php echo ew_HtmlEncode($subgrup->grup_id->getPlaceHolder()) ?>" value="<?php echo $subgrup->grup_id->EditValue ?>"<?php echo $subgrup->grup_id->EditAttributes() ?>>
-</span>
-<?php } ?>
 <?php echo $subgrup->grup_id->CustomMsg ?></div></div>
 	</div>
 <?php } ?>
@@ -1128,6 +1055,7 @@ $subgrup_edit->ShowMessage();
 	</div>
 <?php } ?>
 </div>
+<input type="hidden" data-table="subgrup" data-field="x_id" name="x_id" id="x_id" value="<?php echo ew_HtmlEncode($subgrup->id->CurrentValue) ?>">
 <?php if (!$subgrup_edit->IsModal) { ?>
 <div class="form-group">
 	<div class="col-sm-offset-2 col-sm-10">

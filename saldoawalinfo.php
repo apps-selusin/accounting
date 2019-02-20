@@ -58,8 +58,10 @@ class csaldoawal extends cTable {
 		$this->fields['periode_id'] = &$this->periode_id;
 
 		// akun_id
-		$this->akun_id = new cField('saldoawal', 'saldoawal', 'x_akun_id', 'akun_id', '`akun_id`', '`akun_id`', 3, -1, FALSE, '`akun_id`', FALSE, FALSE, FALSE, 'FORMATTED TEXT', 'TEXT');
+		$this->akun_id = new cField('saldoawal', 'saldoawal', 'x_akun_id', 'akun_id', '`akun_id`', '`akun_id`', 3, -1, FALSE, '`akun_id`', FALSE, FALSE, FALSE, 'FORMATTED TEXT', 'SELECT');
 		$this->akun_id->Sortable = TRUE; // Allow sort
+		$this->akun_id->UsePleaseSelect = TRUE; // Use PleaseSelect by default
+		$this->akun_id->PleaseSelectText = $Language->Phrase("PleaseSelect"); // PleaseSelect text
 		$this->akun_id->FldDefaultErrMsg = $Language->Phrase("IncorrectInteger");
 		$this->fields['akun_id'] = &$this->akun_id;
 
@@ -93,8 +95,8 @@ class csaldoawal extends cTable {
 		return $this->$fldparm->Visible; // Returns original value
 	}
 
-	// Single column sort
-	function UpdateSort(&$ofld) {
+	// Multiple column sort
+	function UpdateSort(&$ofld, $ctrl) {
 		if ($this->CurrentOrder == $ofld->FldName) {
 			$sSortField = $ofld->FldExpression;
 			$sLastSort = $ofld->getSort();
@@ -104,9 +106,20 @@ class csaldoawal extends cTable {
 				$sThisSort = ($sLastSort == "ASC") ? "DESC" : "ASC";
 			}
 			$ofld->setSort($sThisSort);
-			$this->setSessionOrderBy($sSortField . " " . $sThisSort); // Save to Session
+			if ($ctrl) {
+				$sOrderBy = $this->getSessionOrderBy();
+				if (strpos($sOrderBy, $sSortField . " " . $sLastSort) !== FALSE) {
+					$sOrderBy = str_replace($sSortField . " " . $sLastSort, $sSortField . " " . $sThisSort, $sOrderBy);
+				} else {
+					if ($sOrderBy <> "") $sOrderBy .= ", ";
+					$sOrderBy .= $sSortField . " " . $sThisSort;
+				}
+				$this->setSessionOrderBy($sOrderBy); // Save to Session
+			} else {
+				$this->setSessionOrderBy($sSortField . " " . $sThisSort); // Save to Session
+			}
 		} else {
-			$ofld->setSort("");
+			if (!$ctrl) $ofld->setSort("");
 		}
 	}
 
@@ -610,7 +623,27 @@ class csaldoawal extends cTable {
 		$this->periode_id->ViewCustomAttributes = "";
 
 		// akun_id
-		$this->akun_id->ViewValue = $this->akun_id->CurrentValue;
+		if (strval($this->akun_id->CurrentValue) <> "") {
+			$sFilterWrk = "`id`" . ew_SearchString("=", $this->akun_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+		$sSqlWrk = "SELECT `id`, `kode` AS `DispFld`, `nama` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `akun`";
+		$sWhereWrk = "";
+		$this->akun_id->LookupFilters = array();
+		ew_AddFilter($sWhereWrk, $sFilterWrk);
+		$this->Lookup_Selecting($this->akun_id, $sWhereWrk); // Call Lookup selecting
+		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			if ($rswrk && !$rswrk->EOF) { // Lookup values found
+				$arwrk = array();
+				$arwrk[1] = $rswrk->fields('DispFld');
+				$arwrk[2] = $rswrk->fields('Disp2Fld');
+				$this->akun_id->ViewValue = $this->akun_id->DisplayValue($arwrk);
+				$rswrk->Close();
+			} else {
+				$this->akun_id->ViewValue = $this->akun_id->CurrentValue;
+			}
+		} else {
+			$this->akun_id->ViewValue = NULL;
+		}
 		$this->akun_id->ViewCustomAttributes = "";
 
 		// debet
@@ -627,6 +660,8 @@ class csaldoawal extends cTable {
 
 		// saldo
 		$this->saldo->ViewValue = $this->saldo->CurrentValue;
+		$this->saldo->ViewValue = ew_FormatNumber($this->saldo->ViewValue, 2, -2, -2, -2);
+		$this->saldo->CellCssStyle .= "text-align: right;";
 		$this->saldo->ViewCustomAttributes = "";
 
 		// id
@@ -690,8 +725,6 @@ class csaldoawal extends cTable {
 		// akun_id
 		$this->akun_id->EditAttrs["class"] = "form-control";
 		$this->akun_id->EditCustomAttributes = "";
-		$this->akun_id->EditValue = $this->akun_id->CurrentValue;
-		$this->akun_id->PlaceHolder = ew_RemoveHtml($this->akun_id->FldCaption());
 
 		// debet
 		$this->debet->EditAttrs["class"] = "form-control";
@@ -717,7 +750,7 @@ class csaldoawal extends cTable {
 		$this->saldo->EditCustomAttributes = "";
 		$this->saldo->EditValue = $this->saldo->CurrentValue;
 		$this->saldo->PlaceHolder = ew_RemoveHtml($this->saldo->FldCaption());
-		if (strval($this->saldo->EditValue) <> "" && is_numeric($this->saldo->EditValue)) $this->saldo->EditValue = ew_FormatNumber($this->saldo->EditValue, -2, -1, -2, 0);
+		if (strval($this->saldo->EditValue) <> "" && is_numeric($this->saldo->EditValue)) $this->saldo->EditValue = ew_FormatNumber($this->saldo->EditValue, -2, -2, -2, -2);
 
 		// Call Row Rendered event
 		$this->Row_Rendered();
@@ -746,12 +779,9 @@ class csaldoawal extends cTable {
 			if ($Doc->Horizontal) { // Horizontal format, write header
 				$Doc->BeginExportRow();
 				if ($ExportPageType == "view") {
-					if ($this->id->Exportable) $Doc->ExportCaption($this->id);
-					if ($this->periode_id->Exportable) $Doc->ExportCaption($this->periode_id);
 					if ($this->akun_id->Exportable) $Doc->ExportCaption($this->akun_id);
 					if ($this->debet->Exportable) $Doc->ExportCaption($this->debet);
 					if ($this->kredit->Exportable) $Doc->ExportCaption($this->kredit);
-					if ($this->user_id->Exportable) $Doc->ExportCaption($this->user_id);
 					if ($this->saldo->Exportable) $Doc->ExportCaption($this->saldo);
 				} else {
 					if ($this->id->Exportable) $Doc->ExportCaption($this->id);
@@ -792,12 +822,9 @@ class csaldoawal extends cTable {
 				if (!$Doc->ExportCustom) {
 					$Doc->BeginExportRow($RowCnt); // Allow CSS styles if enabled
 					if ($ExportPageType == "view") {
-						if ($this->id->Exportable) $Doc->ExportField($this->id);
-						if ($this->periode_id->Exportable) $Doc->ExportField($this->periode_id);
 						if ($this->akun_id->Exportable) $Doc->ExportField($this->akun_id);
 						if ($this->debet->Exportable) $Doc->ExportField($this->debet);
 						if ($this->kredit->Exportable) $Doc->ExportField($this->kredit);
-						if ($this->user_id->Exportable) $Doc->ExportField($this->user_id);
 						if ($this->saldo->Exportable) $Doc->ExportField($this->saldo);
 					} else {
 						if ($this->id->Exportable) $Doc->ExportField($this->id);

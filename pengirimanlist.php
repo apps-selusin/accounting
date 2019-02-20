@@ -942,17 +942,20 @@ class cpengiriman_list extends cpengiriman {
 	// Set up sort parameters
 	function SetUpSortOrder() {
 
+		// Check for Ctrl pressed
+		$bCtrl = (@$_GET["ctrl"] <> "");
+
 		// Check for "order" parameter
 		if (@$_GET["order"] <> "") {
 			$this->CurrentOrder = ew_StripSlashes(@$_GET["order"]);
 			$this->CurrentOrderType = @$_GET["ordertype"];
-			$this->UpdateSort($this->id); // id
-			$this->UpdateSort($this->kode); // kode
-			$this->UpdateSort($this->nama); // nama
-			$this->UpdateSort($this->akunjual); // akunjual
-			$this->UpdateSort($this->akunbeli); // akunbeli
-			$this->UpdateSort($this->keterangan); // keterangan
-			$this->UpdateSort($this->tipe); // tipe
+			$this->UpdateSort($this->id, $bCtrl); // id
+			$this->UpdateSort($this->kode, $bCtrl); // kode
+			$this->UpdateSort($this->nama, $bCtrl); // nama
+			$this->UpdateSort($this->akunjual, $bCtrl); // akunjual
+			$this->UpdateSort($this->akunbeli, $bCtrl); // akunbeli
+			$this->UpdateSort($this->keterangan, $bCtrl); // keterangan
+			$this->UpdateSort($this->tipe, $bCtrl); // tipe
 			$this->setStartRecordNumber(1); // Reset start position
 		}
 	}
@@ -1867,7 +1870,7 @@ $pengiriman_list->ListOptions->Render("header", "left");
 	<?php if ($pengiriman->SortUrl($pengiriman->id) == "") { ?>
 		<th data-name="id"><div id="elh_pengiriman_id" class="pengiriman_id"><div class="ewTableHeaderCaption"><?php echo $pengiriman->id->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $pengiriman->SortUrl($pengiriman->id) ?>',1);"><div id="elh_pengiriman_id" class="pengiriman_id">
+		<th data-name="id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $pengiriman->SortUrl($pengiriman->id) ?>',2);"><div id="elh_pengiriman_id" class="pengiriman_id">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $pengiriman->id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($pengiriman->id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($pengiriman->id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1876,7 +1879,7 @@ $pengiriman_list->ListOptions->Render("header", "left");
 	<?php if ($pengiriman->SortUrl($pengiriman->kode) == "") { ?>
 		<th data-name="kode"><div id="elh_pengiriman_kode" class="pengiriman_kode"><div class="ewTableHeaderCaption"><?php echo $pengiriman->kode->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="kode"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $pengiriman->SortUrl($pengiriman->kode) ?>',1);"><div id="elh_pengiriman_kode" class="pengiriman_kode">
+		<th data-name="kode"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $pengiriman->SortUrl($pengiriman->kode) ?>',2);"><div id="elh_pengiriman_kode" class="pengiriman_kode">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $pengiriman->kode->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($pengiriman->kode->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($pengiriman->kode->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1885,7 +1888,7 @@ $pengiriman_list->ListOptions->Render("header", "left");
 	<?php if ($pengiriman->SortUrl($pengiriman->nama) == "") { ?>
 		<th data-name="nama"><div id="elh_pengiriman_nama" class="pengiriman_nama"><div class="ewTableHeaderCaption"><?php echo $pengiriman->nama->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="nama"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $pengiriman->SortUrl($pengiriman->nama) ?>',1);"><div id="elh_pengiriman_nama" class="pengiriman_nama">
+		<th data-name="nama"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $pengiriman->SortUrl($pengiriman->nama) ?>',2);"><div id="elh_pengiriman_nama" class="pengiriman_nama">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $pengiriman->nama->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($pengiriman->nama->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($pengiriman->nama->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1894,7 +1897,7 @@ $pengiriman_list->ListOptions->Render("header", "left");
 	<?php if ($pengiriman->SortUrl($pengiriman->akunjual) == "") { ?>
 		<th data-name="akunjual"><div id="elh_pengiriman_akunjual" class="pengiriman_akunjual"><div class="ewTableHeaderCaption"><?php echo $pengiriman->akunjual->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="akunjual"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $pengiriman->SortUrl($pengiriman->akunjual) ?>',1);"><div id="elh_pengiriman_akunjual" class="pengiriman_akunjual">
+		<th data-name="akunjual"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $pengiriman->SortUrl($pengiriman->akunjual) ?>',2);"><div id="elh_pengiriman_akunjual" class="pengiriman_akunjual">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $pengiriman->akunjual->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($pengiriman->akunjual->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($pengiriman->akunjual->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1903,7 +1906,7 @@ $pengiriman_list->ListOptions->Render("header", "left");
 	<?php if ($pengiriman->SortUrl($pengiriman->akunbeli) == "") { ?>
 		<th data-name="akunbeli"><div id="elh_pengiriman_akunbeli" class="pengiriman_akunbeli"><div class="ewTableHeaderCaption"><?php echo $pengiriman->akunbeli->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="akunbeli"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $pengiriman->SortUrl($pengiriman->akunbeli) ?>',1);"><div id="elh_pengiriman_akunbeli" class="pengiriman_akunbeli">
+		<th data-name="akunbeli"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $pengiriman->SortUrl($pengiriman->akunbeli) ?>',2);"><div id="elh_pengiriman_akunbeli" class="pengiriman_akunbeli">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $pengiriman->akunbeli->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($pengiriman->akunbeli->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($pengiriman->akunbeli->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1912,7 +1915,7 @@ $pengiriman_list->ListOptions->Render("header", "left");
 	<?php if ($pengiriman->SortUrl($pengiriman->keterangan) == "") { ?>
 		<th data-name="keterangan"><div id="elh_pengiriman_keterangan" class="pengiriman_keterangan"><div class="ewTableHeaderCaption"><?php echo $pengiriman->keterangan->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="keterangan"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $pengiriman->SortUrl($pengiriman->keterangan) ?>',1);"><div id="elh_pengiriman_keterangan" class="pengiriman_keterangan">
+		<th data-name="keterangan"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $pengiriman->SortUrl($pengiriman->keterangan) ?>',2);"><div id="elh_pengiriman_keterangan" class="pengiriman_keterangan">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $pengiriman->keterangan->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($pengiriman->keterangan->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($pengiriman->keterangan->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1921,7 +1924,7 @@ $pengiriman_list->ListOptions->Render("header", "left");
 	<?php if ($pengiriman->SortUrl($pengiriman->tipe) == "") { ?>
 		<th data-name="tipe"><div id="elh_pengiriman_tipe" class="pengiriman_tipe"><div class="ewTableHeaderCaption"><?php echo $pengiriman->tipe->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="tipe"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $pengiriman->SortUrl($pengiriman->tipe) ?>',1);"><div id="elh_pengiriman_tipe" class="pengiriman_tipe">
+		<th data-name="tipe"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $pengiriman->SortUrl($pengiriman->tipe) ?>',2);"><div id="elh_pengiriman_tipe" class="pengiriman_tipe">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $pengiriman->tipe->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($pengiriman->tipe->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($pengiriman->tipe->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>

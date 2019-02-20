@@ -251,8 +251,6 @@ class cmatauang_delete extends cmatauang {
 	function Page_Init() {
 		global $gsExport, $gsCustomExport, $gsExportFile, $UserProfile, $Language, $Security, $objForm;
 		$this->CurrentAction = (@$_GET["a"] <> "") ? $_GET["a"] : @$_POST["a_list"]; // Set up current action
-		$this->id->SetVisibility();
-		$this->id->Visible = !$this->IsAdd() && !$this->IsCopy() && !$this->IsGridAdd();
 		$this->kode->SetVisibility();
 		$this->nama->SetVisibility();
 
@@ -470,11 +468,6 @@ class cmatauang_delete extends cmatauang {
 		// nama
 		$this->nama->ViewValue = $this->nama->CurrentValue;
 		$this->nama->ViewCustomAttributes = "";
-
-			// id
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-			$this->id->TooltipValue = "";
 
 			// kode
 			$this->kode->LinkCustomAttributes = "";
@@ -731,9 +724,6 @@ $matauang_delete->ShowMessage();
 <?php echo $matauang->TableCustomInnerHtml ?>
 	<thead>
 	<tr class="ewTableHeader">
-<?php if ($matauang->id->Visible) { // id ?>
-		<th><span id="elh_matauang_id" class="matauang_id"><?php echo $matauang->id->FldCaption() ?></span></th>
-<?php } ?>
 <?php if ($matauang->kode->Visible) { // kode ?>
 		<th><span id="elh_matauang_kode" class="matauang_kode"><?php echo $matauang->kode->FldCaption() ?></span></th>
 <?php } ?>
@@ -761,14 +751,6 @@ while (!$matauang_delete->Recordset->EOF) {
 	$matauang_delete->RenderRow();
 ?>
 	<tr<?php echo $matauang->RowAttributes() ?>>
-<?php if ($matauang->id->Visible) { // id ?>
-		<td<?php echo $matauang->id->CellAttributes() ?>>
-<span id="el<?php echo $matauang_delete->RowCnt ?>_matauang_id" class="matauang_id">
-<span<?php echo $matauang->id->ViewAttributes() ?>>
-<?php echo $matauang->id->ListViewValue() ?></span>
-</span>
-</td>
-<?php } ?>
 <?php if ($matauang->kode->Visible) { // kode ?>
 		<td<?php echo $matauang->kode->CellAttributes() ?>>
 <span id="el<?php echo $matauang_delete->RowCnt ?>_matauang_kode" class="matauang_kode">

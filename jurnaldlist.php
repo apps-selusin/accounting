@@ -6,6 +6,7 @@ ob_start(); // Turn on output buffering
 <?php include_once ((EW_USE_ADODB) ? "adodb5/adodb.inc.php" : "ewmysql13.php") ?>
 <?php include_once "phpfn13.php" ?>
 <?php include_once "jurnaldinfo.php" ?>
+<?php include_once "jurnalinfo.php" ?>
 <?php include_once "userfn13.php" ?>
 <?php
 
@@ -285,6 +286,9 @@ class cjurnald_list extends cjurnald {
 		$this->MultiDeleteUrl = "jurnalddelete.php";
 		$this->MultiUpdateUrl = "jurnaldupdate.php";
 
+		// Table object (jurnal)
+		if (!isset($GLOBALS['jurnal'])) $GLOBALS['jurnal'] = new cjurnal();
+
 		// Page ID
 		if (!defined("EW_PAGE_ID"))
 			define("EW_PAGE_ID", 'list', TRUE);
@@ -378,6 +382,9 @@ class cjurnald_list extends cjurnald {
 
 		// Create Token
 		$this->CreateToken();
+
+		// Set up master detail parameters
+		$this->SetUpMasterParms();
 
 		// Setup other options
 		$this->SetupOtherOptions();
@@ -546,8 +553,28 @@ class cjurnald_list extends cjurnald {
 
 		// Build filter
 		$sFilter = "";
+
+		// Restore master/detail filter
+		$this->DbMasterFilter = $this->GetMasterFilter(); // Restore master filter
+		$this->DbDetailFilter = $this->GetDetailFilter(); // Restore detail filter
 		ew_AddFilter($sFilter, $this->DbDetailFilter);
 		ew_AddFilter($sFilter, $this->SearchWhere);
+
+		// Load master record
+		if ($this->CurrentMode <> "add" && $this->GetMasterFilter() <> "" && $this->getCurrentMasterTable() == "jurnal") {
+			global $jurnal;
+			$rsmaster = $jurnal->LoadRs($this->DbMasterFilter);
+			$this->MasterRecordExists = ($rsmaster && !$rsmaster->EOF);
+			if (!$this->MasterRecordExists) {
+				$this->setFailureMessage($Language->Phrase("NoRecord")); // Set no record found
+				$this->Page_Terminate("jurnallist.php"); // Return to master page
+			} else {
+				$jurnal->LoadListRowValues($rsmaster);
+				$jurnal->RowType = EW_ROWTYPE_MASTER; // Master row
+				$jurnal->RenderListRow();
+				$rsmaster->Close();
+			}
+		}
 
 		// Set up filter in session
 		$this->setSessionWhere($sFilter);
@@ -609,15 +636,18 @@ class cjurnald_list extends cjurnald {
 	// Set up sort parameters
 	function SetUpSortOrder() {
 
+		// Check for Ctrl pressed
+		$bCtrl = (@$_GET["ctrl"] <> "");
+
 		// Check for "order" parameter
 		if (@$_GET["order"] <> "") {
 			$this->CurrentOrder = ew_StripSlashes(@$_GET["order"]);
 			$this->CurrentOrderType = @$_GET["ordertype"];
-			$this->UpdateSort($this->id); // id
-			$this->UpdateSort($this->jurnal_id); // jurnal_id
-			$this->UpdateSort($this->akun_id); // akun_id
-			$this->UpdateSort($this->debet); // debet
-			$this->UpdateSort($this->kredit); // kredit
+			$this->UpdateSort($this->id, $bCtrl); // id
+			$this->UpdateSort($this->jurnal_id, $bCtrl); // jurnal_id
+			$this->UpdateSort($this->akun_id, $bCtrl); // akun_id
+			$this->UpdateSort($this->debet, $bCtrl); // debet
+			$this->UpdateSort($this->kredit, $bCtrl); // kredit
 			$this->setStartRecordNumber(1); // Reset start position
 		}
 	}
@@ -641,6 +671,14 @@ class cjurnald_list extends cjurnald {
 
 		// Check if reset command
 		if (substr($this->Command,0,5) == "reset") {
+
+			// Reset master/detail keys
+			if ($this->Command == "resetall") {
+				$this->setCurrentMasterTable(""); // Clear master table
+				$this->DbMasterFilter = "";
+				$this->DbDetailFilter = "";
+				$this->jurnal_id->setSessionValue("");
+			}
 
 			// Reset sorting order
 			if ($this->Command == "resetsort") {
@@ -1156,7 +1194,26 @@ class cjurnald_list extends cjurnald {
 		$this->jurnal_id->ViewCustomAttributes = "";
 
 		// akun_id
-		$this->akun_id->ViewValue = $this->akun_id->CurrentValue;
+		if (strval($this->akun_id->CurrentValue) <> "") {
+			$sFilterWrk = "`id`" . ew_SearchString("=", $this->akun_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+		$sSqlWrk = "SELECT `id`, `nama` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `akun`";
+		$sWhereWrk = "";
+		$this->akun_id->LookupFilters = array();
+		ew_AddFilter($sWhereWrk, $sFilterWrk);
+		$this->Lookup_Selecting($this->akun_id, $sWhereWrk); // Call Lookup selecting
+		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			if ($rswrk && !$rswrk->EOF) { // Lookup values found
+				$arwrk = array();
+				$arwrk[1] = $rswrk->fields('DispFld');
+				$this->akun_id->ViewValue = $this->akun_id->DisplayValue($arwrk);
+				$rswrk->Close();
+			} else {
+				$this->akun_id->ViewValue = $this->akun_id->CurrentValue;
+			}
+		} else {
+			$this->akun_id->ViewValue = NULL;
+		}
 		$this->akun_id->ViewCustomAttributes = "";
 
 		// debet
@@ -1196,6 +1253,72 @@ class cjurnald_list extends cjurnald {
 		// Call Row Rendered event
 		if ($this->RowType <> EW_ROWTYPE_AGGREGATEINIT)
 			$this->Row_Rendered();
+	}
+
+	// Set up master/detail based on QueryString
+	function SetUpMasterParms() {
+		$bValidMaster = FALSE;
+
+		// Get the keys for master table
+		if (isset($_GET[EW_TABLE_SHOW_MASTER])) {
+			$sMasterTblVar = $_GET[EW_TABLE_SHOW_MASTER];
+			if ($sMasterTblVar == "") {
+				$bValidMaster = TRUE;
+				$this->DbMasterFilter = "";
+				$this->DbDetailFilter = "";
+			}
+			if ($sMasterTblVar == "jurnal") {
+				$bValidMaster = TRUE;
+				if (@$_GET["fk_id"] <> "") {
+					$GLOBALS["jurnal"]->id->setQueryStringValue($_GET["fk_id"]);
+					$this->jurnal_id->setQueryStringValue($GLOBALS["jurnal"]->id->QueryStringValue);
+					$this->jurnal_id->setSessionValue($this->jurnal_id->QueryStringValue);
+					if (!is_numeric($GLOBALS["jurnal"]->id->QueryStringValue)) $bValidMaster = FALSE;
+				} else {
+					$bValidMaster = FALSE;
+				}
+			}
+		} elseif (isset($_POST[EW_TABLE_SHOW_MASTER])) {
+			$sMasterTblVar = $_POST[EW_TABLE_SHOW_MASTER];
+			if ($sMasterTblVar == "") {
+				$bValidMaster = TRUE;
+				$this->DbMasterFilter = "";
+				$this->DbDetailFilter = "";
+			}
+			if ($sMasterTblVar == "jurnal") {
+				$bValidMaster = TRUE;
+				if (@$_POST["fk_id"] <> "") {
+					$GLOBALS["jurnal"]->id->setFormValue($_POST["fk_id"]);
+					$this->jurnal_id->setFormValue($GLOBALS["jurnal"]->id->FormValue);
+					$this->jurnal_id->setSessionValue($this->jurnal_id->FormValue);
+					if (!is_numeric($GLOBALS["jurnal"]->id->FormValue)) $bValidMaster = FALSE;
+				} else {
+					$bValidMaster = FALSE;
+				}
+			}
+		}
+		if ($bValidMaster) {
+
+			// Update URL
+			$this->AddUrl = $this->AddMasterUrl($this->AddUrl);
+			$this->InlineAddUrl = $this->AddMasterUrl($this->InlineAddUrl);
+			$this->GridAddUrl = $this->AddMasterUrl($this->GridAddUrl);
+			$this->GridEditUrl = $this->AddMasterUrl($this->GridEditUrl);
+
+			// Save current master table
+			$this->setCurrentMasterTable($sMasterTblVar);
+
+			// Reset start record counter (new master key)
+			$this->StartRec = 1;
+			$this->setStartRecordNumber($this->StartRec);
+
+			// Clear previous master key from Session
+			if ($sMasterTblVar <> "jurnal") {
+				if ($this->jurnal_id->CurrentValue == "") $this->jurnal_id->setSessionValue("");
+			}
+		}
+		$this->DbMasterFilter = $this->GetMasterFilter(); // Get master filter
+		$this->DbDetailFilter = $this->GetDetailFilter(); // Get detail filter
 	}
 
 	// Set up Breadcrumb
@@ -1385,8 +1508,9 @@ fjurnaldlist.ValidateRequired = false;
 <?php } ?>
 
 // Dynamic selection lists
-// Form object for search
+fjurnaldlist.Lists["x_akun_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_nama","","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"akun"};
 
+// Form object for search
 </script>
 <script type="text/javascript">
 
@@ -1400,6 +1524,17 @@ fjurnaldlist.ValidateRequired = false;
 <?php echo $Language->SelectionForm(); ?>
 <div class="clearfix"></div>
 </div>
+<?php if (($jurnald->Export == "") || (EW_EXPORT_MASTER_RECORD && $jurnald->Export == "print")) { ?>
+<?php
+if ($jurnald_list->DbMasterFilter <> "" && $jurnald->getCurrentMasterTable() == "jurnal") {
+	if ($jurnald_list->MasterRecordExists) {
+?>
+<?php include_once "jurnalmaster.php" ?>
+<?php
+	}
+}
+?>
+<?php } ?>
 <?php
 	$bSelectLimit = $jurnald_list->UseSelectLimit;
 	if ($bSelectLimit) {
@@ -1437,6 +1572,10 @@ $jurnald_list->ShowMessage();
 <input type="hidden" name="<?php echo EW_TOKEN_NAME ?>" value="<?php echo $jurnald_list->Token ?>">
 <?php } ?>
 <input type="hidden" name="t" value="jurnald">
+<?php if ($jurnald->getCurrentMasterTable() == "jurnal" && $jurnald->CurrentAction <> "") { ?>
+<input type="hidden" name="<?php echo EW_TABLE_SHOW_MASTER ?>" value="jurnal">
+<input type="hidden" name="fk_id" value="<?php echo $jurnald->jurnal_id->getSessionValue() ?>">
+<?php } ?>
 <div id="gmp_jurnald" class="<?php if (ew_IsResponsiveLayout()) { echo "table-responsive "; } ?>ewGridMiddlePanel">
 <?php if ($jurnald_list->TotalRecs > 0 || $jurnald->CurrentAction == "gridedit") { ?>
 <table id="tbl_jurnaldlist" class="table ewTable">
@@ -1458,7 +1597,7 @@ $jurnald_list->ListOptions->Render("header", "left");
 	<?php if ($jurnald->SortUrl($jurnald->id) == "") { ?>
 		<th data-name="id"><div id="elh_jurnald_id" class="jurnald_id"><div class="ewTableHeaderCaption"><?php echo $jurnald->id->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $jurnald->SortUrl($jurnald->id) ?>',1);"><div id="elh_jurnald_id" class="jurnald_id">
+		<th data-name="id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $jurnald->SortUrl($jurnald->id) ?>',2);"><div id="elh_jurnald_id" class="jurnald_id">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $jurnald->id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($jurnald->id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($jurnald->id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1467,7 +1606,7 @@ $jurnald_list->ListOptions->Render("header", "left");
 	<?php if ($jurnald->SortUrl($jurnald->jurnal_id) == "") { ?>
 		<th data-name="jurnal_id"><div id="elh_jurnald_jurnal_id" class="jurnald_jurnal_id"><div class="ewTableHeaderCaption"><?php echo $jurnald->jurnal_id->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="jurnal_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $jurnald->SortUrl($jurnald->jurnal_id) ?>',1);"><div id="elh_jurnald_jurnal_id" class="jurnald_jurnal_id">
+		<th data-name="jurnal_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $jurnald->SortUrl($jurnald->jurnal_id) ?>',2);"><div id="elh_jurnald_jurnal_id" class="jurnald_jurnal_id">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $jurnald->jurnal_id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($jurnald->jurnal_id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($jurnald->jurnal_id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1476,7 +1615,7 @@ $jurnald_list->ListOptions->Render("header", "left");
 	<?php if ($jurnald->SortUrl($jurnald->akun_id) == "") { ?>
 		<th data-name="akun_id"><div id="elh_jurnald_akun_id" class="jurnald_akun_id"><div class="ewTableHeaderCaption"><?php echo $jurnald->akun_id->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="akun_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $jurnald->SortUrl($jurnald->akun_id) ?>',1);"><div id="elh_jurnald_akun_id" class="jurnald_akun_id">
+		<th data-name="akun_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $jurnald->SortUrl($jurnald->akun_id) ?>',2);"><div id="elh_jurnald_akun_id" class="jurnald_akun_id">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $jurnald->akun_id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($jurnald->akun_id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($jurnald->akun_id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1485,7 +1624,7 @@ $jurnald_list->ListOptions->Render("header", "left");
 	<?php if ($jurnald->SortUrl($jurnald->debet) == "") { ?>
 		<th data-name="debet"><div id="elh_jurnald_debet" class="jurnald_debet"><div class="ewTableHeaderCaption"><?php echo $jurnald->debet->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="debet"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $jurnald->SortUrl($jurnald->debet) ?>',1);"><div id="elh_jurnald_debet" class="jurnald_debet">
+		<th data-name="debet"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $jurnald->SortUrl($jurnald->debet) ?>',2);"><div id="elh_jurnald_debet" class="jurnald_debet">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $jurnald->debet->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($jurnald->debet->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($jurnald->debet->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1494,7 +1633,7 @@ $jurnald_list->ListOptions->Render("header", "left");
 	<?php if ($jurnald->SortUrl($jurnald->kredit) == "") { ?>
 		<th data-name="kredit"><div id="elh_jurnald_kredit" class="jurnald_kredit"><div class="ewTableHeaderCaption"><?php echo $jurnald->kredit->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="kredit"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $jurnald->SortUrl($jurnald->kredit) ?>',1);"><div id="elh_jurnald_kredit" class="jurnald_kredit">
+		<th data-name="kredit"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $jurnald->SortUrl($jurnald->kredit) ?>',2);"><div id="elh_jurnald_kredit" class="jurnald_kredit">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $jurnald->kredit->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($jurnald->kredit->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($jurnald->kredit->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>

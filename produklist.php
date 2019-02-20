@@ -1091,32 +1091,35 @@ class cproduk_list extends cproduk {
 	// Set up sort parameters
 	function SetUpSortOrder() {
 
+		// Check for Ctrl pressed
+		$bCtrl = (@$_GET["ctrl"] <> "");
+
 		// Check for "order" parameter
 		if (@$_GET["order"] <> "") {
 			$this->CurrentOrder = ew_StripSlashes(@$_GET["order"]);
 			$this->CurrentOrderType = @$_GET["ordertype"];
-			$this->UpdateSort($this->id); // id
-			$this->UpdateSort($this->kode); // kode
-			$this->UpdateSort($this->nama); // nama
-			$this->UpdateSort($this->kelompok_id); // kelompok_id
-			$this->UpdateSort($this->satuan_id); // satuan_id
-			$this->UpdateSort($this->satuan_id2); // satuan_id2
-			$this->UpdateSort($this->gudang_id); // gudang_id
-			$this->UpdateSort($this->minstok); // minstok
-			$this->UpdateSort($this->minorder); // minorder
-			$this->UpdateSort($this->akunhpp); // akunhpp
-			$this->UpdateSort($this->akunjual); // akunjual
-			$this->UpdateSort($this->akunpersediaan); // akunpersediaan
-			$this->UpdateSort($this->akunreturjual); // akunreturjual
-			$this->UpdateSort($this->hargapokok); // hargapokok
-			$this->UpdateSort($this->p); // p
-			$this->UpdateSort($this->l); // l
-			$this->UpdateSort($this->t); // t
-			$this->UpdateSort($this->berat); // berat
-			$this->UpdateSort($this->supplier_id); // supplier_id
-			$this->UpdateSort($this->waktukirim); // waktukirim
-			$this->UpdateSort($this->aktif); // aktif
-			$this->UpdateSort($this->id_FK); // id_FK
+			$this->UpdateSort($this->id, $bCtrl); // id
+			$this->UpdateSort($this->kode, $bCtrl); // kode
+			$this->UpdateSort($this->nama, $bCtrl); // nama
+			$this->UpdateSort($this->kelompok_id, $bCtrl); // kelompok_id
+			$this->UpdateSort($this->satuan_id, $bCtrl); // satuan_id
+			$this->UpdateSort($this->satuan_id2, $bCtrl); // satuan_id2
+			$this->UpdateSort($this->gudang_id, $bCtrl); // gudang_id
+			$this->UpdateSort($this->minstok, $bCtrl); // minstok
+			$this->UpdateSort($this->minorder, $bCtrl); // minorder
+			$this->UpdateSort($this->akunhpp, $bCtrl); // akunhpp
+			$this->UpdateSort($this->akunjual, $bCtrl); // akunjual
+			$this->UpdateSort($this->akunpersediaan, $bCtrl); // akunpersediaan
+			$this->UpdateSort($this->akunreturjual, $bCtrl); // akunreturjual
+			$this->UpdateSort($this->hargapokok, $bCtrl); // hargapokok
+			$this->UpdateSort($this->p, $bCtrl); // p
+			$this->UpdateSort($this->l, $bCtrl); // l
+			$this->UpdateSort($this->t, $bCtrl); // t
+			$this->UpdateSort($this->berat, $bCtrl); // berat
+			$this->UpdateSort($this->supplier_id, $bCtrl); // supplier_id
+			$this->UpdateSort($this->waktukirim, $bCtrl); // waktukirim
+			$this->UpdateSort($this->aktif, $bCtrl); // aktif
+			$this->UpdateSort($this->id_FK, $bCtrl); // id_FK
 			$this->setStartRecordNumber(1); // Reset start position
 		}
 	}
@@ -2254,7 +2257,7 @@ $produk_list->ListOptions->Render("header", "left");
 	<?php if ($produk->SortUrl($produk->id) == "") { ?>
 		<th data-name="id"><div id="elh_produk_id" class="produk_id"><div class="ewTableHeaderCaption"><?php echo $produk->id->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->id) ?>',1);"><div id="elh_produk_id" class="produk_id">
+		<th data-name="id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->id) ?>',2);"><div id="elh_produk_id" class="produk_id">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $produk->id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($produk->id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($produk->id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -2263,7 +2266,7 @@ $produk_list->ListOptions->Render("header", "left");
 	<?php if ($produk->SortUrl($produk->kode) == "") { ?>
 		<th data-name="kode"><div id="elh_produk_kode" class="produk_kode"><div class="ewTableHeaderCaption"><?php echo $produk->kode->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="kode"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->kode) ?>',1);"><div id="elh_produk_kode" class="produk_kode">
+		<th data-name="kode"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->kode) ?>',2);"><div id="elh_produk_kode" class="produk_kode">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $produk->kode->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($produk->kode->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($produk->kode->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -2272,7 +2275,7 @@ $produk_list->ListOptions->Render("header", "left");
 	<?php if ($produk->SortUrl($produk->nama) == "") { ?>
 		<th data-name="nama"><div id="elh_produk_nama" class="produk_nama"><div class="ewTableHeaderCaption"><?php echo $produk->nama->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="nama"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->nama) ?>',1);"><div id="elh_produk_nama" class="produk_nama">
+		<th data-name="nama"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->nama) ?>',2);"><div id="elh_produk_nama" class="produk_nama">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $produk->nama->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($produk->nama->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($produk->nama->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -2281,7 +2284,7 @@ $produk_list->ListOptions->Render("header", "left");
 	<?php if ($produk->SortUrl($produk->kelompok_id) == "") { ?>
 		<th data-name="kelompok_id"><div id="elh_produk_kelompok_id" class="produk_kelompok_id"><div class="ewTableHeaderCaption"><?php echo $produk->kelompok_id->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="kelompok_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->kelompok_id) ?>',1);"><div id="elh_produk_kelompok_id" class="produk_kelompok_id">
+		<th data-name="kelompok_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->kelompok_id) ?>',2);"><div id="elh_produk_kelompok_id" class="produk_kelompok_id">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $produk->kelompok_id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($produk->kelompok_id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($produk->kelompok_id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -2290,7 +2293,7 @@ $produk_list->ListOptions->Render("header", "left");
 	<?php if ($produk->SortUrl($produk->satuan_id) == "") { ?>
 		<th data-name="satuan_id"><div id="elh_produk_satuan_id" class="produk_satuan_id"><div class="ewTableHeaderCaption"><?php echo $produk->satuan_id->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="satuan_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->satuan_id) ?>',1);"><div id="elh_produk_satuan_id" class="produk_satuan_id">
+		<th data-name="satuan_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->satuan_id) ?>',2);"><div id="elh_produk_satuan_id" class="produk_satuan_id">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $produk->satuan_id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($produk->satuan_id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($produk->satuan_id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -2299,7 +2302,7 @@ $produk_list->ListOptions->Render("header", "left");
 	<?php if ($produk->SortUrl($produk->satuan_id2) == "") { ?>
 		<th data-name="satuan_id2"><div id="elh_produk_satuan_id2" class="produk_satuan_id2"><div class="ewTableHeaderCaption"><?php echo $produk->satuan_id2->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="satuan_id2"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->satuan_id2) ?>',1);"><div id="elh_produk_satuan_id2" class="produk_satuan_id2">
+		<th data-name="satuan_id2"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->satuan_id2) ?>',2);"><div id="elh_produk_satuan_id2" class="produk_satuan_id2">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $produk->satuan_id2->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($produk->satuan_id2->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($produk->satuan_id2->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -2308,7 +2311,7 @@ $produk_list->ListOptions->Render("header", "left");
 	<?php if ($produk->SortUrl($produk->gudang_id) == "") { ?>
 		<th data-name="gudang_id"><div id="elh_produk_gudang_id" class="produk_gudang_id"><div class="ewTableHeaderCaption"><?php echo $produk->gudang_id->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="gudang_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->gudang_id) ?>',1);"><div id="elh_produk_gudang_id" class="produk_gudang_id">
+		<th data-name="gudang_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->gudang_id) ?>',2);"><div id="elh_produk_gudang_id" class="produk_gudang_id">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $produk->gudang_id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($produk->gudang_id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($produk->gudang_id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -2317,7 +2320,7 @@ $produk_list->ListOptions->Render("header", "left");
 	<?php if ($produk->SortUrl($produk->minstok) == "") { ?>
 		<th data-name="minstok"><div id="elh_produk_minstok" class="produk_minstok"><div class="ewTableHeaderCaption"><?php echo $produk->minstok->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="minstok"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->minstok) ?>',1);"><div id="elh_produk_minstok" class="produk_minstok">
+		<th data-name="minstok"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->minstok) ?>',2);"><div id="elh_produk_minstok" class="produk_minstok">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $produk->minstok->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($produk->minstok->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($produk->minstok->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -2326,7 +2329,7 @@ $produk_list->ListOptions->Render("header", "left");
 	<?php if ($produk->SortUrl($produk->minorder) == "") { ?>
 		<th data-name="minorder"><div id="elh_produk_minorder" class="produk_minorder"><div class="ewTableHeaderCaption"><?php echo $produk->minorder->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="minorder"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->minorder) ?>',1);"><div id="elh_produk_minorder" class="produk_minorder">
+		<th data-name="minorder"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->minorder) ?>',2);"><div id="elh_produk_minorder" class="produk_minorder">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $produk->minorder->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($produk->minorder->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($produk->minorder->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -2335,7 +2338,7 @@ $produk_list->ListOptions->Render("header", "left");
 	<?php if ($produk->SortUrl($produk->akunhpp) == "") { ?>
 		<th data-name="akunhpp"><div id="elh_produk_akunhpp" class="produk_akunhpp"><div class="ewTableHeaderCaption"><?php echo $produk->akunhpp->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="akunhpp"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->akunhpp) ?>',1);"><div id="elh_produk_akunhpp" class="produk_akunhpp">
+		<th data-name="akunhpp"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->akunhpp) ?>',2);"><div id="elh_produk_akunhpp" class="produk_akunhpp">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $produk->akunhpp->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($produk->akunhpp->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($produk->akunhpp->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -2344,7 +2347,7 @@ $produk_list->ListOptions->Render("header", "left");
 	<?php if ($produk->SortUrl($produk->akunjual) == "") { ?>
 		<th data-name="akunjual"><div id="elh_produk_akunjual" class="produk_akunjual"><div class="ewTableHeaderCaption"><?php echo $produk->akunjual->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="akunjual"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->akunjual) ?>',1);"><div id="elh_produk_akunjual" class="produk_akunjual">
+		<th data-name="akunjual"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->akunjual) ?>',2);"><div id="elh_produk_akunjual" class="produk_akunjual">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $produk->akunjual->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($produk->akunjual->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($produk->akunjual->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -2353,7 +2356,7 @@ $produk_list->ListOptions->Render("header", "left");
 	<?php if ($produk->SortUrl($produk->akunpersediaan) == "") { ?>
 		<th data-name="akunpersediaan"><div id="elh_produk_akunpersediaan" class="produk_akunpersediaan"><div class="ewTableHeaderCaption"><?php echo $produk->akunpersediaan->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="akunpersediaan"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->akunpersediaan) ?>',1);"><div id="elh_produk_akunpersediaan" class="produk_akunpersediaan">
+		<th data-name="akunpersediaan"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->akunpersediaan) ?>',2);"><div id="elh_produk_akunpersediaan" class="produk_akunpersediaan">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $produk->akunpersediaan->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($produk->akunpersediaan->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($produk->akunpersediaan->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -2362,7 +2365,7 @@ $produk_list->ListOptions->Render("header", "left");
 	<?php if ($produk->SortUrl($produk->akunreturjual) == "") { ?>
 		<th data-name="akunreturjual"><div id="elh_produk_akunreturjual" class="produk_akunreturjual"><div class="ewTableHeaderCaption"><?php echo $produk->akunreturjual->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="akunreturjual"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->akunreturjual) ?>',1);"><div id="elh_produk_akunreturjual" class="produk_akunreturjual">
+		<th data-name="akunreturjual"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->akunreturjual) ?>',2);"><div id="elh_produk_akunreturjual" class="produk_akunreturjual">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $produk->akunreturjual->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($produk->akunreturjual->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($produk->akunreturjual->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -2371,7 +2374,7 @@ $produk_list->ListOptions->Render("header", "left");
 	<?php if ($produk->SortUrl($produk->hargapokok) == "") { ?>
 		<th data-name="hargapokok"><div id="elh_produk_hargapokok" class="produk_hargapokok"><div class="ewTableHeaderCaption"><?php echo $produk->hargapokok->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="hargapokok"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->hargapokok) ?>',1);"><div id="elh_produk_hargapokok" class="produk_hargapokok">
+		<th data-name="hargapokok"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->hargapokok) ?>',2);"><div id="elh_produk_hargapokok" class="produk_hargapokok">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $produk->hargapokok->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($produk->hargapokok->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($produk->hargapokok->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -2380,7 +2383,7 @@ $produk_list->ListOptions->Render("header", "left");
 	<?php if ($produk->SortUrl($produk->p) == "") { ?>
 		<th data-name="p"><div id="elh_produk_p" class="produk_p"><div class="ewTableHeaderCaption"><?php echo $produk->p->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="p"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->p) ?>',1);"><div id="elh_produk_p" class="produk_p">
+		<th data-name="p"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->p) ?>',2);"><div id="elh_produk_p" class="produk_p">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $produk->p->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($produk->p->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($produk->p->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -2389,7 +2392,7 @@ $produk_list->ListOptions->Render("header", "left");
 	<?php if ($produk->SortUrl($produk->l) == "") { ?>
 		<th data-name="l"><div id="elh_produk_l" class="produk_l"><div class="ewTableHeaderCaption"><?php echo $produk->l->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="l"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->l) ?>',1);"><div id="elh_produk_l" class="produk_l">
+		<th data-name="l"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->l) ?>',2);"><div id="elh_produk_l" class="produk_l">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $produk->l->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($produk->l->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($produk->l->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -2398,7 +2401,7 @@ $produk_list->ListOptions->Render("header", "left");
 	<?php if ($produk->SortUrl($produk->t) == "") { ?>
 		<th data-name="t"><div id="elh_produk_t" class="produk_t"><div class="ewTableHeaderCaption"><?php echo $produk->t->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="t"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->t) ?>',1);"><div id="elh_produk_t" class="produk_t">
+		<th data-name="t"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->t) ?>',2);"><div id="elh_produk_t" class="produk_t">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $produk->t->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($produk->t->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($produk->t->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -2407,7 +2410,7 @@ $produk_list->ListOptions->Render("header", "left");
 	<?php if ($produk->SortUrl($produk->berat) == "") { ?>
 		<th data-name="berat"><div id="elh_produk_berat" class="produk_berat"><div class="ewTableHeaderCaption"><?php echo $produk->berat->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="berat"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->berat) ?>',1);"><div id="elh_produk_berat" class="produk_berat">
+		<th data-name="berat"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->berat) ?>',2);"><div id="elh_produk_berat" class="produk_berat">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $produk->berat->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($produk->berat->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($produk->berat->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -2416,7 +2419,7 @@ $produk_list->ListOptions->Render("header", "left");
 	<?php if ($produk->SortUrl($produk->supplier_id) == "") { ?>
 		<th data-name="supplier_id"><div id="elh_produk_supplier_id" class="produk_supplier_id"><div class="ewTableHeaderCaption"><?php echo $produk->supplier_id->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="supplier_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->supplier_id) ?>',1);"><div id="elh_produk_supplier_id" class="produk_supplier_id">
+		<th data-name="supplier_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->supplier_id) ?>',2);"><div id="elh_produk_supplier_id" class="produk_supplier_id">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $produk->supplier_id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($produk->supplier_id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($produk->supplier_id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -2425,7 +2428,7 @@ $produk_list->ListOptions->Render("header", "left");
 	<?php if ($produk->SortUrl($produk->waktukirim) == "") { ?>
 		<th data-name="waktukirim"><div id="elh_produk_waktukirim" class="produk_waktukirim"><div class="ewTableHeaderCaption"><?php echo $produk->waktukirim->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="waktukirim"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->waktukirim) ?>',1);"><div id="elh_produk_waktukirim" class="produk_waktukirim">
+		<th data-name="waktukirim"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->waktukirim) ?>',2);"><div id="elh_produk_waktukirim" class="produk_waktukirim">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $produk->waktukirim->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($produk->waktukirim->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($produk->waktukirim->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -2434,7 +2437,7 @@ $produk_list->ListOptions->Render("header", "left");
 	<?php if ($produk->SortUrl($produk->aktif) == "") { ?>
 		<th data-name="aktif"><div id="elh_produk_aktif" class="produk_aktif"><div class="ewTableHeaderCaption"><?php echo $produk->aktif->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="aktif"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->aktif) ?>',1);"><div id="elh_produk_aktif" class="produk_aktif">
+		<th data-name="aktif"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->aktif) ?>',2);"><div id="elh_produk_aktif" class="produk_aktif">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $produk->aktif->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($produk->aktif->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($produk->aktif->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -2443,7 +2446,7 @@ $produk_list->ListOptions->Render("header", "left");
 	<?php if ($produk->SortUrl($produk->id_FK) == "") { ?>
 		<th data-name="id_FK"><div id="elh_produk_id_FK" class="produk_id_FK"><div class="ewTableHeaderCaption"><?php echo $produk->id_FK->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="id_FK"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->id_FK) ?>',1);"><div id="elh_produk_id_FK" class="produk_id_FK">
+		<th data-name="id_FK"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $produk->SortUrl($produk->id_FK) ?>',2);"><div id="elh_produk_id_FK" class="produk_id_FK">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $produk->id_FK->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($produk->id_FK->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($produk->id_FK->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>

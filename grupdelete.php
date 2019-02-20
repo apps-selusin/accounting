@@ -251,8 +251,6 @@ class cgrup_delete extends cgrup {
 	function Page_Init() {
 		global $gsExport, $gsCustomExport, $gsExportFile, $UserProfile, $Language, $Security, $objForm;
 		$this->CurrentAction = (@$_GET["a"] <> "") ? $_GET["a"] : @$_POST["a_list"]; // Set up current action
-		$this->id->SetVisibility();
-		$this->id->Visible = !$this->IsAdd() && !$this->IsCopy() && !$this->IsGridAdd();
 		$this->name->SetVisibility();
 
 		// Global Page Loading event (in userfn*.php)
@@ -462,11 +460,6 @@ class cgrup_delete extends cgrup {
 		// name
 		$this->name->ViewValue = $this->name->CurrentValue;
 		$this->name->ViewCustomAttributes = "";
-
-			// id
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-			$this->id->TooltipValue = "";
 
 			// name
 			$this->name->LinkCustomAttributes = "";
@@ -718,9 +711,6 @@ $grup_delete->ShowMessage();
 <?php echo $grup->TableCustomInnerHtml ?>
 	<thead>
 	<tr class="ewTableHeader">
-<?php if ($grup->id->Visible) { // id ?>
-		<th><span id="elh_grup_id" class="grup_id"><?php echo $grup->id->FldCaption() ?></span></th>
-<?php } ?>
 <?php if ($grup->name->Visible) { // name ?>
 		<th><span id="elh_grup_name" class="grup_name"><?php echo $grup->name->FldCaption() ?></span></th>
 <?php } ?>
@@ -745,14 +735,6 @@ while (!$grup_delete->Recordset->EOF) {
 	$grup_delete->RenderRow();
 ?>
 	<tr<?php echo $grup->RowAttributes() ?>>
-<?php if ($grup->id->Visible) { // id ?>
-		<td<?php echo $grup->id->CellAttributes() ?>>
-<span id="el<?php echo $grup_delete->RowCnt ?>_grup_id" class="grup_id">
-<span<?php echo $grup->id->ViewAttributes() ?>>
-<?php echo $grup->id->ListViewValue() ?></span>
-</span>
-</td>
-<?php } ?>
 <?php if ($grup->name->Visible) { // name ?>
 		<td<?php echo $grup->name->CellAttributes() ?>>
 <span id="el<?php echo $grup_delete->RowCnt ?>_grup_name" class="grup_name">

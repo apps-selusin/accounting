@@ -251,12 +251,10 @@ class cakun_delete extends cakun {
 	function Page_Init() {
 		global $gsExport, $gsCustomExport, $gsExportFile, $UserProfile, $Language, $Security, $objForm;
 		$this->CurrentAction = (@$_GET["a"] <> "") ? $_GET["a"] : @$_POST["a_list"]; // Set up current action
-		$this->id->SetVisibility();
-		$this->id->Visible = !$this->IsAdd() && !$this->IsCopy() && !$this->IsGridAdd();
+		$this->group_id->SetVisibility();
+		$this->subgrup_id->SetVisibility();
 		$this->kode->SetVisibility();
 		$this->nama->SetVisibility();
-		$this->subgrup_id->SetVisibility();
-		$this->user_id->SetVisibility();
 		$this->matauang_id->SetVisibility();
 
 		// Global Page Loading event (in userfn*.php)
@@ -433,9 +431,10 @@ class cakun_delete extends cakun {
 		$row = &$rs->fields;
 		$this->Row_Selected($row);
 		$this->id->setDbValue($rs->fields('id'));
+		$this->group_id->setDbValue($rs->fields('group_id'));
+		$this->subgrup_id->setDbValue($rs->fields('subgrup_id'));
 		$this->kode->setDbValue($rs->fields('kode'));
 		$this->nama->setDbValue($rs->fields('nama'));
-		$this->subgrup_id->setDbValue($rs->fields('subgrup_id'));
 		$this->user_id->setDbValue($rs->fields('user_id'));
 		$this->matauang_id->setDbValue($rs->fields('matauang_id'));
 	}
@@ -445,9 +444,10 @@ class cakun_delete extends cakun {
 		if (!$rs || !is_array($rs) && $rs->EOF) return;
 		$row = is_array($rs) ? $rs : $rs->fields;
 		$this->id->DbValue = $row['id'];
+		$this->group_id->DbValue = $row['group_id'];
+		$this->subgrup_id->DbValue = $row['subgrup_id'];
 		$this->kode->DbValue = $row['kode'];
 		$this->nama->DbValue = $row['nama'];
-		$this->subgrup_id->DbValue = $row['subgrup_id'];
 		$this->user_id->DbValue = $row['user_id'];
 		$this->matauang_id->DbValue = $row['matauang_id'];
 	}
@@ -463,9 +463,10 @@ class cakun_delete extends cakun {
 
 		// Common render codes for all row types
 		// id
+		// group_id
+		// subgrup_id
 		// kode
 		// nama
-		// subgrup_id
 		// user_id
 		// matauang_id
 
@@ -475,18 +476,33 @@ class cakun_delete extends cakun {
 		$this->id->ViewValue = $this->id->CurrentValue;
 		$this->id->ViewCustomAttributes = "";
 
-		// kode
-		$this->kode->ViewValue = $this->kode->CurrentValue;
-		$this->kode->ViewCustomAttributes = "";
-
-		// nama
-		$this->nama->ViewValue = $this->nama->CurrentValue;
-		$this->nama->ViewCustomAttributes = "";
+		// group_id
+		if (strval($this->group_id->CurrentValue) <> "") {
+			$sFilterWrk = "`id`" . ew_SearchString("=", $this->group_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+		$sSqlWrk = "SELECT `id`, `name` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `grup`";
+		$sWhereWrk = "";
+		$this->group_id->LookupFilters = array();
+		ew_AddFilter($sWhereWrk, $sFilterWrk);
+		$this->Lookup_Selecting($this->group_id, $sWhereWrk); // Call Lookup selecting
+		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			if ($rswrk && !$rswrk->EOF) { // Lookup values found
+				$arwrk = array();
+				$arwrk[1] = $rswrk->fields('DispFld');
+				$this->group_id->ViewValue = $this->group_id->DisplayValue($arwrk);
+				$rswrk->Close();
+			} else {
+				$this->group_id->ViewValue = $this->group_id->CurrentValue;
+			}
+		} else {
+			$this->group_id->ViewValue = NULL;
+		}
+		$this->group_id->ViewCustomAttributes = "";
 
 		// subgrup_id
 		if (strval($this->subgrup_id->CurrentValue) <> "") {
 			$sFilterWrk = "`id`" . ew_SearchString("=", $this->subgrup_id->CurrentValue, EW_DATATYPE_NUMBER, "");
-		$sSqlWrk = "SELECT `id`, `nama` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `subgrup`";
+		$sSqlWrk = "SELECT `id`, `kode` AS `DispFld`, `nama` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `subgrup`";
 		$sWhereWrk = "";
 		$this->subgrup_id->LookupFilters = array();
 		ew_AddFilter($sWhereWrk, $sFilterWrk);
@@ -496,6 +512,7 @@ class cakun_delete extends cakun {
 			if ($rswrk && !$rswrk->EOF) { // Lookup values found
 				$arwrk = array();
 				$arwrk[1] = $rswrk->fields('DispFld');
+				$arwrk[2] = $rswrk->fields('Disp2Fld');
 				$this->subgrup_id->ViewValue = $this->subgrup_id->DisplayValue($arwrk);
 				$rswrk->Close();
 			} else {
@@ -506,6 +523,14 @@ class cakun_delete extends cakun {
 		}
 		$this->subgrup_id->ViewCustomAttributes = "";
 
+		// kode
+		$this->kode->ViewValue = $this->kode->CurrentValue;
+		$this->kode->ViewCustomAttributes = "";
+
+		// nama
+		$this->nama->ViewValue = $this->nama->CurrentValue;
+		$this->nama->ViewCustomAttributes = "";
+
 		// user_id
 		$this->user_id->ViewValue = $this->user_id->CurrentValue;
 		$this->user_id->ViewCustomAttributes = "";
@@ -513,7 +538,7 @@ class cakun_delete extends cakun {
 		// matauang_id
 		if (strval($this->matauang_id->CurrentValue) <> "") {
 			$sFilterWrk = "`id`" . ew_SearchString("=", $this->matauang_id->CurrentValue, EW_DATATYPE_NUMBER, "");
-		$sSqlWrk = "SELECT `id`, `kode` AS `DispFld`, `nama` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `matauang`";
+		$sSqlWrk = "SELECT `id`, `nama` AS `DispFld`, `kode` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `matauang`";
 		$sWhereWrk = "";
 		$this->matauang_id->LookupFilters = array();
 		ew_AddFilter($sWhereWrk, $sFilterWrk);
@@ -534,10 +559,15 @@ class cakun_delete extends cakun {
 		}
 		$this->matauang_id->ViewCustomAttributes = "";
 
-			// id
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-			$this->id->TooltipValue = "";
+			// group_id
+			$this->group_id->LinkCustomAttributes = "";
+			$this->group_id->HrefValue = "";
+			$this->group_id->TooltipValue = "";
+
+			// subgrup_id
+			$this->subgrup_id->LinkCustomAttributes = "";
+			$this->subgrup_id->HrefValue = "";
+			$this->subgrup_id->TooltipValue = "";
 
 			// kode
 			$this->kode->LinkCustomAttributes = "";
@@ -548,16 +578,6 @@ class cakun_delete extends cakun {
 			$this->nama->LinkCustomAttributes = "";
 			$this->nama->HrefValue = "";
 			$this->nama->TooltipValue = "";
-
-			// subgrup_id
-			$this->subgrup_id->LinkCustomAttributes = "";
-			$this->subgrup_id->HrefValue = "";
-			$this->subgrup_id->TooltipValue = "";
-
-			// user_id
-			$this->user_id->LinkCustomAttributes = "";
-			$this->user_id->HrefValue = "";
-			$this->user_id->TooltipValue = "";
 
 			// matauang_id
 			$this->matauang_id->LinkCustomAttributes = "";
@@ -777,8 +797,9 @@ fakundelete.ValidateRequired = false;
 <?php } ?>
 
 // Dynamic selection lists
-fakundelete.Lists["x_subgrup_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_nama","","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"subgrup"};
-fakundelete.Lists["x_matauang_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_kode","x_nama","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"matauang"};
+fakundelete.Lists["x_group_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_name","","",""],"ParentFields":[],"ChildFields":["x_subgrup_id"],"FilterFields":[],"Options":[],"Template":"","LinkTable":"grup"};
+fakundelete.Lists["x_subgrup_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_kode","x_nama","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"subgrup"};
+fakundelete.Lists["x_matauang_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_nama","x_kode","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"matauang"};
 
 // Form object for search
 </script>
@@ -811,20 +832,17 @@ $akun_delete->ShowMessage();
 <?php echo $akun->TableCustomInnerHtml ?>
 	<thead>
 	<tr class="ewTableHeader">
-<?php if ($akun->id->Visible) { // id ?>
-		<th><span id="elh_akun_id" class="akun_id"><?php echo $akun->id->FldCaption() ?></span></th>
+<?php if ($akun->group_id->Visible) { // group_id ?>
+		<th><span id="elh_akun_group_id" class="akun_group_id"><?php echo $akun->group_id->FldCaption() ?></span></th>
+<?php } ?>
+<?php if ($akun->subgrup_id->Visible) { // subgrup_id ?>
+		<th><span id="elh_akun_subgrup_id" class="akun_subgrup_id"><?php echo $akun->subgrup_id->FldCaption() ?></span></th>
 <?php } ?>
 <?php if ($akun->kode->Visible) { // kode ?>
 		<th><span id="elh_akun_kode" class="akun_kode"><?php echo $akun->kode->FldCaption() ?></span></th>
 <?php } ?>
 <?php if ($akun->nama->Visible) { // nama ?>
 		<th><span id="elh_akun_nama" class="akun_nama"><?php echo $akun->nama->FldCaption() ?></span></th>
-<?php } ?>
-<?php if ($akun->subgrup_id->Visible) { // subgrup_id ?>
-		<th><span id="elh_akun_subgrup_id" class="akun_subgrup_id"><?php echo $akun->subgrup_id->FldCaption() ?></span></th>
-<?php } ?>
-<?php if ($akun->user_id->Visible) { // user_id ?>
-		<th><span id="elh_akun_user_id" class="akun_user_id"><?php echo $akun->user_id->FldCaption() ?></span></th>
 <?php } ?>
 <?php if ($akun->matauang_id->Visible) { // matauang_id ?>
 		<th><span id="elh_akun_matauang_id" class="akun_matauang_id"><?php echo $akun->matauang_id->FldCaption() ?></span></th>
@@ -850,11 +868,19 @@ while (!$akun_delete->Recordset->EOF) {
 	$akun_delete->RenderRow();
 ?>
 	<tr<?php echo $akun->RowAttributes() ?>>
-<?php if ($akun->id->Visible) { // id ?>
-		<td<?php echo $akun->id->CellAttributes() ?>>
-<span id="el<?php echo $akun_delete->RowCnt ?>_akun_id" class="akun_id">
-<span<?php echo $akun->id->ViewAttributes() ?>>
-<?php echo $akun->id->ListViewValue() ?></span>
+<?php if ($akun->group_id->Visible) { // group_id ?>
+		<td<?php echo $akun->group_id->CellAttributes() ?>>
+<span id="el<?php echo $akun_delete->RowCnt ?>_akun_group_id" class="akun_group_id">
+<span<?php echo $akun->group_id->ViewAttributes() ?>>
+<?php echo $akun->group_id->ListViewValue() ?></span>
+</span>
+</td>
+<?php } ?>
+<?php if ($akun->subgrup_id->Visible) { // subgrup_id ?>
+		<td<?php echo $akun->subgrup_id->CellAttributes() ?>>
+<span id="el<?php echo $akun_delete->RowCnt ?>_akun_subgrup_id" class="akun_subgrup_id">
+<span<?php echo $akun->subgrup_id->ViewAttributes() ?>>
+<?php echo $akun->subgrup_id->ListViewValue() ?></span>
 </span>
 </td>
 <?php } ?>
@@ -871,22 +897,6 @@ while (!$akun_delete->Recordset->EOF) {
 <span id="el<?php echo $akun_delete->RowCnt ?>_akun_nama" class="akun_nama">
 <span<?php echo $akun->nama->ViewAttributes() ?>>
 <?php echo $akun->nama->ListViewValue() ?></span>
-</span>
-</td>
-<?php } ?>
-<?php if ($akun->subgrup_id->Visible) { // subgrup_id ?>
-		<td<?php echo $akun->subgrup_id->CellAttributes() ?>>
-<span id="el<?php echo $akun_delete->RowCnt ?>_akun_subgrup_id" class="akun_subgrup_id">
-<span<?php echo $akun->subgrup_id->ViewAttributes() ?>>
-<?php echo $akun->subgrup_id->ListViewValue() ?></span>
-</span>
-</td>
-<?php } ?>
-<?php if ($akun->user_id->Visible) { // user_id ?>
-		<td<?php echo $akun->user_id->CellAttributes() ?>>
-<span id="el<?php echo $akun_delete->RowCnt ?>_akun_user_id" class="akun_user_id">
-<span<?php echo $akun->user_id->ViewAttributes() ?>>
-<?php echo $akun->user_id->ListViewValue() ?></span>
 </span>
 </td>
 <?php } ?>

@@ -6,6 +6,7 @@ ob_start(); // Turn on output buffering
 <?php include_once ((EW_USE_ADODB) ? "adodb5/adodb.inc.php" : "ewmysql13.php") ?>
 <?php include_once "phpfn13.php" ?>
 <?php include_once "jurnaldinfo.php" ?>
+<?php include_once "jurnalinfo.php" ?>
 <?php include_once "userfn13.php" ?>
 <?php
 
@@ -230,6 +231,9 @@ class cjurnald_add extends cjurnald {
 			$GLOBALS["Table"] = &$GLOBALS["jurnald"];
 		}
 
+		// Table object (jurnal)
+		if (!isset($GLOBALS['jurnal'])) $GLOBALS['jurnal'] = new cjurnal();
+
 		// Page ID
 		if (!defined("EW_PAGE_ID"))
 			define("EW_PAGE_ID", 'add', TRUE);
@@ -360,6 +364,9 @@ class cjurnald_add extends cjurnald {
 		$this->IsModal = (@$_GET["modal"] == "1" || @$_POST["modal"] == "1");
 		if ($this->IsModal)
 			$gbSkipHeaderFooter = TRUE;
+
+		// Set up master/detail parameters
+		$this->SetUpMasterParms();
 
 		// Process form if post back
 		if (@$_POST["a_add"] <> "") {
@@ -588,7 +595,26 @@ class cjurnald_add extends cjurnald {
 		$this->jurnal_id->ViewCustomAttributes = "";
 
 		// akun_id
-		$this->akun_id->ViewValue = $this->akun_id->CurrentValue;
+		if (strval($this->akun_id->CurrentValue) <> "") {
+			$sFilterWrk = "`id`" . ew_SearchString("=", $this->akun_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+		$sSqlWrk = "SELECT `id`, `nama` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `akun`";
+		$sWhereWrk = "";
+		$this->akun_id->LookupFilters = array();
+		ew_AddFilter($sWhereWrk, $sFilterWrk);
+		$this->Lookup_Selecting($this->akun_id, $sWhereWrk); // Call Lookup selecting
+		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			if ($rswrk && !$rswrk->EOF) { // Lookup values found
+				$arwrk = array();
+				$arwrk[1] = $rswrk->fields('DispFld');
+				$this->akun_id->ViewValue = $this->akun_id->DisplayValue($arwrk);
+				$rswrk->Close();
+			} else {
+				$this->akun_id->ViewValue = $this->akun_id->CurrentValue;
+			}
+		} else {
+			$this->akun_id->ViewValue = NULL;
+		}
 		$this->akun_id->ViewCustomAttributes = "";
 
 		// debet
@@ -623,14 +649,33 @@ class cjurnald_add extends cjurnald {
 			// jurnal_id
 			$this->jurnal_id->EditAttrs["class"] = "form-control";
 			$this->jurnal_id->EditCustomAttributes = "";
+			if ($this->jurnal_id->getSessionValue() <> "") {
+				$this->jurnal_id->CurrentValue = $this->jurnal_id->getSessionValue();
+			$this->jurnal_id->ViewValue = $this->jurnal_id->CurrentValue;
+			$this->jurnal_id->ViewCustomAttributes = "";
+			} else {
 			$this->jurnal_id->EditValue = ew_HtmlEncode($this->jurnal_id->CurrentValue);
 			$this->jurnal_id->PlaceHolder = ew_RemoveHtml($this->jurnal_id->FldCaption());
+			}
 
 			// akun_id
 			$this->akun_id->EditAttrs["class"] = "form-control";
 			$this->akun_id->EditCustomAttributes = "";
-			$this->akun_id->EditValue = ew_HtmlEncode($this->akun_id->CurrentValue);
-			$this->akun_id->PlaceHolder = ew_RemoveHtml($this->akun_id->FldCaption());
+			if (trim(strval($this->akun_id->CurrentValue)) == "") {
+				$sFilterWrk = "0=1";
+			} else {
+				$sFilterWrk = "`id`" . ew_SearchString("=", $this->akun_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+			}
+			$sSqlWrk = "SELECT `id`, `nama` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld`, '' AS `SelectFilterFld`, '' AS `SelectFilterFld2`, '' AS `SelectFilterFld3`, '' AS `SelectFilterFld4` FROM `akun`";
+			$sWhereWrk = "";
+			$this->akun_id->LookupFilters = array();
+			ew_AddFilter($sWhereWrk, $sFilterWrk);
+			$this->Lookup_Selecting($this->akun_id, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			$arwrk = ($rswrk) ? $rswrk->GetRows() : array();
+			if ($rswrk) $rswrk->Close();
+			$this->akun_id->EditValue = $arwrk;
 
 			// debet
 			$this->debet->EditAttrs["class"] = "form-control";
@@ -687,9 +732,6 @@ class cjurnald_add extends cjurnald {
 			return ($gsFormError == "");
 		if (!ew_CheckInteger($this->jurnal_id->FormValue)) {
 			ew_AddMessage($gsFormError, $this->jurnal_id->FldErrMsg());
-		}
-		if (!ew_CheckInteger($this->akun_id->FormValue)) {
-			ew_AddMessage($gsFormError, $this->akun_id->FldErrMsg());
 		}
 		if (!ew_CheckNumber($this->debet->FormValue)) {
 			ew_AddMessage($gsFormError, $this->debet->FldErrMsg());
@@ -763,6 +805,66 @@ class cjurnald_add extends cjurnald {
 		return $AddRow;
 	}
 
+	// Set up master/detail based on QueryString
+	function SetUpMasterParms() {
+		$bValidMaster = FALSE;
+
+		// Get the keys for master table
+		if (isset($_GET[EW_TABLE_SHOW_MASTER])) {
+			$sMasterTblVar = $_GET[EW_TABLE_SHOW_MASTER];
+			if ($sMasterTblVar == "") {
+				$bValidMaster = TRUE;
+				$this->DbMasterFilter = "";
+				$this->DbDetailFilter = "";
+			}
+			if ($sMasterTblVar == "jurnal") {
+				$bValidMaster = TRUE;
+				if (@$_GET["fk_id"] <> "") {
+					$GLOBALS["jurnal"]->id->setQueryStringValue($_GET["fk_id"]);
+					$this->jurnal_id->setQueryStringValue($GLOBALS["jurnal"]->id->QueryStringValue);
+					$this->jurnal_id->setSessionValue($this->jurnal_id->QueryStringValue);
+					if (!is_numeric($GLOBALS["jurnal"]->id->QueryStringValue)) $bValidMaster = FALSE;
+				} else {
+					$bValidMaster = FALSE;
+				}
+			}
+		} elseif (isset($_POST[EW_TABLE_SHOW_MASTER])) {
+			$sMasterTblVar = $_POST[EW_TABLE_SHOW_MASTER];
+			if ($sMasterTblVar == "") {
+				$bValidMaster = TRUE;
+				$this->DbMasterFilter = "";
+				$this->DbDetailFilter = "";
+			}
+			if ($sMasterTblVar == "jurnal") {
+				$bValidMaster = TRUE;
+				if (@$_POST["fk_id"] <> "") {
+					$GLOBALS["jurnal"]->id->setFormValue($_POST["fk_id"]);
+					$this->jurnal_id->setFormValue($GLOBALS["jurnal"]->id->FormValue);
+					$this->jurnal_id->setSessionValue($this->jurnal_id->FormValue);
+					if (!is_numeric($GLOBALS["jurnal"]->id->FormValue)) $bValidMaster = FALSE;
+				} else {
+					$bValidMaster = FALSE;
+				}
+			}
+		}
+		if ($bValidMaster) {
+
+			// Save current master table
+			$this->setCurrentMasterTable($sMasterTblVar);
+
+			// Reset start record counter (new master key)
+			$this->StartRec = 1;
+			$this->setStartRecordNumber($this->StartRec);
+
+			// Clear previous master key from Session
+			if ($sMasterTblVar <> "jurnal") {
+				if ($this->jurnal_id->CurrentValue == "") $this->jurnal_id->setSessionValue("");
+			}
+		}
+		$this->DbMasterFilter = $this->GetMasterFilter(); // Get master filter
+		$this->DbDetailFilter = $this->GetDetailFilter(); // Get detail filter
+	}
+
 	// Set up Breadcrumb
 	function SetupBreadcrumb() {
 		global $Breadcrumb, $Language;
@@ -778,6 +880,18 @@ class cjurnald_add extends cjurnald {
 		global $gsLanguage;
 		$pageId = $pageId ?: $this->PageID;
 		switch ($fld->FldVar) {
+		case "x_akun_id":
+			$sSqlWrk = "";
+			$sSqlWrk = "SELECT `id` AS `LinkFld`, `nama` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `akun`";
+			$sWhereWrk = "";
+			$this->akun_id->LookupFilters = array();
+			$fld->LookupFilters += array("s" => $sSqlWrk, "d" => "", "f0" => '`id` = {filter_value}', "t0" => "3", "fn0" => "");
+			$sSqlWrk = "";
+			$this->Lookup_Selecting($this->akun_id, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			if ($sSqlWrk <> "")
+				$fld->LookupFilters["s"] .= $sSqlWrk;
+			break;
 		}
 	}
 
@@ -900,9 +1014,6 @@ fjurnaldadd.Validate = function() {
 			elm = this.GetElements("x" + infix + "_jurnal_id");
 			if (elm && !ew_CheckInteger(elm.value))
 				return this.OnError(elm, "<?php echo ew_JsEncode2($jurnald->jurnal_id->FldErrMsg()) ?>");
-			elm = this.GetElements("x" + infix + "_akun_id");
-			if (elm && !ew_CheckInteger(elm.value))
-				return this.OnError(elm, "<?php echo ew_JsEncode2($jurnald->akun_id->FldErrMsg()) ?>");
 			elm = this.GetElements("x" + infix + "_debet");
 			if (elm && !ew_CheckNumber(elm.value))
 				return this.OnError(elm, "<?php echo ew_JsEncode2($jurnald->debet->FldErrMsg()) ?>");
@@ -942,8 +1053,9 @@ fjurnaldadd.ValidateRequired = false;
 <?php } ?>
 
 // Dynamic selection lists
-// Form object for search
+fjurnaldadd.Lists["x_akun_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_nama","","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"akun"};
 
+// Form object for search
 </script>
 <script type="text/javascript">
 
@@ -969,14 +1081,26 @@ $jurnald_add->ShowMessage();
 <?php if ($jurnald_add->IsModal) { ?>
 <input type="hidden" name="modal" value="1">
 <?php } ?>
+<?php if ($jurnald->getCurrentMasterTable() == "jurnal") { ?>
+<input type="hidden" name="<?php echo EW_TABLE_SHOW_MASTER ?>" value="jurnal">
+<input type="hidden" name="fk_id" value="<?php echo $jurnald->jurnal_id->getSessionValue() ?>">
+<?php } ?>
 <div>
 <?php if ($jurnald->jurnal_id->Visible) { // jurnal_id ?>
 	<div id="r_jurnal_id" class="form-group">
 		<label id="elh_jurnald_jurnal_id" for="x_jurnal_id" class="col-sm-2 control-label ewLabel"><?php echo $jurnald->jurnal_id->FldCaption() ?></label>
 		<div class="col-sm-10"><div<?php echo $jurnald->jurnal_id->CellAttributes() ?>>
+<?php if ($jurnald->jurnal_id->getSessionValue() <> "") { ?>
+<span id="el_jurnald_jurnal_id">
+<span<?php echo $jurnald->jurnal_id->ViewAttributes() ?>>
+<p class="form-control-static"><?php echo $jurnald->jurnal_id->ViewValue ?></p></span>
+</span>
+<input type="hidden" id="x_jurnal_id" name="x_jurnal_id" value="<?php echo ew_HtmlEncode($jurnald->jurnal_id->CurrentValue) ?>">
+<?php } else { ?>
 <span id="el_jurnald_jurnal_id">
 <input type="text" data-table="jurnald" data-field="x_jurnal_id" name="x_jurnal_id" id="x_jurnal_id" size="30" placeholder="<?php echo ew_HtmlEncode($jurnald->jurnal_id->getPlaceHolder()) ?>" value="<?php echo $jurnald->jurnal_id->EditValue ?>"<?php echo $jurnald->jurnal_id->EditAttributes() ?>>
 </span>
+<?php } ?>
 <?php echo $jurnald->jurnal_id->CustomMsg ?></div></div>
 	</div>
 <?php } ?>
@@ -985,7 +1109,10 @@ $jurnald_add->ShowMessage();
 		<label id="elh_jurnald_akun_id" for="x_akun_id" class="col-sm-2 control-label ewLabel"><?php echo $jurnald->akun_id->FldCaption() ?></label>
 		<div class="col-sm-10"><div<?php echo $jurnald->akun_id->CellAttributes() ?>>
 <span id="el_jurnald_akun_id">
-<input type="text" data-table="jurnald" data-field="x_akun_id" name="x_akun_id" id="x_akun_id" size="30" placeholder="<?php echo ew_HtmlEncode($jurnald->akun_id->getPlaceHolder()) ?>" value="<?php echo $jurnald->akun_id->EditValue ?>"<?php echo $jurnald->akun_id->EditAttributes() ?>>
+<select data-table="jurnald" data-field="x_akun_id" data-value-separator="<?php echo $jurnald->akun_id->DisplayValueSeparatorAttribute() ?>" id="x_akun_id" name="x_akun_id"<?php echo $jurnald->akun_id->EditAttributes() ?>>
+<?php echo $jurnald->akun_id->SelectOptionListHtml("x_akun_id") ?>
+</select>
+<input type="hidden" name="s_x_akun_id" id="s_x_akun_id" value="<?php echo $jurnald->akun_id->LookupFilterQuery() ?>">
 </span>
 <?php echo $jurnald->akun_id->CustomMsg ?></div></div>
 	</div>

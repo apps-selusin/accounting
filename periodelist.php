@@ -342,11 +342,8 @@ class cperiode_list extends cperiode {
 
 		// Set up list options
 		$this->SetupListOptions();
-		$this->id->SetVisibility();
-		$this->id->Visible = !$this->IsAdd() && !$this->IsCopy() && !$this->IsGridAdd();
 		$this->start->SetVisibility();
 		$this->end->SetVisibility();
-		$this->user_id->SetVisibility();
 
 		// Global Page Loading event (in userfn*.php)
 		Page_Loading();
@@ -608,14 +605,15 @@ class cperiode_list extends cperiode {
 	// Set up sort parameters
 	function SetUpSortOrder() {
 
+		// Check for Ctrl pressed
+		$bCtrl = (@$_GET["ctrl"] <> "");
+
 		// Check for "order" parameter
 		if (@$_GET["order"] <> "") {
 			$this->CurrentOrder = ew_StripSlashes(@$_GET["order"]);
 			$this->CurrentOrderType = @$_GET["ordertype"];
-			$this->UpdateSort($this->id); // id
-			$this->UpdateSort($this->start); // start
-			$this->UpdateSort($this->end); // end
-			$this->UpdateSort($this->user_id); // user_id
+			$this->UpdateSort($this->start, $bCtrl); // start
+			$this->UpdateSort($this->end, $bCtrl); // end
 			$this->setStartRecordNumber(1); // Reset start position
 		}
 	}
@@ -644,10 +642,8 @@ class cperiode_list extends cperiode {
 			if ($this->Command == "resetsort") {
 				$sOrderBy = "";
 				$this->setSessionOrderBy($sOrderBy);
-				$this->id->setSort("");
 				$this->start->setSort("");
 				$this->end->setSort("");
-				$this->user_id->setSort("");
 			}
 
 			// Reset start position
@@ -706,6 +702,14 @@ class cperiode_list extends cperiode {
 		$item->ShowInDropDown = FALSE;
 		$item->ShowInButtonGroup = FALSE;
 
+		// "sequence"
+		$item = &$this->ListOptions->Add("sequence");
+		$item->CssStyle = "white-space: nowrap;";
+		$item->Visible = TRUE;
+		$item->OnLeft = TRUE; // Always on left
+		$item->ShowInDropDown = FALSE;
+		$item->ShowInButtonGroup = FALSE;
+
 		// Drop down button for ListOptions
 		$this->ListOptions->UseImageAndText = TRUE;
 		$this->ListOptions->UseDropDownButton = FALSE;
@@ -726,6 +730,10 @@ class cperiode_list extends cperiode {
 	function RenderListOptions() {
 		global $Security, $Language, $objForm;
 		$this->ListOptions->LoadDefault();
+
+		// "sequence"
+		$oListOpt = &$this->ListOptions->Items["sequence"];
+		$oListOpt->Body = ew_FormatSeqNo($this->RecCnt);
 
 		// "view"
 		$oListOpt = &$this->ListOptions->Items["view"];
@@ -1139,22 +1147,17 @@ class cperiode_list extends cperiode {
 
 		// start
 		$this->start->ViewValue = $this->start->CurrentValue;
-		$this->start->ViewValue = ew_FormatDateTime($this->start->ViewValue, 0);
+		$this->start->ViewValue = ew_FormatDateTime($this->start->ViewValue, 7);
 		$this->start->ViewCustomAttributes = "";
 
 		// end
 		$this->end->ViewValue = $this->end->CurrentValue;
-		$this->end->ViewValue = ew_FormatDateTime($this->end->ViewValue, 0);
+		$this->end->ViewValue = ew_FormatDateTime($this->end->ViewValue, 7);
 		$this->end->ViewCustomAttributes = "";
 
 		// user_id
 		$this->user_id->ViewValue = $this->user_id->CurrentValue;
 		$this->user_id->ViewCustomAttributes = "";
-
-			// id
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-			$this->id->TooltipValue = "";
 
 			// start
 			$this->start->LinkCustomAttributes = "";
@@ -1165,11 +1168,6 @@ class cperiode_list extends cperiode {
 			$this->end->LinkCustomAttributes = "";
 			$this->end->HrefValue = "";
 			$this->end->TooltipValue = "";
-
-			// user_id
-			$this->user_id->LinkCustomAttributes = "";
-			$this->user_id->HrefValue = "";
-			$this->user_id->TooltipValue = "";
 		}
 
 		// Call Row Rendered event
@@ -1433,20 +1431,11 @@ $periode_list->RenderListOptions();
 // Render list options (header, left)
 $periode_list->ListOptions->Render("header", "left");
 ?>
-<?php if ($periode->id->Visible) { // id ?>
-	<?php if ($periode->SortUrl($periode->id) == "") { ?>
-		<th data-name="id"><div id="elh_periode_id" class="periode_id"><div class="ewTableHeaderCaption"><?php echo $periode->id->FldCaption() ?></div></div></th>
-	<?php } else { ?>
-		<th data-name="id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $periode->SortUrl($periode->id) ?>',1);"><div id="elh_periode_id" class="periode_id">
-			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $periode->id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($periode->id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($periode->id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
-        </div></div></th>
-	<?php } ?>
-<?php } ?>		
 <?php if ($periode->start->Visible) { // start ?>
 	<?php if ($periode->SortUrl($periode->start) == "") { ?>
 		<th data-name="start"><div id="elh_periode_start" class="periode_start"><div class="ewTableHeaderCaption"><?php echo $periode->start->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="start"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $periode->SortUrl($periode->start) ?>',1);"><div id="elh_periode_start" class="periode_start">
+		<th data-name="start"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $periode->SortUrl($periode->start) ?>',2);"><div id="elh_periode_start" class="periode_start">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $periode->start->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($periode->start->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($periode->start->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1455,17 +1444,8 @@ $periode_list->ListOptions->Render("header", "left");
 	<?php if ($periode->SortUrl($periode->end) == "") { ?>
 		<th data-name="end"><div id="elh_periode_end" class="periode_end"><div class="ewTableHeaderCaption"><?php echo $periode->end->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="end"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $periode->SortUrl($periode->end) ?>',1);"><div id="elh_periode_end" class="periode_end">
+		<th data-name="end"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $periode->SortUrl($periode->end) ?>',2);"><div id="elh_periode_end" class="periode_end">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $periode->end->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($periode->end->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($periode->end->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
-        </div></div></th>
-	<?php } ?>
-<?php } ?>		
-<?php if ($periode->user_id->Visible) { // user_id ?>
-	<?php if ($periode->SortUrl($periode->user_id) == "") { ?>
-		<th data-name="user_id"><div id="elh_periode_user_id" class="periode_user_id"><div class="ewTableHeaderCaption"><?php echo $periode->user_id->FldCaption() ?></div></div></th>
-	<?php } else { ?>
-		<th data-name="user_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $periode->SortUrl($periode->user_id) ?>',1);"><div id="elh_periode_user_id" class="periode_user_id">
-			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $periode->user_id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($periode->user_id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($periode->user_id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
 <?php } ?>		
@@ -1534,35 +1514,19 @@ while ($periode_list->RecCnt < $periode_list->StopRec) {
 // Render list options (body, left)
 $periode_list->ListOptions->Render("body", "left", $periode_list->RowCnt);
 ?>
-	<?php if ($periode->id->Visible) { // id ?>
-		<td data-name="id"<?php echo $periode->id->CellAttributes() ?>>
-<span id="el<?php echo $periode_list->RowCnt ?>_periode_id" class="periode_id">
-<span<?php echo $periode->id->ViewAttributes() ?>>
-<?php echo $periode->id->ListViewValue() ?></span>
-</span>
-<a id="<?php echo $periode_list->PageObjName . "_row_" . $periode_list->RowCnt ?>"></a></td>
-	<?php } ?>
 	<?php if ($periode->start->Visible) { // start ?>
 		<td data-name="start"<?php echo $periode->start->CellAttributes() ?>>
 <span id="el<?php echo $periode_list->RowCnt ?>_periode_start" class="periode_start">
 <span<?php echo $periode->start->ViewAttributes() ?>>
 <?php echo $periode->start->ListViewValue() ?></span>
 </span>
-</td>
+<a id="<?php echo $periode_list->PageObjName . "_row_" . $periode_list->RowCnt ?>"></a></td>
 	<?php } ?>
 	<?php if ($periode->end->Visible) { // end ?>
 		<td data-name="end"<?php echo $periode->end->CellAttributes() ?>>
 <span id="el<?php echo $periode_list->RowCnt ?>_periode_end" class="periode_end">
 <span<?php echo $periode->end->ViewAttributes() ?>>
 <?php echo $periode->end->ListViewValue() ?></span>
-</span>
-</td>
-	<?php } ?>
-	<?php if ($periode->user_id->Visible) { // user_id ?>
-		<td data-name="user_id"<?php echo $periode->user_id->CellAttributes() ?>>
-<span id="el<?php echo $periode_list->RowCnt ?>_periode_user_id" class="periode_user_id">
-<span<?php echo $periode->user_id->ViewAttributes() ?>>
-<?php echo $periode->user_id->ListViewValue() ?></span>
 </span>
 </td>
 	<?php } ?>

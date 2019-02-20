@@ -254,13 +254,9 @@ class csaldoawal_edit extends csaldoawal {
 		// Create form object
 		$objForm = new cFormObj();
 		$this->CurrentAction = (@$_GET["a"] <> "") ? $_GET["a"] : @$_POST["a_list"]; // Set up current action
-		$this->id->SetVisibility();
-		$this->id->Visible = !$this->IsAdd() && !$this->IsCopy() && !$this->IsGridAdd();
-		$this->periode_id->SetVisibility();
 		$this->akun_id->SetVisibility();
 		$this->debet->SetVisibility();
 		$this->kredit->SetVisibility();
-		$this->user_id->SetVisibility();
 		$this->saldo->SetVisibility();
 
 		// Global Page Loading event (in userfn*.php)
@@ -348,6 +344,15 @@ class csaldoawal_edit extends csaldoawal {
 	var $IsModal = FALSE;
 	var $DbMasterFilter;
 	var $DbDetailFilter;
+	var $DisplayRecs = 1;
+	var $StartRec;
+	var $StopRec;
+	var $TotalRecs = 0;
+	var $RecRange = 10;
+	var $Pager;
+	var $RecCnt;
+	var $RecKey = array();
+	var $Recordset;
 
 	// 
 	// Page main
@@ -361,9 +366,46 @@ class csaldoawal_edit extends csaldoawal {
 		if ($this->IsModal)
 			$gbSkipHeaderFooter = TRUE;
 
+		// Load current record
+		$bLoadCurrentRecord = FALSE;
+		$sReturnUrl = "";
+		$bMatchRecord = FALSE;
+
 		// Load key from QueryString
 		if (@$_GET["id"] <> "") {
 			$this->id->setQueryStringValue($_GET["id"]);
+			$this->RecKey["id"] = $this->id->QueryStringValue;
+		} else {
+			$bLoadCurrentRecord = TRUE;
+		}
+
+		// Load recordset
+		$this->StartRec = 1; // Initialize start position
+		if ($this->Recordset = $this->LoadRecordset()) // Load records
+			$this->TotalRecs = $this->Recordset->RecordCount(); // Get record count
+		if ($this->TotalRecs <= 0) { // No record found
+			if ($this->getSuccessMessage() == "" && $this->getFailureMessage() == "")
+				$this->setFailureMessage($Language->Phrase("NoRecord")); // Set no record message
+			$this->Page_Terminate("saldoawallist.php"); // Return to list page
+		} elseif ($bLoadCurrentRecord) { // Load current record position
+			$this->SetUpStartRec(); // Set up start record position
+
+			// Point to current record
+			if (intval($this->StartRec) <= intval($this->TotalRecs)) {
+				$bMatchRecord = TRUE;
+				$this->Recordset->Move($this->StartRec-1);
+			}
+		} else { // Match key values
+			while (!$this->Recordset->EOF) {
+				if (strval($this->id->CurrentValue) == strval($this->Recordset->fields('id'))) {
+					$this->setStartRecordNumber($this->StartRec); // Save record position
+					$bMatchRecord = TRUE;
+					break;
+				} else {
+					$this->StartRec++;
+					$this->Recordset->MoveNext();
+				}
+			}
 		}
 
 		// Process form if post back
@@ -372,11 +414,6 @@ class csaldoawal_edit extends csaldoawal {
 			$this->LoadFormValues(); // Get form values
 		} else {
 			$this->CurrentAction = "I"; // Default action is display
-		}
-
-		// Check if valid key
-		if ($this->id->CurrentValue == "") {
-			$this->Page_Terminate("saldoawallist.php"); // Invalid key, return to list
 		}
 
 		// Validate form if post back
@@ -390,9 +427,12 @@ class csaldoawal_edit extends csaldoawal {
 		}
 		switch ($this->CurrentAction) {
 			case "I": // Get a record to display
-				if (!$this->LoadRow()) { // Load record based on key
-					if ($this->getFailureMessage() == "") $this->setFailureMessage($Language->Phrase("NoRecord")); // No record found
-					$this->Page_Terminate("saldoawallist.php"); // No matching record, return to list
+				if (!$bMatchRecord) {
+					if ($this->getSuccessMessage() == "" && $this->getFailureMessage() == "")
+						$this->setFailureMessage($Language->Phrase("NoRecord")); // Set no record message
+					$this->Page_Terminate("saldoawallist.php"); // Return to list page
+				} else {
+					$this->LoadRowValues($this->Recordset); // Load row values
 				}
 				break;
 			Case "U": // Update
@@ -469,11 +509,6 @@ class csaldoawal_edit extends csaldoawal {
 
 		// Load from form
 		global $objForm;
-		if (!$this->id->FldIsDetailKey)
-			$this->id->setFormValue($objForm->GetValue("x_id"));
-		if (!$this->periode_id->FldIsDetailKey) {
-			$this->periode_id->setFormValue($objForm->GetValue("x_periode_id"));
-		}
 		if (!$this->akun_id->FldIsDetailKey) {
 			$this->akun_id->setFormValue($objForm->GetValue("x_akun_id"));
 		}
@@ -483,12 +518,11 @@ class csaldoawal_edit extends csaldoawal {
 		if (!$this->kredit->FldIsDetailKey) {
 			$this->kredit->setFormValue($objForm->GetValue("x_kredit"));
 		}
-		if (!$this->user_id->FldIsDetailKey) {
-			$this->user_id->setFormValue($objForm->GetValue("x_user_id"));
-		}
 		if (!$this->saldo->FldIsDetailKey) {
 			$this->saldo->setFormValue($objForm->GetValue("x_saldo"));
 		}
+		if (!$this->id->FldIsDetailKey)
+			$this->id->setFormValue($objForm->GetValue("x_id"));
 	}
 
 	// Restore form values
@@ -496,12 +530,36 @@ class csaldoawal_edit extends csaldoawal {
 		global $objForm;
 		$this->LoadRow();
 		$this->id->CurrentValue = $this->id->FormValue;
-		$this->periode_id->CurrentValue = $this->periode_id->FormValue;
 		$this->akun_id->CurrentValue = $this->akun_id->FormValue;
 		$this->debet->CurrentValue = $this->debet->FormValue;
 		$this->kredit->CurrentValue = $this->kredit->FormValue;
-		$this->user_id->CurrentValue = $this->user_id->FormValue;
 		$this->saldo->CurrentValue = $this->saldo->FormValue;
+	}
+
+	// Load recordset
+	function LoadRecordset($offset = -1, $rowcnt = -1) {
+
+		// Load List page SQL
+		$sSql = $this->SelectSQL();
+		$conn = &$this->Connection();
+
+		// Load recordset
+		$dbtype = ew_GetConnectionType($this->DBID);
+		if ($this->UseSelectLimit) {
+			$conn->raiseErrorFn = $GLOBALS["EW_ERROR_FN"];
+			if ($dbtype == "MSSQL") {
+				$rs = $conn->SelectLimit($sSql, $rowcnt, $offset, array("_hasOrderBy" => trim($this->getOrderBy()) || trim($this->getSessionOrderBy())));
+			} else {
+				$rs = $conn->SelectLimit($sSql, $rowcnt, $offset);
+			}
+			$conn->raiseErrorFn = '';
+		} else {
+			$rs = ew_LoadRecordset($sSql, $conn);
+		}
+
+		// Call Recordset Selected event
+		$this->Recordset_Selected($rs);
+		return $rs;
 	}
 
 	// Load row based on key values
@@ -592,7 +650,27 @@ class csaldoawal_edit extends csaldoawal {
 		$this->periode_id->ViewCustomAttributes = "";
 
 		// akun_id
-		$this->akun_id->ViewValue = $this->akun_id->CurrentValue;
+		if (strval($this->akun_id->CurrentValue) <> "") {
+			$sFilterWrk = "`id`" . ew_SearchString("=", $this->akun_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+		$sSqlWrk = "SELECT `id`, `kode` AS `DispFld`, `nama` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `akun`";
+		$sWhereWrk = "";
+		$this->akun_id->LookupFilters = array();
+		ew_AddFilter($sWhereWrk, $sFilterWrk);
+		$this->Lookup_Selecting($this->akun_id, $sWhereWrk); // Call Lookup selecting
+		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			if ($rswrk && !$rswrk->EOF) { // Lookup values found
+				$arwrk = array();
+				$arwrk[1] = $rswrk->fields('DispFld');
+				$arwrk[2] = $rswrk->fields('Disp2Fld');
+				$this->akun_id->ViewValue = $this->akun_id->DisplayValue($arwrk);
+				$rswrk->Close();
+			} else {
+				$this->akun_id->ViewValue = $this->akun_id->CurrentValue;
+			}
+		} else {
+			$this->akun_id->ViewValue = NULL;
+		}
 		$this->akun_id->ViewCustomAttributes = "";
 
 		// debet
@@ -609,17 +687,9 @@ class csaldoawal_edit extends csaldoawal {
 
 		// saldo
 		$this->saldo->ViewValue = $this->saldo->CurrentValue;
+		$this->saldo->ViewValue = ew_FormatNumber($this->saldo->ViewValue, 2, -2, -2, -2);
+		$this->saldo->CellCssStyle .= "text-align: right;";
 		$this->saldo->ViewCustomAttributes = "";
-
-			// id
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-			$this->id->TooltipValue = "";
-
-			// periode_id
-			$this->periode_id->LinkCustomAttributes = "";
-			$this->periode_id->HrefValue = "";
-			$this->periode_id->TooltipValue = "";
 
 			// akun_id
 			$this->akun_id->LinkCustomAttributes = "";
@@ -636,34 +706,30 @@ class csaldoawal_edit extends csaldoawal {
 			$this->kredit->HrefValue = "";
 			$this->kredit->TooltipValue = "";
 
-			// user_id
-			$this->user_id->LinkCustomAttributes = "";
-			$this->user_id->HrefValue = "";
-			$this->user_id->TooltipValue = "";
-
 			// saldo
 			$this->saldo->LinkCustomAttributes = "";
 			$this->saldo->HrefValue = "";
 			$this->saldo->TooltipValue = "";
 		} elseif ($this->RowType == EW_ROWTYPE_EDIT) { // Edit row
 
-			// id
-			$this->id->EditAttrs["class"] = "form-control";
-			$this->id->EditCustomAttributes = "";
-			$this->id->EditValue = $this->id->CurrentValue;
-			$this->id->ViewCustomAttributes = "";
-
-			// periode_id
-			$this->periode_id->EditAttrs["class"] = "form-control";
-			$this->periode_id->EditCustomAttributes = "";
-			$this->periode_id->EditValue = ew_HtmlEncode($this->periode_id->CurrentValue);
-			$this->periode_id->PlaceHolder = ew_RemoveHtml($this->periode_id->FldCaption());
-
 			// akun_id
 			$this->akun_id->EditAttrs["class"] = "form-control";
 			$this->akun_id->EditCustomAttributes = "";
-			$this->akun_id->EditValue = ew_HtmlEncode($this->akun_id->CurrentValue);
-			$this->akun_id->PlaceHolder = ew_RemoveHtml($this->akun_id->FldCaption());
+			if (trim(strval($this->akun_id->CurrentValue)) == "") {
+				$sFilterWrk = "0=1";
+			} else {
+				$sFilterWrk = "`id`" . ew_SearchString("=", $this->akun_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+			}
+			$sSqlWrk = "SELECT `id`, `kode` AS `DispFld`, `nama` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld`, '' AS `SelectFilterFld`, '' AS `SelectFilterFld2`, '' AS `SelectFilterFld3`, '' AS `SelectFilterFld4` FROM `akun`";
+			$sWhereWrk = "";
+			$this->akun_id->LookupFilters = array();
+			ew_AddFilter($sWhereWrk, $sFilterWrk);
+			$this->Lookup_Selecting($this->akun_id, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			$arwrk = ($rswrk) ? $rswrk->GetRows() : array();
+			if ($rswrk) $rswrk->Close();
+			$this->akun_id->EditValue = $arwrk;
 
 			// debet
 			$this->debet->EditAttrs["class"] = "form-control";
@@ -678,30 +744,16 @@ class csaldoawal_edit extends csaldoawal {
 			$this->kredit->EditValue = ew_HtmlEncode($this->kredit->CurrentValue);
 			$this->kredit->PlaceHolder = ew_RemoveHtml($this->kredit->FldCaption());
 
-			// user_id
-			$this->user_id->EditAttrs["class"] = "form-control";
-			$this->user_id->EditCustomAttributes = "";
-			$this->user_id->EditValue = ew_HtmlEncode($this->user_id->CurrentValue);
-			$this->user_id->PlaceHolder = ew_RemoveHtml($this->user_id->FldCaption());
-
 			// saldo
 			$this->saldo->EditAttrs["class"] = "form-control";
 			$this->saldo->EditCustomAttributes = "";
 			$this->saldo->EditValue = ew_HtmlEncode($this->saldo->CurrentValue);
 			$this->saldo->PlaceHolder = ew_RemoveHtml($this->saldo->FldCaption());
-			if (strval($this->saldo->EditValue) <> "" && is_numeric($this->saldo->EditValue)) $this->saldo->EditValue = ew_FormatNumber($this->saldo->EditValue, -2, -1, -2, 0);
+			if (strval($this->saldo->EditValue) <> "" && is_numeric($this->saldo->EditValue)) $this->saldo->EditValue = ew_FormatNumber($this->saldo->EditValue, -2, -2, -2, -2);
 
 			// Edit refer script
-			// id
-
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-
-			// periode_id
-			$this->periode_id->LinkCustomAttributes = "";
-			$this->periode_id->HrefValue = "";
-
 			// akun_id
+
 			$this->akun_id->LinkCustomAttributes = "";
 			$this->akun_id->HrefValue = "";
 
@@ -712,10 +764,6 @@ class csaldoawal_edit extends csaldoawal {
 			// kredit
 			$this->kredit->LinkCustomAttributes = "";
 			$this->kredit->HrefValue = "";
-
-			// user_id
-			$this->user_id->LinkCustomAttributes = "";
-			$this->user_id->HrefValue = "";
 
 			// saldo
 			$this->saldo->LinkCustomAttributes = "";
@@ -742,17 +790,8 @@ class csaldoawal_edit extends csaldoawal {
 		// Check if validation required
 		if (!EW_SERVER_VALIDATE)
 			return ($gsFormError == "");
-		if (!ew_CheckInteger($this->periode_id->FormValue)) {
-			ew_AddMessage($gsFormError, $this->periode_id->FldErrMsg());
-		}
-		if (!ew_CheckInteger($this->akun_id->FormValue)) {
-			ew_AddMessage($gsFormError, $this->akun_id->FldErrMsg());
-		}
 		if (!ew_CheckNumber($this->debet->FormValue)) {
 			ew_AddMessage($gsFormError, $this->debet->FldErrMsg());
-		}
-		if (!ew_CheckInteger($this->user_id->FormValue)) {
-			ew_AddMessage($gsFormError, $this->user_id->FldErrMsg());
 		}
 		if (!ew_CheckNumber($this->saldo->FormValue)) {
 			ew_AddMessage($gsFormError, $this->saldo->FldErrMsg());
@@ -793,9 +832,6 @@ class csaldoawal_edit extends csaldoawal {
 			$this->LoadDbValues($rsold);
 			$rsnew = array();
 
-			// periode_id
-			$this->periode_id->SetDbValueDef($rsnew, $this->periode_id->CurrentValue, NULL, $this->periode_id->ReadOnly);
-
 			// akun_id
 			$this->akun_id->SetDbValueDef($rsnew, $this->akun_id->CurrentValue, NULL, $this->akun_id->ReadOnly);
 
@@ -804,9 +840,6 @@ class csaldoawal_edit extends csaldoawal {
 
 			// kredit
 			$this->kredit->SetDbValueDef($rsnew, $this->kredit->CurrentValue, NULL, $this->kredit->ReadOnly);
-
-			// user_id
-			$this->user_id->SetDbValueDef($rsnew, $this->user_id->CurrentValue, NULL, $this->user_id->ReadOnly);
 
 			// saldo
 			$this->saldo->SetDbValueDef($rsnew, $this->saldo->CurrentValue, NULL, $this->saldo->ReadOnly);
@@ -858,6 +891,18 @@ class csaldoawal_edit extends csaldoawal {
 		global $gsLanguage;
 		$pageId = $pageId ?: $this->PageID;
 		switch ($fld->FldVar) {
+		case "x_akun_id":
+			$sSqlWrk = "";
+			$sSqlWrk = "SELECT `id` AS `LinkFld`, `kode` AS `DispFld`, `nama` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `akun`";
+			$sWhereWrk = "";
+			$this->akun_id->LookupFilters = array();
+			$fld->LookupFilters += array("s" => $sSqlWrk, "d" => "", "f0" => '`id` = {filter_value}', "t0" => "3", "fn0" => "");
+			$sSqlWrk = "";
+			$this->Lookup_Selecting($this->akun_id, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			if ($sSqlWrk <> "")
+				$fld->LookupFilters["s"] .= $sSqlWrk;
+			break;
 		}
 	}
 
@@ -977,18 +1022,9 @@ fsaldoawaledit.Validate = function() {
 	for (var i = startcnt; i <= rowcnt; i++) {
 		var infix = ($k[0]) ? String(i) : "";
 		$fobj.data("rowindex", infix);
-			elm = this.GetElements("x" + infix + "_periode_id");
-			if (elm && !ew_CheckInteger(elm.value))
-				return this.OnError(elm, "<?php echo ew_JsEncode2($saldoawal->periode_id->FldErrMsg()) ?>");
-			elm = this.GetElements("x" + infix + "_akun_id");
-			if (elm && !ew_CheckInteger(elm.value))
-				return this.OnError(elm, "<?php echo ew_JsEncode2($saldoawal->akun_id->FldErrMsg()) ?>");
 			elm = this.GetElements("x" + infix + "_debet");
 			if (elm && !ew_CheckNumber(elm.value))
 				return this.OnError(elm, "<?php echo ew_JsEncode2($saldoawal->debet->FldErrMsg()) ?>");
-			elm = this.GetElements("x" + infix + "_user_id");
-			if (elm && !ew_CheckInteger(elm.value))
-				return this.OnError(elm, "<?php echo ew_JsEncode2($saldoawal->user_id->FldErrMsg()) ?>");
 			elm = this.GetElements("x" + infix + "_saldo");
 			if (elm && !ew_CheckNumber(elm.value))
 				return this.OnError(elm, "<?php echo ew_JsEncode2($saldoawal->saldo->FldErrMsg()) ?>");
@@ -1025,8 +1061,9 @@ fsaldoawaledit.ValidateRequired = false;
 <?php } ?>
 
 // Dynamic selection lists
-// Form object for search
+fsaldoawaledit.Lists["x_akun_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_kode","x_nama","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"akun"};
 
+// Form object for search
 </script>
 <script type="text/javascript">
 
@@ -1053,34 +1090,15 @@ $saldoawal_edit->ShowMessage();
 <input type="hidden" name="modal" value="1">
 <?php } ?>
 <div>
-<?php if ($saldoawal->id->Visible) { // id ?>
-	<div id="r_id" class="form-group">
-		<label id="elh_saldoawal_id" class="col-sm-2 control-label ewLabel"><?php echo $saldoawal->id->FldCaption() ?></label>
-		<div class="col-sm-10"><div<?php echo $saldoawal->id->CellAttributes() ?>>
-<span id="el_saldoawal_id">
-<span<?php echo $saldoawal->id->ViewAttributes() ?>>
-<p class="form-control-static"><?php echo $saldoawal->id->EditValue ?></p></span>
-</span>
-<input type="hidden" data-table="saldoawal" data-field="x_id" name="x_id" id="x_id" value="<?php echo ew_HtmlEncode($saldoawal->id->CurrentValue) ?>">
-<?php echo $saldoawal->id->CustomMsg ?></div></div>
-	</div>
-<?php } ?>
-<?php if ($saldoawal->periode_id->Visible) { // periode_id ?>
-	<div id="r_periode_id" class="form-group">
-		<label id="elh_saldoawal_periode_id" for="x_periode_id" class="col-sm-2 control-label ewLabel"><?php echo $saldoawal->periode_id->FldCaption() ?></label>
-		<div class="col-sm-10"><div<?php echo $saldoawal->periode_id->CellAttributes() ?>>
-<span id="el_saldoawal_periode_id">
-<input type="text" data-table="saldoawal" data-field="x_periode_id" name="x_periode_id" id="x_periode_id" size="30" placeholder="<?php echo ew_HtmlEncode($saldoawal->periode_id->getPlaceHolder()) ?>" value="<?php echo $saldoawal->periode_id->EditValue ?>"<?php echo $saldoawal->periode_id->EditAttributes() ?>>
-</span>
-<?php echo $saldoawal->periode_id->CustomMsg ?></div></div>
-	</div>
-<?php } ?>
 <?php if ($saldoawal->akun_id->Visible) { // akun_id ?>
 	<div id="r_akun_id" class="form-group">
 		<label id="elh_saldoawal_akun_id" for="x_akun_id" class="col-sm-2 control-label ewLabel"><?php echo $saldoawal->akun_id->FldCaption() ?></label>
 		<div class="col-sm-10"><div<?php echo $saldoawal->akun_id->CellAttributes() ?>>
 <span id="el_saldoawal_akun_id">
-<input type="text" data-table="saldoawal" data-field="x_akun_id" name="x_akun_id" id="x_akun_id" size="30" placeholder="<?php echo ew_HtmlEncode($saldoawal->akun_id->getPlaceHolder()) ?>" value="<?php echo $saldoawal->akun_id->EditValue ?>"<?php echo $saldoawal->akun_id->EditAttributes() ?>>
+<select data-table="saldoawal" data-field="x_akun_id" data-value-separator="<?php echo $saldoawal->akun_id->DisplayValueSeparatorAttribute() ?>" id="x_akun_id" name="x_akun_id"<?php echo $saldoawal->akun_id->EditAttributes() ?>>
+<?php echo $saldoawal->akun_id->SelectOptionListHtml("x_akun_id") ?>
+</select>
+<input type="hidden" name="s_x_akun_id" id="s_x_akun_id" value="<?php echo $saldoawal->akun_id->LookupFilterQuery() ?>">
 </span>
 <?php echo $saldoawal->akun_id->CustomMsg ?></div></div>
 	</div>
@@ -1105,16 +1123,6 @@ $saldoawal_edit->ShowMessage();
 <?php echo $saldoawal->kredit->CustomMsg ?></div></div>
 	</div>
 <?php } ?>
-<?php if ($saldoawal->user_id->Visible) { // user_id ?>
-	<div id="r_user_id" class="form-group">
-		<label id="elh_saldoawal_user_id" for="x_user_id" class="col-sm-2 control-label ewLabel"><?php echo $saldoawal->user_id->FldCaption() ?></label>
-		<div class="col-sm-10"><div<?php echo $saldoawal->user_id->CellAttributes() ?>>
-<span id="el_saldoawal_user_id">
-<input type="text" data-table="saldoawal" data-field="x_user_id" name="x_user_id" id="x_user_id" size="30" placeholder="<?php echo ew_HtmlEncode($saldoawal->user_id->getPlaceHolder()) ?>" value="<?php echo $saldoawal->user_id->EditValue ?>"<?php echo $saldoawal->user_id->EditAttributes() ?>>
-</span>
-<?php echo $saldoawal->user_id->CustomMsg ?></div></div>
-	</div>
-<?php } ?>
 <?php if ($saldoawal->saldo->Visible) { // saldo ?>
 	<div id="r_saldo" class="form-group">
 		<label id="elh_saldoawal_saldo" for="x_saldo" class="col-sm-2 control-label ewLabel"><?php echo $saldoawal->saldo->FldCaption() ?></label>
@@ -1126,6 +1134,7 @@ $saldoawal_edit->ShowMessage();
 	</div>
 <?php } ?>
 </div>
+<input type="hidden" data-table="saldoawal" data-field="x_id" name="x_id" id="x_id" value="<?php echo ew_HtmlEncode($saldoawal->id->CurrentValue) ?>">
 <?php if (!$saldoawal_edit->IsModal) { ?>
 <div class="form-group">
 	<div class="col-sm-offset-2 col-sm-10">
@@ -1133,6 +1142,47 @@ $saldoawal_edit->ShowMessage();
 <button class="btn btn-default ewButton" name="btnCancel" id="btnCancel" type="button" data-href="<?php echo $saldoawal_edit->getReturnUrl() ?>"><?php echo $Language->Phrase("CancelBtn") ?></button>
 	</div>
 </div>
+<?php if (!isset($saldoawal_edit->Pager)) $saldoawal_edit->Pager = new cPrevNextPager($saldoawal_edit->StartRec, $saldoawal_edit->DisplayRecs, $saldoawal_edit->TotalRecs) ?>
+<?php if ($saldoawal_edit->Pager->RecordCount > 0 && $saldoawal_edit->Pager->Visible) { ?>
+<div class="ewPager">
+<span><?php echo $Language->Phrase("Page") ?>&nbsp;</span>
+<div class="ewPrevNext"><div class="input-group">
+<div class="input-group-btn">
+<!--first page button-->
+	<?php if ($saldoawal_edit->Pager->FirstButton->Enabled) { ?>
+	<a class="btn btn-default btn-sm" title="<?php echo $Language->Phrase("PagerFirst") ?>" href="<?php echo $saldoawal_edit->PageUrl() ?>start=<?php echo $saldoawal_edit->Pager->FirstButton->Start ?>"><span class="icon-first ewIcon"></span></a>
+	<?php } else { ?>
+	<a class="btn btn-default btn-sm disabled" title="<?php echo $Language->Phrase("PagerFirst") ?>"><span class="icon-first ewIcon"></span></a>
+	<?php } ?>
+<!--previous page button-->
+	<?php if ($saldoawal_edit->Pager->PrevButton->Enabled) { ?>
+	<a class="btn btn-default btn-sm" title="<?php echo $Language->Phrase("PagerPrevious") ?>" href="<?php echo $saldoawal_edit->PageUrl() ?>start=<?php echo $saldoawal_edit->Pager->PrevButton->Start ?>"><span class="icon-prev ewIcon"></span></a>
+	<?php } else { ?>
+	<a class="btn btn-default btn-sm disabled" title="<?php echo $Language->Phrase("PagerPrevious") ?>"><span class="icon-prev ewIcon"></span></a>
+	<?php } ?>
+</div>
+<!--current page number-->
+	<input class="form-control input-sm" type="text" name="<?php echo EW_TABLE_PAGE_NO ?>" value="<?php echo $saldoawal_edit->Pager->CurrentPage ?>">
+<div class="input-group-btn">
+<!--next page button-->
+	<?php if ($saldoawal_edit->Pager->NextButton->Enabled) { ?>
+	<a class="btn btn-default btn-sm" title="<?php echo $Language->Phrase("PagerNext") ?>" href="<?php echo $saldoawal_edit->PageUrl() ?>start=<?php echo $saldoawal_edit->Pager->NextButton->Start ?>"><span class="icon-next ewIcon"></span></a>
+	<?php } else { ?>
+	<a class="btn btn-default btn-sm disabled" title="<?php echo $Language->Phrase("PagerNext") ?>"><span class="icon-next ewIcon"></span></a>
+	<?php } ?>
+<!--last page button-->
+	<?php if ($saldoawal_edit->Pager->LastButton->Enabled) { ?>
+	<a class="btn btn-default btn-sm" title="<?php echo $Language->Phrase("PagerLast") ?>" href="<?php echo $saldoawal_edit->PageUrl() ?>start=<?php echo $saldoawal_edit->Pager->LastButton->Start ?>"><span class="icon-last ewIcon"></span></a>
+	<?php } else { ?>
+	<a class="btn btn-default btn-sm disabled" title="<?php echo $Language->Phrase("PagerLast") ?>"><span class="icon-last ewIcon"></span></a>
+	<?php } ?>
+</div>
+</div>
+</div>
+<span>&nbsp;<?php echo $Language->Phrase("of") ?>&nbsp;<?php echo $saldoawal_edit->Pager->PageCount ?></span>
+</div>
+<?php } ?>
+<div class="clearfix"></div>
 <?php } ?>
 </form>
 <script type="text/javascript">

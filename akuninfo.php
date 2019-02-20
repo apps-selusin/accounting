@@ -8,9 +8,10 @@ $akun = NULL;
 //
 class cakun extends cTable {
 	var $id;
+	var $group_id;
+	var $subgrup_id;
 	var $kode;
 	var $nama;
-	var $subgrup_id;
 	var $user_id;
 	var $matauang_id;
 
@@ -35,9 +36,9 @@ class cakun extends cTable {
 		$this->ExportPageSize = "a4"; // Page size (PDF only)
 		$this->ExportExcelPageOrientation = ""; // Page orientation (PHPExcel only)
 		$this->ExportExcelPageSize = ""; // Page size (PHPExcel only)
-		$this->DetailAdd = FALSE; // Allow detail add
-		$this->DetailEdit = FALSE; // Allow detail edit
-		$this->DetailView = FALSE; // Allow detail view
+		$this->DetailAdd = TRUE; // Allow detail add
+		$this->DetailEdit = TRUE; // Allow detail edit
+		$this->DetailView = TRUE; // Allow detail view
 		$this->ShowMultipleDetails = FALSE; // Show multiple details
 		$this->GridAddRowCount = 5;
 		$this->AllowAddDeleteRow = ew_AllowAddDeleteRow(); // Allow add/delete row
@@ -50,6 +51,23 @@ class cakun extends cTable {
 		$this->id->FldDefaultErrMsg = $Language->Phrase("IncorrectInteger");
 		$this->fields['id'] = &$this->id;
 
+		// group_id
+		$this->group_id = new cField('akun', 'akun', 'x_group_id', 'group_id', '(select grup_id from subgrup where akun.subgrup_id = subgrup.id)', '(select grup_id from subgrup where akun.subgrup_id = subgrup.id)', 3, -1, FALSE, '(select grup_id from subgrup where akun.subgrup_id = subgrup.id)', FALSE, FALSE, FALSE, 'FORMATTED TEXT', 'SELECT');
+		$this->group_id->FldIsCustom = TRUE; // Custom field
+		$this->group_id->Sortable = TRUE; // Allow sort
+		$this->group_id->UsePleaseSelect = TRUE; // Use PleaseSelect by default
+		$this->group_id->PleaseSelectText = $Language->Phrase("PleaseSelect"); // PleaseSelect text
+		$this->group_id->FldDefaultErrMsg = $Language->Phrase("IncorrectInteger");
+		$this->fields['group_id'] = &$this->group_id;
+
+		// subgrup_id
+		$this->subgrup_id = new cField('akun', 'akun', 'x_subgrup_id', 'subgrup_id', '`subgrup_id`', '`subgrup_id`', 3, -1, FALSE, '`subgrup_id`', FALSE, FALSE, FALSE, 'FORMATTED TEXT', 'SELECT');
+		$this->subgrup_id->Sortable = TRUE; // Allow sort
+		$this->subgrup_id->UsePleaseSelect = TRUE; // Use PleaseSelect by default
+		$this->subgrup_id->PleaseSelectText = $Language->Phrase("PleaseSelect"); // PleaseSelect text
+		$this->subgrup_id->FldDefaultErrMsg = $Language->Phrase("IncorrectInteger");
+		$this->fields['subgrup_id'] = &$this->subgrup_id;
+
 		// kode
 		$this->kode = new cField('akun', 'akun', 'x_kode', 'kode', '`kode`', '`kode`', 200, -1, FALSE, '`kode`', FALSE, FALSE, FALSE, 'FORMATTED TEXT', 'TEXT');
 		$this->kode->Sortable = TRUE; // Allow sort
@@ -59,14 +77,6 @@ class cakun extends cTable {
 		$this->nama = new cField('akun', 'akun', 'x_nama', 'nama', '`nama`', '`nama`', 200, -1, FALSE, '`nama`', FALSE, FALSE, FALSE, 'FORMATTED TEXT', 'TEXT');
 		$this->nama->Sortable = TRUE; // Allow sort
 		$this->fields['nama'] = &$this->nama;
-
-		// subgrup_id
-		$this->subgrup_id = new cField('akun', 'akun', 'x_subgrup_id', 'subgrup_id', '`subgrup_id`', '`subgrup_id`', 3, -1, FALSE, '`subgrup_id`', FALSE, FALSE, FALSE, 'FORMATTED TEXT', 'SELECT');
-		$this->subgrup_id->Sortable = TRUE; // Allow sort
-		$this->subgrup_id->UsePleaseSelect = TRUE; // Use PleaseSelect by default
-		$this->subgrup_id->PleaseSelectText = $Language->Phrase("PleaseSelect"); // PleaseSelect text
-		$this->subgrup_id->FldDefaultErrMsg = $Language->Phrase("IncorrectInteger");
-		$this->fields['subgrup_id'] = &$this->subgrup_id;
 
 		// user_id
 		$this->user_id = new cField('akun', 'akun', 'x_user_id', 'user_id', '`user_id`', '`user_id`', 3, -1, FALSE, '`user_id`', FALSE, FALSE, FALSE, 'FORMATTED TEXT', 'TEXT');
@@ -89,8 +99,8 @@ class cakun extends cTable {
 		return $this->$fldparm->Visible; // Returns original value
 	}
 
-	// Single column sort
-	function UpdateSort(&$ofld) {
+	// Multiple column sort
+	function UpdateSort(&$ofld, $ctrl) {
 		if ($this->CurrentOrder == $ofld->FldName) {
 			$sSortField = $ofld->FldExpression;
 			$sLastSort = $ofld->getSort();
@@ -100,9 +110,20 @@ class cakun extends cTable {
 				$sThisSort = ($sLastSort == "ASC") ? "DESC" : "ASC";
 			}
 			$ofld->setSort($sThisSort);
-			$this->setSessionOrderBy($sSortField . " " . $sThisSort); // Save to Session
+			if ($ctrl) {
+				$sOrderBy = $this->getSessionOrderBy();
+				if (strpos($sOrderBy, $sSortField . " " . $sLastSort) !== FALSE) {
+					$sOrderBy = str_replace($sSortField . " " . $sLastSort, $sSortField . " " . $sThisSort, $sOrderBy);
+				} else {
+					if ($sOrderBy <> "") $sOrderBy .= ", ";
+					$sOrderBy .= $sSortField . " " . $sThisSort;
+				}
+				$this->setSessionOrderBy($sOrderBy); // Save to Session
+			} else {
+				$this->setSessionOrderBy($sSortField . " " . $sThisSort); // Save to Session
+			}
 		} else {
-			$ofld->setSort("");
+			if (!$ctrl) $ofld->setSort("");
 		}
 	}
 
@@ -123,7 +144,7 @@ class cakun extends cTable {
 	var $_SqlSelect = "";
 
 	function getSqlSelect() { // Select
-		return ($this->_SqlSelect <> "") ? $this->_SqlSelect : "SELECT * FROM " . $this->getSqlFrom();
+		return ($this->_SqlSelect <> "") ? $this->_SqlSelect : "SELECT *, (select grup_id from subgrup where akun.subgrup_id = subgrup.id) AS `group_id` FROM " . $this->getSqlFrom();
 	}
 
 	function SqlSelect() { // For backward compatibility
@@ -573,9 +594,10 @@ class cakun extends cTable {
 	// Load row values from recordset
 	function LoadListRowValues(&$rs) {
 		$this->id->setDbValue($rs->fields('id'));
+		$this->group_id->setDbValue($rs->fields('group_id'));
+		$this->subgrup_id->setDbValue($rs->fields('subgrup_id'));
 		$this->kode->setDbValue($rs->fields('kode'));
 		$this->nama->setDbValue($rs->fields('nama'));
-		$this->subgrup_id->setDbValue($rs->fields('subgrup_id'));
 		$this->user_id->setDbValue($rs->fields('user_id'));
 		$this->matauang_id->setDbValue($rs->fields('matauang_id'));
 	}
@@ -589,9 +611,10 @@ class cakun extends cTable {
 
    // Common render codes
 		// id
+		// group_id
+		// subgrup_id
 		// kode
 		// nama
-		// subgrup_id
 		// user_id
 		// matauang_id
 		// id
@@ -599,18 +622,33 @@ class cakun extends cTable {
 		$this->id->ViewValue = $this->id->CurrentValue;
 		$this->id->ViewCustomAttributes = "";
 
-		// kode
-		$this->kode->ViewValue = $this->kode->CurrentValue;
-		$this->kode->ViewCustomAttributes = "";
-
-		// nama
-		$this->nama->ViewValue = $this->nama->CurrentValue;
-		$this->nama->ViewCustomAttributes = "";
+		// group_id
+		if (strval($this->group_id->CurrentValue) <> "") {
+			$sFilterWrk = "`id`" . ew_SearchString("=", $this->group_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+		$sSqlWrk = "SELECT `id`, `name` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `grup`";
+		$sWhereWrk = "";
+		$this->group_id->LookupFilters = array();
+		ew_AddFilter($sWhereWrk, $sFilterWrk);
+		$this->Lookup_Selecting($this->group_id, $sWhereWrk); // Call Lookup selecting
+		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			if ($rswrk && !$rswrk->EOF) { // Lookup values found
+				$arwrk = array();
+				$arwrk[1] = $rswrk->fields('DispFld');
+				$this->group_id->ViewValue = $this->group_id->DisplayValue($arwrk);
+				$rswrk->Close();
+			} else {
+				$this->group_id->ViewValue = $this->group_id->CurrentValue;
+			}
+		} else {
+			$this->group_id->ViewValue = NULL;
+		}
+		$this->group_id->ViewCustomAttributes = "";
 
 		// subgrup_id
 		if (strval($this->subgrup_id->CurrentValue) <> "") {
 			$sFilterWrk = "`id`" . ew_SearchString("=", $this->subgrup_id->CurrentValue, EW_DATATYPE_NUMBER, "");
-		$sSqlWrk = "SELECT `id`, `nama` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `subgrup`";
+		$sSqlWrk = "SELECT `id`, `kode` AS `DispFld`, `nama` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `subgrup`";
 		$sWhereWrk = "";
 		$this->subgrup_id->LookupFilters = array();
 		ew_AddFilter($sWhereWrk, $sFilterWrk);
@@ -620,6 +658,7 @@ class cakun extends cTable {
 			if ($rswrk && !$rswrk->EOF) { // Lookup values found
 				$arwrk = array();
 				$arwrk[1] = $rswrk->fields('DispFld');
+				$arwrk[2] = $rswrk->fields('Disp2Fld');
 				$this->subgrup_id->ViewValue = $this->subgrup_id->DisplayValue($arwrk);
 				$rswrk->Close();
 			} else {
@@ -630,6 +669,14 @@ class cakun extends cTable {
 		}
 		$this->subgrup_id->ViewCustomAttributes = "";
 
+		// kode
+		$this->kode->ViewValue = $this->kode->CurrentValue;
+		$this->kode->ViewCustomAttributes = "";
+
+		// nama
+		$this->nama->ViewValue = $this->nama->CurrentValue;
+		$this->nama->ViewCustomAttributes = "";
+
 		// user_id
 		$this->user_id->ViewValue = $this->user_id->CurrentValue;
 		$this->user_id->ViewCustomAttributes = "";
@@ -637,7 +684,7 @@ class cakun extends cTable {
 		// matauang_id
 		if (strval($this->matauang_id->CurrentValue) <> "") {
 			$sFilterWrk = "`id`" . ew_SearchString("=", $this->matauang_id->CurrentValue, EW_DATATYPE_NUMBER, "");
-		$sSqlWrk = "SELECT `id`, `kode` AS `DispFld`, `nama` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `matauang`";
+		$sSqlWrk = "SELECT `id`, `nama` AS `DispFld`, `kode` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `matauang`";
 		$sWhereWrk = "";
 		$this->matauang_id->LookupFilters = array();
 		ew_AddFilter($sWhereWrk, $sFilterWrk);
@@ -663,6 +710,16 @@ class cakun extends cTable {
 		$this->id->HrefValue = "";
 		$this->id->TooltipValue = "";
 
+		// group_id
+		$this->group_id->LinkCustomAttributes = "";
+		$this->group_id->HrefValue = "";
+		$this->group_id->TooltipValue = "";
+
+		// subgrup_id
+		$this->subgrup_id->LinkCustomAttributes = "";
+		$this->subgrup_id->HrefValue = "";
+		$this->subgrup_id->TooltipValue = "";
+
 		// kode
 		$this->kode->LinkCustomAttributes = "";
 		$this->kode->HrefValue = "";
@@ -672,11 +729,6 @@ class cakun extends cTable {
 		$this->nama->LinkCustomAttributes = "";
 		$this->nama->HrefValue = "";
 		$this->nama->TooltipValue = "";
-
-		// subgrup_id
-		$this->subgrup_id->LinkCustomAttributes = "";
-		$this->subgrup_id->HrefValue = "";
-		$this->subgrup_id->TooltipValue = "";
 
 		// user_id
 		$this->user_id->LinkCustomAttributes = "";
@@ -705,6 +757,14 @@ class cakun extends cTable {
 		$this->id->EditValue = $this->id->CurrentValue;
 		$this->id->ViewCustomAttributes = "";
 
+		// group_id
+		$this->group_id->EditAttrs["class"] = "form-control";
+		$this->group_id->EditCustomAttributes = "";
+
+		// subgrup_id
+		$this->subgrup_id->EditAttrs["class"] = "form-control";
+		$this->subgrup_id->EditCustomAttributes = "";
+
 		// kode
 		$this->kode->EditAttrs["class"] = "form-control";
 		$this->kode->EditCustomAttributes = "";
@@ -716,10 +776,6 @@ class cakun extends cTable {
 		$this->nama->EditCustomAttributes = "";
 		$this->nama->EditValue = $this->nama->CurrentValue;
 		$this->nama->PlaceHolder = ew_RemoveHtml($this->nama->FldCaption());
-
-		// subgrup_id
-		$this->subgrup_id->EditAttrs["class"] = "form-control";
-		$this->subgrup_id->EditCustomAttributes = "";
 
 		// user_id
 		$this->user_id->EditAttrs["class"] = "form-control";
@@ -758,17 +814,17 @@ class cakun extends cTable {
 			if ($Doc->Horizontal) { // Horizontal format, write header
 				$Doc->BeginExportRow();
 				if ($ExportPageType == "view") {
-					if ($this->id->Exportable) $Doc->ExportCaption($this->id);
+					if ($this->group_id->Exportable) $Doc->ExportCaption($this->group_id);
+					if ($this->subgrup_id->Exportable) $Doc->ExportCaption($this->subgrup_id);
 					if ($this->kode->Exportable) $Doc->ExportCaption($this->kode);
 					if ($this->nama->Exportable) $Doc->ExportCaption($this->nama);
-					if ($this->subgrup_id->Exportable) $Doc->ExportCaption($this->subgrup_id);
-					if ($this->user_id->Exportable) $Doc->ExportCaption($this->user_id);
 					if ($this->matauang_id->Exportable) $Doc->ExportCaption($this->matauang_id);
 				} else {
 					if ($this->id->Exportable) $Doc->ExportCaption($this->id);
+					if ($this->group_id->Exportable) $Doc->ExportCaption($this->group_id);
+					if ($this->subgrup_id->Exportable) $Doc->ExportCaption($this->subgrup_id);
 					if ($this->kode->Exportable) $Doc->ExportCaption($this->kode);
 					if ($this->nama->Exportable) $Doc->ExportCaption($this->nama);
-					if ($this->subgrup_id->Exportable) $Doc->ExportCaption($this->subgrup_id);
 					if ($this->user_id->Exportable) $Doc->ExportCaption($this->user_id);
 					if ($this->matauang_id->Exportable) $Doc->ExportCaption($this->matauang_id);
 				}
@@ -802,17 +858,17 @@ class cakun extends cTable {
 				if (!$Doc->ExportCustom) {
 					$Doc->BeginExportRow($RowCnt); // Allow CSS styles if enabled
 					if ($ExportPageType == "view") {
-						if ($this->id->Exportable) $Doc->ExportField($this->id);
+						if ($this->group_id->Exportable) $Doc->ExportField($this->group_id);
+						if ($this->subgrup_id->Exportable) $Doc->ExportField($this->subgrup_id);
 						if ($this->kode->Exportable) $Doc->ExportField($this->kode);
 						if ($this->nama->Exportable) $Doc->ExportField($this->nama);
-						if ($this->subgrup_id->Exportable) $Doc->ExportField($this->subgrup_id);
-						if ($this->user_id->Exportable) $Doc->ExportField($this->user_id);
 						if ($this->matauang_id->Exportable) $Doc->ExportField($this->matauang_id);
 					} else {
 						if ($this->id->Exportable) $Doc->ExportField($this->id);
+						if ($this->group_id->Exportable) $Doc->ExportField($this->group_id);
+						if ($this->subgrup_id->Exportable) $Doc->ExportField($this->subgrup_id);
 						if ($this->kode->Exportable) $Doc->ExportField($this->kode);
 						if ($this->nama->Exportable) $Doc->ExportField($this->nama);
-						if ($this->subgrup_id->Exportable) $Doc->ExportField($this->subgrup_id);
 						if ($this->user_id->Exportable) $Doc->ExportField($this->user_id);
 						if ($this->matauang_id->Exportable) $Doc->ExportField($this->matauang_id);
 					}

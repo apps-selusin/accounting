@@ -49,8 +49,10 @@ class csubgrup extends cTable {
 		$this->fields['id'] = &$this->id;
 
 		// grup_id
-		$this->grup_id = new cField('subgrup', 'subgrup', 'x_grup_id', 'grup_id', '`grup_id`', '`grup_id`', 3, -1, FALSE, '`grup_id`', FALSE, FALSE, FALSE, 'FORMATTED TEXT', 'TEXT');
+		$this->grup_id = new cField('subgrup', 'subgrup', 'x_grup_id', 'grup_id', '`grup_id`', '`grup_id`', 3, -1, FALSE, '`grup_id`', FALSE, FALSE, FALSE, 'FORMATTED TEXT', 'SELECT');
 		$this->grup_id->Sortable = TRUE; // Allow sort
+		$this->grup_id->UsePleaseSelect = TRUE; // Use PleaseSelect by default
+		$this->grup_id->PleaseSelectText = $Language->Phrase("PleaseSelect"); // PleaseSelect text
 		$this->grup_id->FldDefaultErrMsg = $Language->Phrase("IncorrectInteger");
 		$this->fields['grup_id'] = &$this->grup_id;
 
@@ -71,8 +73,8 @@ class csubgrup extends cTable {
 		return $this->$fldparm->Visible; // Returns original value
 	}
 
-	// Single column sort
-	function UpdateSort(&$ofld) {
+	// Multiple column sort
+	function UpdateSort(&$ofld, $ctrl) {
 		if ($this->CurrentOrder == $ofld->FldName) {
 			$sSortField = $ofld->FldExpression;
 			$sLastSort = $ofld->getSort();
@@ -82,57 +84,21 @@ class csubgrup extends cTable {
 				$sThisSort = ($sLastSort == "ASC") ? "DESC" : "ASC";
 			}
 			$ofld->setSort($sThisSort);
-			$this->setSessionOrderBy($sSortField . " " . $sThisSort); // Save to Session
+			if ($ctrl) {
+				$sOrderBy = $this->getSessionOrderBy();
+				if (strpos($sOrderBy, $sSortField . " " . $sLastSort) !== FALSE) {
+					$sOrderBy = str_replace($sSortField . " " . $sLastSort, $sSortField . " " . $sThisSort, $sOrderBy);
+				} else {
+					if ($sOrderBy <> "") $sOrderBy .= ", ";
+					$sOrderBy .= $sSortField . " " . $sThisSort;
+				}
+				$this->setSessionOrderBy($sOrderBy); // Save to Session
+			} else {
+				$this->setSessionOrderBy($sSortField . " " . $sThisSort); // Save to Session
+			}
 		} else {
-			$ofld->setSort("");
+			if (!$ctrl) $ofld->setSort("");
 		}
-	}
-
-	// Current master table name
-	function getCurrentMasterTable() {
-		return @$_SESSION[EW_PROJECT_NAME . "_" . $this->TableVar . "_" . EW_TABLE_MASTER_TABLE];
-	}
-
-	function setCurrentMasterTable($v) {
-		$_SESSION[EW_PROJECT_NAME . "_" . $this->TableVar . "_" . EW_TABLE_MASTER_TABLE] = $v;
-	}
-
-	// Session master WHERE clause
-	function GetMasterFilter() {
-
-		// Master filter
-		$sMasterFilter = "";
-		if ($this->getCurrentMasterTable() == "grup") {
-			if ($this->grup_id->getSessionValue() <> "")
-				$sMasterFilter .= "`id`=" . ew_QuotedValue($this->grup_id->getSessionValue(), EW_DATATYPE_NUMBER, "DB");
-			else
-				return "";
-		}
-		return $sMasterFilter;
-	}
-
-	// Session detail WHERE clause
-	function GetDetailFilter() {
-
-		// Detail filter
-		$sDetailFilter = "";
-		if ($this->getCurrentMasterTable() == "grup") {
-			if ($this->grup_id->getSessionValue() <> "")
-				$sDetailFilter .= "`grup_id`=" . ew_QuotedValue($this->grup_id->getSessionValue(), EW_DATATYPE_NUMBER, "DB");
-			else
-				return "";
-		}
-		return $sDetailFilter;
-	}
-
-	// Master filter
-	function SqlMasterFilter_grup() {
-		return "`id`=@id@";
-	}
-
-	// Detail filter
-	function SqlDetailFilter_grup() {
-		return "`grup_id`=@grup_id@";
 	}
 
 	// Table level SQL
@@ -505,10 +471,6 @@ class csubgrup extends cTable {
 
 	// Add master url
 	function AddMasterUrl($url) {
-		if ($this->getCurrentMasterTable() == "grup" && strpos($url, EW_TABLE_SHOW_MASTER . "=") === FALSE) {
-			$url .= (strpos($url, "?") !== FALSE ? "&" : "?") . EW_TABLE_SHOW_MASTER . "=" . $this->getCurrentMasterTable();
-			$url .= "&fk_id=" . urlencode($this->grup_id->CurrentValue);
-		}
 		return $url;
 	}
 
@@ -629,7 +591,26 @@ class csubgrup extends cTable {
 		$this->id->ViewCustomAttributes = "";
 
 		// grup_id
-		$this->grup_id->ViewValue = $this->grup_id->CurrentValue;
+		if (strval($this->grup_id->CurrentValue) <> "") {
+			$sFilterWrk = "`id`" . ew_SearchString("=", $this->grup_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+		$sSqlWrk = "SELECT `id`, `name` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `grup`";
+		$sWhereWrk = "";
+		$this->grup_id->LookupFilters = array();
+		ew_AddFilter($sWhereWrk, $sFilterWrk);
+		$this->Lookup_Selecting($this->grup_id, $sWhereWrk); // Call Lookup selecting
+		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			if ($rswrk && !$rswrk->EOF) { // Lookup values found
+				$arwrk = array();
+				$arwrk[1] = $rswrk->fields('DispFld');
+				$this->grup_id->ViewValue = $this->grup_id->DisplayValue($arwrk);
+				$rswrk->Close();
+			} else {
+				$this->grup_id->ViewValue = $this->grup_id->CurrentValue;
+			}
+		} else {
+			$this->grup_id->ViewValue = NULL;
+		}
 		$this->grup_id->ViewCustomAttributes = "";
 
 		// kode
@@ -680,14 +661,6 @@ class csubgrup extends cTable {
 		// grup_id
 		$this->grup_id->EditAttrs["class"] = "form-control";
 		$this->grup_id->EditCustomAttributes = "";
-		if ($this->grup_id->getSessionValue() <> "") {
-			$this->grup_id->CurrentValue = $this->grup_id->getSessionValue();
-		$this->grup_id->ViewValue = $this->grup_id->CurrentValue;
-		$this->grup_id->ViewCustomAttributes = "";
-		} else {
-		$this->grup_id->EditValue = $this->grup_id->CurrentValue;
-		$this->grup_id->PlaceHolder = ew_RemoveHtml($this->grup_id->FldCaption());
-		}
 
 		// kode
 		$this->kode->EditAttrs["class"] = "form-control";
@@ -728,7 +701,6 @@ class csubgrup extends cTable {
 			if ($Doc->Horizontal) { // Horizontal format, write header
 				$Doc->BeginExportRow();
 				if ($ExportPageType == "view") {
-					if ($this->id->Exportable) $Doc->ExportCaption($this->id);
 					if ($this->grup_id->Exportable) $Doc->ExportCaption($this->grup_id);
 					if ($this->kode->Exportable) $Doc->ExportCaption($this->kode);
 					if ($this->nama->Exportable) $Doc->ExportCaption($this->nama);
@@ -768,7 +740,6 @@ class csubgrup extends cTable {
 				if (!$Doc->ExportCustom) {
 					$Doc->BeginExportRow($RowCnt); // Allow CSS styles if enabled
 					if ($ExportPageType == "view") {
-						if ($this->id->Exportable) $Doc->ExportField($this->id);
 						if ($this->grup_id->Exportable) $Doc->ExportField($this->grup_id);
 						if ($this->kode->Exportable) $Doc->ExportField($this->kode);
 						if ($this->nama->Exportable) $Doc->ExportField($this->nama);

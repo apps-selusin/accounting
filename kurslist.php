@@ -342,8 +342,6 @@ class ckurs_list extends ckurs {
 
 		// Set up list options
 		$this->SetupListOptions();
-		$this->id->SetVisibility();
-		$this->id->Visible = !$this->IsAdd() && !$this->IsCopy() && !$this->IsGridAdd();
 		$this->matauang_id->SetVisibility();
 		$this->tanggal->SetVisibility();
 		$this->nilai->SetVisibility();
@@ -608,14 +606,16 @@ class ckurs_list extends ckurs {
 	// Set up sort parameters
 	function SetUpSortOrder() {
 
+		// Check for Ctrl pressed
+		$bCtrl = (@$_GET["ctrl"] <> "");
+
 		// Check for "order" parameter
 		if (@$_GET["order"] <> "") {
 			$this->CurrentOrder = ew_StripSlashes(@$_GET["order"]);
 			$this->CurrentOrderType = @$_GET["ordertype"];
-			$this->UpdateSort($this->id); // id
-			$this->UpdateSort($this->matauang_id); // matauang_id
-			$this->UpdateSort($this->tanggal); // tanggal
-			$this->UpdateSort($this->nilai); // nilai
+			$this->UpdateSort($this->matauang_id, $bCtrl); // matauang_id
+			$this->UpdateSort($this->tanggal, $bCtrl); // tanggal
+			$this->UpdateSort($this->nilai, $bCtrl); // nilai
 			$this->setStartRecordNumber(1); // Reset start position
 		}
 	}
@@ -644,7 +644,6 @@ class ckurs_list extends ckurs {
 			if ($this->Command == "resetsort") {
 				$sOrderBy = "";
 				$this->setSessionOrderBy($sOrderBy);
-				$this->id->setSort("");
 				$this->matauang_id->setSort("");
 				$this->tanggal->setSort("");
 				$this->nilai->setSort("");
@@ -706,6 +705,14 @@ class ckurs_list extends ckurs {
 		$item->ShowInDropDown = FALSE;
 		$item->ShowInButtonGroup = FALSE;
 
+		// "sequence"
+		$item = &$this->ListOptions->Add("sequence");
+		$item->CssStyle = "white-space: nowrap;";
+		$item->Visible = TRUE;
+		$item->OnLeft = TRUE; // Always on left
+		$item->ShowInDropDown = FALSE;
+		$item->ShowInButtonGroup = FALSE;
+
 		// Drop down button for ListOptions
 		$this->ListOptions->UseImageAndText = TRUE;
 		$this->ListOptions->UseDropDownButton = FALSE;
@@ -726,6 +733,10 @@ class ckurs_list extends ckurs {
 	function RenderListOptions() {
 		global $Security, $Language, $objForm;
 		$this->ListOptions->LoadDefault();
+
+		// "sequence"
+		$oListOpt = &$this->ListOptions->Items["sequence"];
+		$oListOpt->Body = ew_FormatSeqNo($this->RecCnt);
 
 		// "view"
 		$oListOpt = &$this->ListOptions->Items["view"];
@@ -1138,7 +1149,27 @@ class ckurs_list extends ckurs {
 		$this->id->ViewCustomAttributes = "";
 
 		// matauang_id
-		$this->matauang_id->ViewValue = $this->matauang_id->CurrentValue;
+		if (strval($this->matauang_id->CurrentValue) <> "") {
+			$sFilterWrk = "`id`" . ew_SearchString("=", $this->matauang_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+		$sSqlWrk = "SELECT `id`, `nama` AS `DispFld`, `kode` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `matauang`";
+		$sWhereWrk = "";
+		$this->matauang_id->LookupFilters = array();
+		ew_AddFilter($sWhereWrk, $sFilterWrk);
+		$this->Lookup_Selecting($this->matauang_id, $sWhereWrk); // Call Lookup selecting
+		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			if ($rswrk && !$rswrk->EOF) { // Lookup values found
+				$arwrk = array();
+				$arwrk[1] = $rswrk->fields('DispFld');
+				$arwrk[2] = $rswrk->fields('Disp2Fld');
+				$this->matauang_id->ViewValue = $this->matauang_id->DisplayValue($arwrk);
+				$rswrk->Close();
+			} else {
+				$this->matauang_id->ViewValue = $this->matauang_id->CurrentValue;
+			}
+		} else {
+			$this->matauang_id->ViewValue = NULL;
+		}
 		$this->matauang_id->ViewCustomAttributes = "";
 
 		// tanggal
@@ -1148,11 +1179,6 @@ class ckurs_list extends ckurs {
 		// nilai
 		$this->nilai->ViewValue = $this->nilai->CurrentValue;
 		$this->nilai->ViewCustomAttributes = "";
-
-			// id
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-			$this->id->TooltipValue = "";
 
 			// matauang_id
 			$this->matauang_id->LinkCustomAttributes = "";
@@ -1362,8 +1388,9 @@ fkurslist.ValidateRequired = false;
 <?php } ?>
 
 // Dynamic selection lists
-// Form object for search
+fkurslist.Lists["x_matauang_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_nama","x_kode","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"matauang"};
 
+// Form object for search
 </script>
 <script type="text/javascript">
 
@@ -1431,20 +1458,11 @@ $kurs_list->RenderListOptions();
 // Render list options (header, left)
 $kurs_list->ListOptions->Render("header", "left");
 ?>
-<?php if ($kurs->id->Visible) { // id ?>
-	<?php if ($kurs->SortUrl($kurs->id) == "") { ?>
-		<th data-name="id"><div id="elh_kurs_id" class="kurs_id"><div class="ewTableHeaderCaption"><?php echo $kurs->id->FldCaption() ?></div></div></th>
-	<?php } else { ?>
-		<th data-name="id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $kurs->SortUrl($kurs->id) ?>',1);"><div id="elh_kurs_id" class="kurs_id">
-			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $kurs->id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($kurs->id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($kurs->id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
-        </div></div></th>
-	<?php } ?>
-<?php } ?>		
 <?php if ($kurs->matauang_id->Visible) { // matauang_id ?>
 	<?php if ($kurs->SortUrl($kurs->matauang_id) == "") { ?>
 		<th data-name="matauang_id"><div id="elh_kurs_matauang_id" class="kurs_matauang_id"><div class="ewTableHeaderCaption"><?php echo $kurs->matauang_id->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="matauang_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $kurs->SortUrl($kurs->matauang_id) ?>',1);"><div id="elh_kurs_matauang_id" class="kurs_matauang_id">
+		<th data-name="matauang_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $kurs->SortUrl($kurs->matauang_id) ?>',2);"><div id="elh_kurs_matauang_id" class="kurs_matauang_id">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $kurs->matauang_id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($kurs->matauang_id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($kurs->matauang_id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1453,7 +1471,7 @@ $kurs_list->ListOptions->Render("header", "left");
 	<?php if ($kurs->SortUrl($kurs->tanggal) == "") { ?>
 		<th data-name="tanggal"><div id="elh_kurs_tanggal" class="kurs_tanggal"><div class="ewTableHeaderCaption"><?php echo $kurs->tanggal->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="tanggal"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $kurs->SortUrl($kurs->tanggal) ?>',1);"><div id="elh_kurs_tanggal" class="kurs_tanggal">
+		<th data-name="tanggal"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $kurs->SortUrl($kurs->tanggal) ?>',2);"><div id="elh_kurs_tanggal" class="kurs_tanggal">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $kurs->tanggal->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($kurs->tanggal->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($kurs->tanggal->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1462,7 +1480,7 @@ $kurs_list->ListOptions->Render("header", "left");
 	<?php if ($kurs->SortUrl($kurs->nilai) == "") { ?>
 		<th data-name="nilai"><div id="elh_kurs_nilai" class="kurs_nilai"><div class="ewTableHeaderCaption"><?php echo $kurs->nilai->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="nilai"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $kurs->SortUrl($kurs->nilai) ?>',1);"><div id="elh_kurs_nilai" class="kurs_nilai">
+		<th data-name="nilai"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $kurs->SortUrl($kurs->nilai) ?>',2);"><div id="elh_kurs_nilai" class="kurs_nilai">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $kurs->nilai->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($kurs->nilai->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($kurs->nilai->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1532,21 +1550,13 @@ while ($kurs_list->RecCnt < $kurs_list->StopRec) {
 // Render list options (body, left)
 $kurs_list->ListOptions->Render("body", "left", $kurs_list->RowCnt);
 ?>
-	<?php if ($kurs->id->Visible) { // id ?>
-		<td data-name="id"<?php echo $kurs->id->CellAttributes() ?>>
-<span id="el<?php echo $kurs_list->RowCnt ?>_kurs_id" class="kurs_id">
-<span<?php echo $kurs->id->ViewAttributes() ?>>
-<?php echo $kurs->id->ListViewValue() ?></span>
-</span>
-<a id="<?php echo $kurs_list->PageObjName . "_row_" . $kurs_list->RowCnt ?>"></a></td>
-	<?php } ?>
 	<?php if ($kurs->matauang_id->Visible) { // matauang_id ?>
 		<td data-name="matauang_id"<?php echo $kurs->matauang_id->CellAttributes() ?>>
 <span id="el<?php echo $kurs_list->RowCnt ?>_kurs_matauang_id" class="kurs_matauang_id">
 <span<?php echo $kurs->matauang_id->ViewAttributes() ?>>
 <?php echo $kurs->matauang_id->ListViewValue() ?></span>
 </span>
-</td>
+<a id="<?php echo $kurs_list->PageObjName . "_row_" . $kurs_list->RowCnt ?>"></a></td>
 	<?php } ?>
 	<?php if ($kurs->tanggal->Visible) { // tanggal ?>
 		<td data-name="tanggal"<?php echo $kurs->tanggal->CellAttributes() ?>>

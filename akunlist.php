@@ -342,12 +342,10 @@ class cakun_list extends cakun {
 
 		// Set up list options
 		$this->SetupListOptions();
-		$this->id->SetVisibility();
-		$this->id->Visible = !$this->IsAdd() && !$this->IsCopy() && !$this->IsGridAdd();
+		$this->group_id->SetVisibility();
+		$this->subgrup_id->SetVisibility();
 		$this->kode->SetVisibility();
 		$this->nama->SetVisibility();
-		$this->subgrup_id->SetVisibility();
-		$this->user_id->SetVisibility();
 		$this->matauang_id->SetVisibility();
 
 		// Global Page Loading event (in userfn*.php)
@@ -532,13 +530,15 @@ class cakun_list extends cakun {
 			}
 
 			// Get default search criteria
-			ew_AddFilter($this->DefaultSearchWhere, $this->BasicSearchWhere(TRUE));
+			ew_AddFilter($this->DefaultSearchWhere, $this->AdvancedSearchWhere(TRUE));
 
-			// Get basic search values
-			$this->LoadBasicSearchValues();
+			// Get and validate search values for advanced search
+			$this->LoadSearchValues(); // Get search values
 
 			// Process filter list
 			$this->ProcessFilterList();
+			if (!$this->ValidateSearch())
+				$this->setFailureMessage($gsSearchError);
 
 			// Restore search parms from Session if not searching / reset / export
 			if (($this->Export <> "" || $this->Command <> "search" && $this->Command <> "reset" && $this->Command <> "resetall") && $this->CheckSearchParms())
@@ -550,9 +550,9 @@ class cakun_list extends cakun {
 			// Set up sorting order
 			$this->SetUpSortOrder();
 
-			// Get basic search criteria
+			// Get search criteria for advanced search
 			if ($gsSearchError == "")
-				$sSrchBasic = $this->BasicSearchWhere();
+				$sSrchAdvanced = $this->AdvancedSearchWhere();
 		}
 
 		// Restore display records
@@ -568,10 +568,10 @@ class cakun_list extends cakun {
 		// Load search default if no existing search criteria
 		if (!$this->CheckSearchParms()) {
 
-			// Load basic search from default
-			$this->BasicSearch->LoadDefault();
-			if ($this->BasicSearch->Keyword != "")
-				$sSrchBasic = $this->BasicSearchWhere();
+			// Load advanced search from default
+			if ($this->LoadAdvancedSearchDefault()) {
+				$sSrchAdvanced = $this->AdvancedSearchWhere();
+			}
 		}
 
 		// Build search criteria
@@ -666,15 +666,12 @@ class cakun_list extends cakun {
 		// Initialize
 		$sFilterList = "";
 		$sFilterList = ew_Concat($sFilterList, $this->id->AdvancedSearch->ToJSON(), ","); // Field id
+		$sFilterList = ew_Concat($sFilterList, $this->group_id->AdvancedSearch->ToJSON(), ","); // Field group_id
+		$sFilterList = ew_Concat($sFilterList, $this->subgrup_id->AdvancedSearch->ToJSON(), ","); // Field subgrup_id
 		$sFilterList = ew_Concat($sFilterList, $this->kode->AdvancedSearch->ToJSON(), ","); // Field kode
 		$sFilterList = ew_Concat($sFilterList, $this->nama->AdvancedSearch->ToJSON(), ","); // Field nama
-		$sFilterList = ew_Concat($sFilterList, $this->subgrup_id->AdvancedSearch->ToJSON(), ","); // Field subgrup_id
 		$sFilterList = ew_Concat($sFilterList, $this->user_id->AdvancedSearch->ToJSON(), ","); // Field user_id
 		$sFilterList = ew_Concat($sFilterList, $this->matauang_id->AdvancedSearch->ToJSON(), ","); // Field matauang_id
-		if ($this->BasicSearch->Keyword <> "") {
-			$sWrk = "\"" . EW_TABLE_BASIC_SEARCH . "\":\"" . ew_JsEncode2($this->BasicSearch->Keyword) . "\",\"" . EW_TABLE_BASIC_SEARCH_TYPE . "\":\"" . ew_JsEncode2($this->BasicSearch->Type) . "\"";
-			$sFilterList = ew_Concat($sFilterList, $sWrk, ",");
-		}
 		$sFilterList = preg_replace('/,$/', "", $sFilterList);
 
 		// Return filter list in json
@@ -723,6 +720,22 @@ class cakun_list extends cakun {
 		$this->id->AdvancedSearch->SearchOperator2 = @$filter["w_id"];
 		$this->id->AdvancedSearch->Save();
 
+		// Field group_id
+		$this->group_id->AdvancedSearch->SearchValue = @$filter["x_group_id"];
+		$this->group_id->AdvancedSearch->SearchOperator = @$filter["z_group_id"];
+		$this->group_id->AdvancedSearch->SearchCondition = @$filter["v_group_id"];
+		$this->group_id->AdvancedSearch->SearchValue2 = @$filter["y_group_id"];
+		$this->group_id->AdvancedSearch->SearchOperator2 = @$filter["w_group_id"];
+		$this->group_id->AdvancedSearch->Save();
+
+		// Field subgrup_id
+		$this->subgrup_id->AdvancedSearch->SearchValue = @$filter["x_subgrup_id"];
+		$this->subgrup_id->AdvancedSearch->SearchOperator = @$filter["z_subgrup_id"];
+		$this->subgrup_id->AdvancedSearch->SearchCondition = @$filter["v_subgrup_id"];
+		$this->subgrup_id->AdvancedSearch->SearchValue2 = @$filter["y_subgrup_id"];
+		$this->subgrup_id->AdvancedSearch->SearchOperator2 = @$filter["w_subgrup_id"];
+		$this->subgrup_id->AdvancedSearch->Save();
+
 		// Field kode
 		$this->kode->AdvancedSearch->SearchValue = @$filter["x_kode"];
 		$this->kode->AdvancedSearch->SearchOperator = @$filter["z_kode"];
@@ -739,14 +752,6 @@ class cakun_list extends cakun {
 		$this->nama->AdvancedSearch->SearchOperator2 = @$filter["w_nama"];
 		$this->nama->AdvancedSearch->Save();
 
-		// Field subgrup_id
-		$this->subgrup_id->AdvancedSearch->SearchValue = @$filter["x_subgrup_id"];
-		$this->subgrup_id->AdvancedSearch->SearchOperator = @$filter["z_subgrup_id"];
-		$this->subgrup_id->AdvancedSearch->SearchCondition = @$filter["v_subgrup_id"];
-		$this->subgrup_id->AdvancedSearch->SearchValue2 = @$filter["y_subgrup_id"];
-		$this->subgrup_id->AdvancedSearch->SearchOperator2 = @$filter["w_subgrup_id"];
-		$this->subgrup_id->AdvancedSearch->Save();
-
 		// Field user_id
 		$this->user_id->AdvancedSearch->SearchValue = @$filter["x_user_id"];
 		$this->user_id->AdvancedSearch->SearchOperator = @$filter["z_user_id"];
@@ -762,139 +767,99 @@ class cakun_list extends cakun {
 		$this->matauang_id->AdvancedSearch->SearchValue2 = @$filter["y_matauang_id"];
 		$this->matauang_id->AdvancedSearch->SearchOperator2 = @$filter["w_matauang_id"];
 		$this->matauang_id->AdvancedSearch->Save();
-		$this->BasicSearch->setKeyword(@$filter[EW_TABLE_BASIC_SEARCH]);
-		$this->BasicSearch->setType(@$filter[EW_TABLE_BASIC_SEARCH_TYPE]);
 	}
 
-	// Return basic search SQL
-	function BasicSearchSQL($arKeywords, $type) {
+	// Advanced search WHERE clause based on QueryString
+	function AdvancedSearchWhere($Default = FALSE) {
+		global $Security;
 		$sWhere = "";
-		$this->BuildBasicSearchSQL($sWhere, $this->kode, $arKeywords, $type);
-		$this->BuildBasicSearchSQL($sWhere, $this->nama, $arKeywords, $type);
+		$this->BuildSearchSql($sWhere, $this->id, $Default, FALSE); // id
+		$this->BuildSearchSql($sWhere, $this->group_id, $Default, FALSE); // group_id
+		$this->BuildSearchSql($sWhere, $this->subgrup_id, $Default, FALSE); // subgrup_id
+		$this->BuildSearchSql($sWhere, $this->kode, $Default, FALSE); // kode
+		$this->BuildSearchSql($sWhere, $this->nama, $Default, FALSE); // nama
+		$this->BuildSearchSql($sWhere, $this->user_id, $Default, FALSE); // user_id
+		$this->BuildSearchSql($sWhere, $this->matauang_id, $Default, FALSE); // matauang_id
+
+		// Set up search parm
+		if (!$Default && $sWhere <> "") {
+			$this->Command = "search";
+		}
+		if (!$Default && $this->Command == "search") {
+			$this->id->AdvancedSearch->Save(); // id
+			$this->group_id->AdvancedSearch->Save(); // group_id
+			$this->subgrup_id->AdvancedSearch->Save(); // subgrup_id
+			$this->kode->AdvancedSearch->Save(); // kode
+			$this->nama->AdvancedSearch->Save(); // nama
+			$this->user_id->AdvancedSearch->Save(); // user_id
+			$this->matauang_id->AdvancedSearch->Save(); // matauang_id
+		}
 		return $sWhere;
 	}
 
-	// Build basic search SQL
-	function BuildBasicSearchSQL(&$Where, &$Fld, $arKeywords, $type) {
-		global $EW_BASIC_SEARCH_IGNORE_PATTERN;
-		$sDefCond = ($type == "OR") ? "OR" : "AND";
-		$arSQL = array(); // Array for SQL parts
-		$arCond = array(); // Array for search conditions
-		$cnt = count($arKeywords);
-		$j = 0; // Number of SQL parts
-		for ($i = 0; $i < $cnt; $i++) {
-			$Keyword = $arKeywords[$i];
-			$Keyword = trim($Keyword);
-			if ($EW_BASIC_SEARCH_IGNORE_PATTERN <> "") {
-				$Keyword = preg_replace($EW_BASIC_SEARCH_IGNORE_PATTERN, "\\", $Keyword);
-				$ar = explode("\\", $Keyword);
-			} else {
-				$ar = array($Keyword);
-			}
-			foreach ($ar as $Keyword) {
-				if ($Keyword <> "") {
-					$sWrk = "";
-					if ($Keyword == "OR" && $type == "") {
-						if ($j > 0)
-							$arCond[$j-1] = "OR";
-					} elseif ($Keyword == EW_NULL_VALUE) {
-						$sWrk = $Fld->FldExpression . " IS NULL";
-					} elseif ($Keyword == EW_NOT_NULL_VALUE) {
-						$sWrk = $Fld->FldExpression . " IS NOT NULL";
-					} elseif ($Fld->FldIsVirtual) {
-						$sWrk = $Fld->FldVirtualExpression . ew_Like(ew_QuotedValue("%" . $Keyword . "%", EW_DATATYPE_STRING, $this->DBID), $this->DBID);
-					} elseif ($Fld->FldDataType != EW_DATATYPE_NUMBER || is_numeric($Keyword)) {
-						$sWrk = $Fld->FldBasicSearchExpression . ew_Like(ew_QuotedValue("%" . $Keyword . "%", EW_DATATYPE_STRING, $this->DBID), $this->DBID);
-					}
-					if ($sWrk <> "") {
-						$arSQL[$j] = $sWrk;
-						$arCond[$j] = $sDefCond;
-						$j += 1;
-					}
-				}
-			}
+	// Build search SQL
+	function BuildSearchSql(&$Where, &$Fld, $Default, $MultiValue) {
+		$FldParm = substr($Fld->FldVar, 2);
+		$FldVal = ($Default) ? $Fld->AdvancedSearch->SearchValueDefault : $Fld->AdvancedSearch->SearchValue; // @$_GET["x_$FldParm"]
+		$FldOpr = ($Default) ? $Fld->AdvancedSearch->SearchOperatorDefault : $Fld->AdvancedSearch->SearchOperator; // @$_GET["z_$FldParm"]
+		$FldCond = ($Default) ? $Fld->AdvancedSearch->SearchConditionDefault : $Fld->AdvancedSearch->SearchCondition; // @$_GET["v_$FldParm"]
+		$FldVal2 = ($Default) ? $Fld->AdvancedSearch->SearchValue2Default : $Fld->AdvancedSearch->SearchValue2; // @$_GET["y_$FldParm"]
+		$FldOpr2 = ($Default) ? $Fld->AdvancedSearch->SearchOperator2Default : $Fld->AdvancedSearch->SearchOperator2; // @$_GET["w_$FldParm"]
+		$sWrk = "";
+
+		//$FldVal = ew_StripSlashes($FldVal);
+		if (is_array($FldVal)) $FldVal = implode(",", $FldVal);
+
+		//$FldVal2 = ew_StripSlashes($FldVal2);
+		if (is_array($FldVal2)) $FldVal2 = implode(",", $FldVal2);
+		$FldOpr = strtoupper(trim($FldOpr));
+		if ($FldOpr == "") $FldOpr = "=";
+		$FldOpr2 = strtoupper(trim($FldOpr2));
+		if ($FldOpr2 == "") $FldOpr2 = "=";
+		if (EW_SEARCH_MULTI_VALUE_OPTION == 1)
+			$MultiValue = FALSE;
+		if ($MultiValue) {
+			$sWrk1 = ($FldVal <> "") ? ew_GetMultiSearchSql($Fld, $FldOpr, $FldVal, $this->DBID) : ""; // Field value 1
+			$sWrk2 = ($FldVal2 <> "") ? ew_GetMultiSearchSql($Fld, $FldOpr2, $FldVal2, $this->DBID) : ""; // Field value 2
+			$sWrk = $sWrk1; // Build final SQL
+			if ($sWrk2 <> "")
+				$sWrk = ($sWrk <> "") ? "($sWrk) $FldCond ($sWrk2)" : $sWrk2;
+		} else {
+			$FldVal = $this->ConvertSearchValue($Fld, $FldVal);
+			$FldVal2 = $this->ConvertSearchValue($Fld, $FldVal2);
+			$sWrk = ew_GetSearchSql($Fld, $FldVal, $FldOpr, $FldCond, $FldVal2, $FldOpr2, $this->DBID);
 		}
-		$cnt = count($arSQL);
-		$bQuoted = FALSE;
-		$sSql = "";
-		if ($cnt > 0) {
-			for ($i = 0; $i < $cnt-1; $i++) {
-				if ($arCond[$i] == "OR") {
-					if (!$bQuoted) $sSql .= "(";
-					$bQuoted = TRUE;
-				}
-				$sSql .= $arSQL[$i];
-				if ($bQuoted && $arCond[$i] <> "OR") {
-					$sSql .= ")";
-					$bQuoted = FALSE;
-				}
-				$sSql .= " " . $arCond[$i] . " ";
-			}
-			$sSql .= $arSQL[$cnt-1];
-			if ($bQuoted)
-				$sSql .= ")";
-		}
-		if ($sSql <> "") {
-			if ($Where <> "") $Where .= " OR ";
-			$Where .=  "(" . $sSql . ")";
-		}
+		ew_AddFilter($Where, $sWrk);
 	}
 
-	// Return basic search WHERE clause based on search keyword and type
-	function BasicSearchWhere($Default = FALSE) {
-		global $Security;
-		$sSearchStr = "";
-		$sSearchKeyword = ($Default) ? $this->BasicSearch->KeywordDefault : $this->BasicSearch->Keyword;
-		$sSearchType = ($Default) ? $this->BasicSearch->TypeDefault : $this->BasicSearch->Type;
-		if ($sSearchKeyword <> "") {
-			$sSearch = trim($sSearchKeyword);
-			if ($sSearchType <> "=") {
-				$ar = array();
-
-				// Match quoted keywords (i.e.: "...")
-				if (preg_match_all('/"([^"]*)"/i', $sSearch, $matches, PREG_SET_ORDER)) {
-					foreach ($matches as $match) {
-						$p = strpos($sSearch, $match[0]);
-						$str = substr($sSearch, 0, $p);
-						$sSearch = substr($sSearch, $p + strlen($match[0]));
-						if (strlen(trim($str)) > 0)
-							$ar = array_merge($ar, explode(" ", trim($str)));
-						$ar[] = $match[1]; // Save quoted keyword
-					}
-				}
-
-				// Match individual keywords
-				if (strlen(trim($sSearch)) > 0)
-					$ar = array_merge($ar, explode(" ", trim($sSearch)));
-
-				// Search keyword in any fields
-				if (($sSearchType == "OR" || $sSearchType == "AND") && $this->BasicSearch->BasicSearchAnyFields) {
-					foreach ($ar as $sKeyword) {
-						if ($sKeyword <> "") {
-							if ($sSearchStr <> "") $sSearchStr .= " " . $sSearchType . " ";
-							$sSearchStr .= "(" . $this->BasicSearchSQL(array($sKeyword), $sSearchType) . ")";
-						}
-					}
-				} else {
-					$sSearchStr = $this->BasicSearchSQL($ar, $sSearchType);
-				}
-			} else {
-				$sSearchStr = $this->BasicSearchSQL(array($sSearch), $sSearchType);
-			}
-			if (!$Default) $this->Command = "search";
+	// Convert search value
+	function ConvertSearchValue(&$Fld, $FldVal) {
+		if ($FldVal == EW_NULL_VALUE || $FldVal == EW_NOT_NULL_VALUE)
+			return $FldVal;
+		$Value = $FldVal;
+		if ($Fld->FldDataType == EW_DATATYPE_BOOLEAN) {
+			if ($FldVal <> "") $Value = ($FldVal == "1" || strtolower(strval($FldVal)) == "y" || strtolower(strval($FldVal)) == "t") ? $Fld->TrueValue : $Fld->FalseValue;
+		} elseif ($Fld->FldDataType == EW_DATATYPE_DATE || $Fld->FldDataType == EW_DATATYPE_TIME) {
+			if ($FldVal <> "") $Value = ew_UnFormatDateTime($FldVal, $Fld->FldDateTimeFormat);
 		}
-		if (!$Default && $this->Command == "search") {
-			$this->BasicSearch->setKeyword($sSearchKeyword);
-			$this->BasicSearch->setType($sSearchType);
-		}
-		return $sSearchStr;
+		return $Value;
 	}
 
 	// Check if search parm exists
 	function CheckSearchParms() {
-
-		// Check basic search
-		if ($this->BasicSearch->IssetSession())
+		if ($this->id->AdvancedSearch->IssetSession())
+			return TRUE;
+		if ($this->group_id->AdvancedSearch->IssetSession())
+			return TRUE;
+		if ($this->subgrup_id->AdvancedSearch->IssetSession())
+			return TRUE;
+		if ($this->kode->AdvancedSearch->IssetSession())
+			return TRUE;
+		if ($this->nama->AdvancedSearch->IssetSession())
+			return TRUE;
+		if ($this->user_id->AdvancedSearch->IssetSession())
+			return TRUE;
+		if ($this->matauang_id->AdvancedSearch->IssetSession())
 			return TRUE;
 		return FALSE;
 	}
@@ -906,8 +871,8 @@ class cakun_list extends cakun {
 		$this->SearchWhere = "";
 		$this->setSearchWhere($this->SearchWhere);
 
-		// Clear basic search parameters
-		$this->ResetBasicSearchParms();
+		// Clear advanced search parameters
+		$this->ResetAdvancedSearchParms();
 	}
 
 	// Load advanced search default values
@@ -915,32 +880,46 @@ class cakun_list extends cakun {
 		return FALSE;
 	}
 
-	// Clear all basic search parameters
-	function ResetBasicSearchParms() {
-		$this->BasicSearch->UnsetSession();
+	// Clear all advanced search parameters
+	function ResetAdvancedSearchParms() {
+		$this->id->AdvancedSearch->UnsetSession();
+		$this->group_id->AdvancedSearch->UnsetSession();
+		$this->subgrup_id->AdvancedSearch->UnsetSession();
+		$this->kode->AdvancedSearch->UnsetSession();
+		$this->nama->AdvancedSearch->UnsetSession();
+		$this->user_id->AdvancedSearch->UnsetSession();
+		$this->matauang_id->AdvancedSearch->UnsetSession();
 	}
 
 	// Restore all search parameters
 	function RestoreSearchParms() {
 		$this->RestoreSearch = TRUE;
 
-		// Restore basic search values
-		$this->BasicSearch->Load();
+		// Restore advanced search values
+		$this->id->AdvancedSearch->Load();
+		$this->group_id->AdvancedSearch->Load();
+		$this->subgrup_id->AdvancedSearch->Load();
+		$this->kode->AdvancedSearch->Load();
+		$this->nama->AdvancedSearch->Load();
+		$this->user_id->AdvancedSearch->Load();
+		$this->matauang_id->AdvancedSearch->Load();
 	}
 
 	// Set up sort parameters
 	function SetUpSortOrder() {
 
+		// Check for Ctrl pressed
+		$bCtrl = (@$_GET["ctrl"] <> "");
+
 		// Check for "order" parameter
 		if (@$_GET["order"] <> "") {
 			$this->CurrentOrder = ew_StripSlashes(@$_GET["order"]);
 			$this->CurrentOrderType = @$_GET["ordertype"];
-			$this->UpdateSort($this->id); // id
-			$this->UpdateSort($this->kode); // kode
-			$this->UpdateSort($this->nama); // nama
-			$this->UpdateSort($this->subgrup_id); // subgrup_id
-			$this->UpdateSort($this->user_id); // user_id
-			$this->UpdateSort($this->matauang_id); // matauang_id
+			$this->UpdateSort($this->group_id, $bCtrl); // group_id
+			$this->UpdateSort($this->subgrup_id, $bCtrl); // subgrup_id
+			$this->UpdateSort($this->kode, $bCtrl); // kode
+			$this->UpdateSort($this->nama, $bCtrl); // nama
+			$this->UpdateSort($this->matauang_id, $bCtrl); // matauang_id
 			$this->setStartRecordNumber(1); // Reset start position
 		}
 	}
@@ -973,11 +952,10 @@ class cakun_list extends cakun {
 			if ($this->Command == "resetsort") {
 				$sOrderBy = "";
 				$this->setSessionOrderBy($sOrderBy);
-				$this->id->setSort("");
+				$this->group_id->setSort("");
+				$this->subgrup_id->setSort("");
 				$this->kode->setSort("");
 				$this->nama->setSort("");
-				$this->subgrup_id->setSort("");
-				$this->user_id->setSort("");
 				$this->matauang_id->setSort("");
 			}
 
@@ -1037,6 +1015,14 @@ class cakun_list extends cakun {
 		$item->ShowInDropDown = FALSE;
 		$item->ShowInButtonGroup = FALSE;
 
+		// "sequence"
+		$item = &$this->ListOptions->Add("sequence");
+		$item->CssStyle = "white-space: nowrap;";
+		$item->Visible = TRUE;
+		$item->OnLeft = TRUE; // Always on left
+		$item->ShowInDropDown = FALSE;
+		$item->ShowInButtonGroup = FALSE;
+
 		// Drop down button for ListOptions
 		$this->ListOptions->UseImageAndText = TRUE;
 		$this->ListOptions->UseDropDownButton = FALSE;
@@ -1057,6 +1043,10 @@ class cakun_list extends cakun {
 	function RenderListOptions() {
 		global $Security, $Language, $objForm;
 		$this->ListOptions->LoadDefault();
+
+		// "sequence"
+		$oListOpt = &$this->ListOptions->Items["sequence"];
+		$oListOpt->Body = ew_FormatSeqNo($this->RecCnt);
 
 		// "view"
 		$oListOpt = &$this->ListOptions->Items["view"];
@@ -1358,11 +1348,46 @@ class cakun_list extends cakun {
 		}
 	}
 
-	// Load basic search values
-	function LoadBasicSearchValues() {
-		$this->BasicSearch->Keyword = @$_GET[EW_TABLE_BASIC_SEARCH];
-		if ($this->BasicSearch->Keyword <> "") $this->Command = "search";
-		$this->BasicSearch->Type = @$_GET[EW_TABLE_BASIC_SEARCH_TYPE];
+	// Load search values for validation
+	function LoadSearchValues() {
+		global $objForm;
+
+		// Load search values
+		// id
+
+		$this->id->AdvancedSearch->SearchValue = ew_StripSlashes(@$_GET["x_id"]);
+		if ($this->id->AdvancedSearch->SearchValue <> "") $this->Command = "search";
+		$this->id->AdvancedSearch->SearchOperator = @$_GET["z_id"];
+
+		// group_id
+		$this->group_id->AdvancedSearch->SearchValue = ew_StripSlashes(@$_GET["x_group_id"]);
+		if ($this->group_id->AdvancedSearch->SearchValue <> "") $this->Command = "search";
+		$this->group_id->AdvancedSearch->SearchOperator = @$_GET["z_group_id"];
+
+		// subgrup_id
+		$this->subgrup_id->AdvancedSearch->SearchValue = ew_StripSlashes(@$_GET["x_subgrup_id"]);
+		if ($this->subgrup_id->AdvancedSearch->SearchValue <> "") $this->Command = "search";
+		$this->subgrup_id->AdvancedSearch->SearchOperator = @$_GET["z_subgrup_id"];
+
+		// kode
+		$this->kode->AdvancedSearch->SearchValue = ew_StripSlashes(@$_GET["x_kode"]);
+		if ($this->kode->AdvancedSearch->SearchValue <> "") $this->Command = "search";
+		$this->kode->AdvancedSearch->SearchOperator = @$_GET["z_kode"];
+
+		// nama
+		$this->nama->AdvancedSearch->SearchValue = ew_StripSlashes(@$_GET["x_nama"]);
+		if ($this->nama->AdvancedSearch->SearchValue <> "") $this->Command = "search";
+		$this->nama->AdvancedSearch->SearchOperator = @$_GET["z_nama"];
+
+		// user_id
+		$this->user_id->AdvancedSearch->SearchValue = ew_StripSlashes(@$_GET["x_user_id"]);
+		if ($this->user_id->AdvancedSearch->SearchValue <> "") $this->Command = "search";
+		$this->user_id->AdvancedSearch->SearchOperator = @$_GET["z_user_id"];
+
+		// matauang_id
+		$this->matauang_id->AdvancedSearch->SearchValue = ew_StripSlashes(@$_GET["x_matauang_id"]);
+		if ($this->matauang_id->AdvancedSearch->SearchValue <> "") $this->Command = "search";
+		$this->matauang_id->AdvancedSearch->SearchOperator = @$_GET["z_matauang_id"];
 	}
 
 	// Load recordset
@@ -1421,9 +1446,10 @@ class cakun_list extends cakun {
 		$row = &$rs->fields;
 		$this->Row_Selected($row);
 		$this->id->setDbValue($rs->fields('id'));
+		$this->group_id->setDbValue($rs->fields('group_id'));
+		$this->subgrup_id->setDbValue($rs->fields('subgrup_id'));
 		$this->kode->setDbValue($rs->fields('kode'));
 		$this->nama->setDbValue($rs->fields('nama'));
-		$this->subgrup_id->setDbValue($rs->fields('subgrup_id'));
 		$this->user_id->setDbValue($rs->fields('user_id'));
 		$this->matauang_id->setDbValue($rs->fields('matauang_id'));
 	}
@@ -1433,9 +1459,10 @@ class cakun_list extends cakun {
 		if (!$rs || !is_array($rs) && $rs->EOF) return;
 		$row = is_array($rs) ? $rs : $rs->fields;
 		$this->id->DbValue = $row['id'];
+		$this->group_id->DbValue = $row['group_id'];
+		$this->subgrup_id->DbValue = $row['subgrup_id'];
 		$this->kode->DbValue = $row['kode'];
 		$this->nama->DbValue = $row['nama'];
-		$this->subgrup_id->DbValue = $row['subgrup_id'];
 		$this->user_id->DbValue = $row['user_id'];
 		$this->matauang_id->DbValue = $row['matauang_id'];
 	}
@@ -1480,9 +1507,10 @@ class cakun_list extends cakun {
 
 		// Common render codes for all row types
 		// id
+		// group_id
+		// subgrup_id
 		// kode
 		// nama
-		// subgrup_id
 		// user_id
 		// matauang_id
 
@@ -1492,18 +1520,33 @@ class cakun_list extends cakun {
 		$this->id->ViewValue = $this->id->CurrentValue;
 		$this->id->ViewCustomAttributes = "";
 
-		// kode
-		$this->kode->ViewValue = $this->kode->CurrentValue;
-		$this->kode->ViewCustomAttributes = "";
-
-		// nama
-		$this->nama->ViewValue = $this->nama->CurrentValue;
-		$this->nama->ViewCustomAttributes = "";
+		// group_id
+		if (strval($this->group_id->CurrentValue) <> "") {
+			$sFilterWrk = "`id`" . ew_SearchString("=", $this->group_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+		$sSqlWrk = "SELECT `id`, `name` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `grup`";
+		$sWhereWrk = "";
+		$this->group_id->LookupFilters = array();
+		ew_AddFilter($sWhereWrk, $sFilterWrk);
+		$this->Lookup_Selecting($this->group_id, $sWhereWrk); // Call Lookup selecting
+		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			if ($rswrk && !$rswrk->EOF) { // Lookup values found
+				$arwrk = array();
+				$arwrk[1] = $rswrk->fields('DispFld');
+				$this->group_id->ViewValue = $this->group_id->DisplayValue($arwrk);
+				$rswrk->Close();
+			} else {
+				$this->group_id->ViewValue = $this->group_id->CurrentValue;
+			}
+		} else {
+			$this->group_id->ViewValue = NULL;
+		}
+		$this->group_id->ViewCustomAttributes = "";
 
 		// subgrup_id
 		if (strval($this->subgrup_id->CurrentValue) <> "") {
 			$sFilterWrk = "`id`" . ew_SearchString("=", $this->subgrup_id->CurrentValue, EW_DATATYPE_NUMBER, "");
-		$sSqlWrk = "SELECT `id`, `nama` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `subgrup`";
+		$sSqlWrk = "SELECT `id`, `kode` AS `DispFld`, `nama` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `subgrup`";
 		$sWhereWrk = "";
 		$this->subgrup_id->LookupFilters = array();
 		ew_AddFilter($sWhereWrk, $sFilterWrk);
@@ -1513,6 +1556,7 @@ class cakun_list extends cakun {
 			if ($rswrk && !$rswrk->EOF) { // Lookup values found
 				$arwrk = array();
 				$arwrk[1] = $rswrk->fields('DispFld');
+				$arwrk[2] = $rswrk->fields('Disp2Fld');
 				$this->subgrup_id->ViewValue = $this->subgrup_id->DisplayValue($arwrk);
 				$rswrk->Close();
 			} else {
@@ -1523,6 +1567,14 @@ class cakun_list extends cakun {
 		}
 		$this->subgrup_id->ViewCustomAttributes = "";
 
+		// kode
+		$this->kode->ViewValue = $this->kode->CurrentValue;
+		$this->kode->ViewCustomAttributes = "";
+
+		// nama
+		$this->nama->ViewValue = $this->nama->CurrentValue;
+		$this->nama->ViewCustomAttributes = "";
+
 		// user_id
 		$this->user_id->ViewValue = $this->user_id->CurrentValue;
 		$this->user_id->ViewCustomAttributes = "";
@@ -1530,7 +1582,7 @@ class cakun_list extends cakun {
 		// matauang_id
 		if (strval($this->matauang_id->CurrentValue) <> "") {
 			$sFilterWrk = "`id`" . ew_SearchString("=", $this->matauang_id->CurrentValue, EW_DATATYPE_NUMBER, "");
-		$sSqlWrk = "SELECT `id`, `kode` AS `DispFld`, `nama` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `matauang`";
+		$sSqlWrk = "SELECT `id`, `nama` AS `DispFld`, `kode` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `matauang`";
 		$sWhereWrk = "";
 		$this->matauang_id->LookupFilters = array();
 		ew_AddFilter($sWhereWrk, $sFilterWrk);
@@ -1551,10 +1603,15 @@ class cakun_list extends cakun {
 		}
 		$this->matauang_id->ViewCustomAttributes = "";
 
-			// id
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-			$this->id->TooltipValue = "";
+			// group_id
+			$this->group_id->LinkCustomAttributes = "";
+			$this->group_id->HrefValue = "";
+			$this->group_id->TooltipValue = "";
+
+			// subgrup_id
+			$this->subgrup_id->LinkCustomAttributes = "";
+			$this->subgrup_id->HrefValue = "";
+			$this->subgrup_id->TooltipValue = "";
 
 			// kode
 			$this->kode->LinkCustomAttributes = "";
@@ -1566,25 +1623,109 @@ class cakun_list extends cakun {
 			$this->nama->HrefValue = "";
 			$this->nama->TooltipValue = "";
 
-			// subgrup_id
-			$this->subgrup_id->LinkCustomAttributes = "";
-			$this->subgrup_id->HrefValue = "";
-			$this->subgrup_id->TooltipValue = "";
-
-			// user_id
-			$this->user_id->LinkCustomAttributes = "";
-			$this->user_id->HrefValue = "";
-			$this->user_id->TooltipValue = "";
-
 			// matauang_id
 			$this->matauang_id->LinkCustomAttributes = "";
 			$this->matauang_id->HrefValue = "";
 			$this->matauang_id->TooltipValue = "";
+		} elseif ($this->RowType == EW_ROWTYPE_SEARCH) { // Search row
+
+			// group_id
+			$this->group_id->EditAttrs["class"] = "form-control";
+			$this->group_id->EditCustomAttributes = "";
+			if (trim(strval($this->group_id->AdvancedSearch->SearchValue)) == "") {
+				$sFilterWrk = "0=1";
+			} else {
+				$sFilterWrk = "`id`" . ew_SearchString("=", $this->group_id->AdvancedSearch->SearchValue, EW_DATATYPE_NUMBER, "");
+			}
+			$sSqlWrk = "SELECT `id`, `name` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld`, '' AS `SelectFilterFld`, '' AS `SelectFilterFld2`, '' AS `SelectFilterFld3`, '' AS `SelectFilterFld4` FROM `grup`";
+			$sWhereWrk = "";
+			$this->group_id->LookupFilters = array();
+			ew_AddFilter($sWhereWrk, $sFilterWrk);
+			$this->Lookup_Selecting($this->group_id, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			$arwrk = ($rswrk) ? $rswrk->GetRows() : array();
+			if ($rswrk) $rswrk->Close();
+			$this->group_id->EditValue = $arwrk;
+
+			// subgrup_id
+			$this->subgrup_id->EditAttrs["class"] = "form-control";
+			$this->subgrup_id->EditCustomAttributes = "";
+			if (trim(strval($this->subgrup_id->AdvancedSearch->SearchValue)) == "") {
+				$sFilterWrk = "0=1";
+			} else {
+				$sFilterWrk = "`id`" . ew_SearchString("=", $this->subgrup_id->AdvancedSearch->SearchValue, EW_DATATYPE_NUMBER, "");
+			}
+			$sSqlWrk = "SELECT `id`, `kode` AS `DispFld`, `nama` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld`, `grup_id` AS `SelectFilterFld`, '' AS `SelectFilterFld2`, '' AS `SelectFilterFld3`, '' AS `SelectFilterFld4` FROM `subgrup`";
+			$sWhereWrk = "";
+			$this->subgrup_id->LookupFilters = array();
+			ew_AddFilter($sWhereWrk, $sFilterWrk);
+			$this->Lookup_Selecting($this->subgrup_id, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			$arwrk = ($rswrk) ? $rswrk->GetRows() : array();
+			if ($rswrk) $rswrk->Close();
+			$this->subgrup_id->EditValue = $arwrk;
+
+			// kode
+			$this->kode->EditAttrs["class"] = "form-control";
+			$this->kode->EditCustomAttributes = "";
+			$this->kode->EditValue = ew_HtmlEncode($this->kode->AdvancedSearch->SearchValue);
+			$this->kode->PlaceHolder = ew_RemoveHtml($this->kode->FldCaption());
+
+			// nama
+			$this->nama->EditAttrs["class"] = "form-control";
+			$this->nama->EditCustomAttributes = "";
+			$this->nama->EditValue = ew_HtmlEncode($this->nama->AdvancedSearch->SearchValue);
+			$this->nama->PlaceHolder = ew_RemoveHtml($this->nama->FldCaption());
+
+			// matauang_id
+			$this->matauang_id->EditAttrs["class"] = "form-control";
+			$this->matauang_id->EditCustomAttributes = "";
+		}
+		if ($this->RowType == EW_ROWTYPE_ADD ||
+			$this->RowType == EW_ROWTYPE_EDIT ||
+			$this->RowType == EW_ROWTYPE_SEARCH) { // Add / Edit / Search row
+			$this->SetupFieldTitles();
 		}
 
 		// Call Row Rendered event
 		if ($this->RowType <> EW_ROWTYPE_AGGREGATEINIT)
 			$this->Row_Rendered();
+	}
+
+	// Validate search
+	function ValidateSearch() {
+		global $gsSearchError;
+
+		// Initialize
+		$gsSearchError = "";
+
+		// Check if validation required
+		if (!EW_SERVER_VALIDATE)
+			return TRUE;
+
+		// Return validate result
+		$ValidateSearch = ($gsSearchError == "");
+
+		// Call Form_CustomValidate event
+		$sFormCustomError = "";
+		$ValidateSearch = $ValidateSearch && $this->Form_CustomValidate($sFormCustomError);
+		if ($sFormCustomError <> "") {
+			ew_AddMessage($gsSearchError, $sFormCustomError);
+		}
+		return $ValidateSearch;
+	}
+
+	// Load advanced search
+	function LoadAdvancedSearch() {
+		$this->id->AdvancedSearch->Load();
+		$this->group_id->AdvancedSearch->Load();
+		$this->subgrup_id->AdvancedSearch->Load();
+		$this->kode->AdvancedSearch->Load();
+		$this->nama->AdvancedSearch->Load();
+		$this->user_id->AdvancedSearch->Load();
+		$this->matauang_id->AdvancedSearch->Load();
 	}
 
 	// Set up Breadcrumb
@@ -1600,16 +1741,50 @@ class cakun_list extends cakun {
 	function SetupLookupFilters($fld, $pageId = null) {
 		global $gsLanguage;
 		$pageId = $pageId ?: $this->PageID;
-		switch ($fld->FldVar) {
-		}
+		if ($pageId == "list") {
+			switch ($fld->FldVar) {
+			}
+		} elseif ($pageId == "extbs") {
+			switch ($fld->FldVar) {
+		case "x_group_id":
+			$sSqlWrk = "";
+			$sSqlWrk = "SELECT `id` AS `LinkFld`, `name` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `grup`";
+			$sWhereWrk = "";
+			$this->group_id->LookupFilters = array();
+			$fld->LookupFilters += array("s" => $sSqlWrk, "d" => "", "f0" => '`id` = {filter_value}', "t0" => "3", "fn0" => "");
+			$sSqlWrk = "";
+			$this->Lookup_Selecting($this->group_id, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			if ($sSqlWrk <> "")
+				$fld->LookupFilters["s"] .= $sSqlWrk;
+			break;
+		case "x_subgrup_id":
+			$sSqlWrk = "";
+			$sSqlWrk = "SELECT `id` AS `LinkFld`, `kode` AS `DispFld`, `nama` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `subgrup`";
+			$sWhereWrk = "{filter}";
+			$this->subgrup_id->LookupFilters = array();
+			$fld->LookupFilters += array("s" => $sSqlWrk, "d" => "", "f0" => '`id` = {filter_value}', "t0" => "3", "fn0" => "", "f1" => '`grup_id` IN ({filter_value})', "t1" => "3", "fn1" => "");
+			$sSqlWrk = "";
+			$this->Lookup_Selecting($this->subgrup_id, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			if ($sSqlWrk <> "")
+				$fld->LookupFilters["s"] .= $sSqlWrk;
+			break;
+			}
+		} 
 	}
 
 	// Setup AutoSuggest filters of a field
 	function SetupAutoSuggestFilters($fld, $pageId = null) {
 		global $gsLanguage;
 		$pageId = $pageId ?: $this->PageID;
-		switch ($fld->FldVar) {
-		}
+		if ($pageId == "list") {
+			switch ($fld->FldVar) {
+			}
+		} elseif ($pageId == "extbs") {
+			switch ($fld->FldVar) {
+			}
+		} 
 	}
 
 	// Page Load event
@@ -1774,11 +1949,44 @@ fakunlist.ValidateRequired = false;
 <?php } ?>
 
 // Dynamic selection lists
-fakunlist.Lists["x_subgrup_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_nama","","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"subgrup"};
-fakunlist.Lists["x_matauang_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_kode","x_nama","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"matauang"};
+fakunlist.Lists["x_group_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_name","","",""],"ParentFields":[],"ChildFields":["x_subgrup_id"],"FilterFields":[],"Options":[],"Template":"","LinkTable":"grup"};
+fakunlist.Lists["x_subgrup_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_kode","x_nama","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"subgrup"};
+fakunlist.Lists["x_matauang_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_nama","x_kode","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"matauang"};
 
 // Form object for search
 var CurrentSearchForm = fakunlistsrch = new ew_Form("fakunlistsrch");
+
+// Validate function for search
+fakunlistsrch.Validate = function(fobj) {
+	if (!this.ValidateRequired)
+		return true; // Ignore validation
+	fobj = fobj || this.Form;
+	var infix = "";
+
+	// Fire Form_CustomValidate event
+	if (!this.Form_CustomValidate(fobj))
+		return false;
+	return true;
+}
+
+// Form_CustomValidate event
+fakunlistsrch.Form_CustomValidate = 
+ function(fobj) { // DO NOT CHANGE THIS LINE!
+
+ 	// Your custom validation code here, return false if invalid. 
+ 	return true;
+ }
+
+// Use JavaScript validation or not
+<?php if (EW_CLIENT_VALIDATE) { ?>
+fakunlistsrch.ValidateRequired = true; // Use JavaScript validation
+<?php } else { ?>
+fakunlistsrch.ValidateRequired = false; // No JavaScript validation
+<?php } ?>
+
+// Dynamic selection lists
+fakunlistsrch.Lists["x_group_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_name","","",""],"ParentFields":[],"ChildFields":["x_subgrup_id"],"FilterFields":[],"Options":[],"Template":"","LinkTable":"grup"};
+fakunlistsrch.Lists["x_subgrup_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_kode","x_nama","",""],"ParentFields":["x_group_id"],"ChildFields":[],"FilterFields":["x_grup_id"],"Options":[],"Template":"","LinkTable":"subgrup"};
 </script>
 <script type="text/javascript">
 
@@ -1831,21 +2039,48 @@ $akun_list->RenderOtherOptions();
 <input type="hidden" name="cmd" value="search">
 <input type="hidden" name="t" value="akun">
 	<div class="ewBasicSearch">
+<?php
+if ($gsSearchError == "")
+	$akun_list->LoadAdvancedSearch(); // Load advanced search
+
+// Render for search
+$akun->RowType = EW_ROWTYPE_SEARCH;
+
+// Render row
+$akun->ResetAttrs();
+$akun_list->RenderRow();
+?>
 <div id="xsr_1" class="ewRow">
-	<div class="ewQuickSearch input-group">
-	<input type="text" name="<?php echo EW_TABLE_BASIC_SEARCH ?>" id="<?php echo EW_TABLE_BASIC_SEARCH ?>" class="form-control" value="<?php echo ew_HtmlEncode($akun_list->BasicSearch->getKeyword()) ?>" placeholder="<?php echo ew_HtmlEncode($Language->Phrase("Search")) ?>">
-	<input type="hidden" name="<?php echo EW_TABLE_BASIC_SEARCH_TYPE ?>" id="<?php echo EW_TABLE_BASIC_SEARCH_TYPE ?>" value="<?php echo ew_HtmlEncode($akun_list->BasicSearch->getType()) ?>">
-	<div class="input-group-btn">
-		<button type="button" data-toggle="dropdown" class="btn btn-default"><span id="searchtype"><?php echo $akun_list->BasicSearch->getTypeNameShort() ?></span><span class="caret"></span></button>
-		<ul class="dropdown-menu pull-right" role="menu">
-			<li<?php if ($akun_list->BasicSearch->getType() == "") echo " class=\"active\""; ?>><a href="javascript:void(0);" onclick="ew_SetSearchType(this)"><?php echo $Language->Phrase("QuickSearchAuto") ?></a></li>
-			<li<?php if ($akun_list->BasicSearch->getType() == "=") echo " class=\"active\""; ?>><a href="javascript:void(0);" onclick="ew_SetSearchType(this,'=')"><?php echo $Language->Phrase("QuickSearchExact") ?></a></li>
-			<li<?php if ($akun_list->BasicSearch->getType() == "AND") echo " class=\"active\""; ?>><a href="javascript:void(0);" onclick="ew_SetSearchType(this,'AND')"><?php echo $Language->Phrase("QuickSearchAll") ?></a></li>
-			<li<?php if ($akun_list->BasicSearch->getType() == "OR") echo " class=\"active\""; ?>><a href="javascript:void(0);" onclick="ew_SetSearchType(this,'OR')"><?php echo $Language->Phrase("QuickSearchAny") ?></a></li>
-		</ul>
+<?php if ($akun->group_id->Visible) { // group_id ?>
+	<div id="xsc_group_id" class="ewCell form-group">
+		<label for="x_group_id" class="ewSearchCaption ewLabel"><?php echo $akun->group_id->FldCaption() ?></label>
+		<span class="ewSearchOperator"><?php echo $Language->Phrase("=") ?><input type="hidden" name="z_group_id" id="z_group_id" value="="></span>
+		<span class="ewSearchField">
+<?php $akun->group_id->EditAttrs["onchange"] = "ew_UpdateOpt.call(this); " . @$akun->group_id->EditAttrs["onchange"]; ?>
+<select data-table="akun" data-field="x_group_id" data-value-separator="<?php echo $akun->group_id->DisplayValueSeparatorAttribute() ?>" id="x_group_id" name="x_group_id"<?php echo $akun->group_id->EditAttributes() ?>>
+<?php echo $akun->group_id->SelectOptionListHtml("x_group_id") ?>
+</select>
+<input type="hidden" name="s_x_group_id" id="s_x_group_id" value="<?php echo $akun->group_id->LookupFilterQuery(false, "extbs") ?>">
+</span>
+	</div>
+<?php } ?>
+</div>
+<div id="xsr_2" class="ewRow">
+<?php if ($akun->subgrup_id->Visible) { // subgrup_id ?>
+	<div id="xsc_subgrup_id" class="ewCell form-group">
+		<label for="x_subgrup_id" class="ewSearchCaption ewLabel"><?php echo $akun->subgrup_id->FldCaption() ?></label>
+		<span class="ewSearchOperator"><?php echo $Language->Phrase("=") ?><input type="hidden" name="z_subgrup_id" id="z_subgrup_id" value="="></span>
+		<span class="ewSearchField">
+<select data-table="akun" data-field="x_subgrup_id" data-value-separator="<?php echo $akun->subgrup_id->DisplayValueSeparatorAttribute() ?>" id="x_subgrup_id" name="x_subgrup_id"<?php echo $akun->subgrup_id->EditAttributes() ?>>
+<?php echo $akun->subgrup_id->SelectOptionListHtml("x_subgrup_id") ?>
+</select>
+<input type="hidden" name="s_x_subgrup_id" id="s_x_subgrup_id" value="<?php echo $akun->subgrup_id->LookupFilterQuery(false, "extbs") ?>">
+</span>
+	</div>
+<?php } ?>
+</div>
+<div id="xsr_3" class="ewRow">
 	<button class="btn btn-primary ewButton" name="btnsubmit" id="btnsubmit" type="submit"><?php echo $Language->Phrase("QuickSearchBtn") ?></button>
-	</div>
-	</div>
 </div>
 	</div>
 </div>
@@ -1879,30 +2114,12 @@ $akun_list->RenderListOptions();
 // Render list options (header, left)
 $akun_list->ListOptions->Render("header", "left");
 ?>
-<?php if ($akun->id->Visible) { // id ?>
-	<?php if ($akun->SortUrl($akun->id) == "") { ?>
-		<th data-name="id"><div id="elh_akun_id" class="akun_id"><div class="ewTableHeaderCaption"><?php echo $akun->id->FldCaption() ?></div></div></th>
+<?php if ($akun->group_id->Visible) { // group_id ?>
+	<?php if ($akun->SortUrl($akun->group_id) == "") { ?>
+		<th data-name="group_id"><div id="elh_akun_group_id" class="akun_group_id"><div class="ewTableHeaderCaption"><?php echo $akun->group_id->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $akun->SortUrl($akun->id) ?>',1);"><div id="elh_akun_id" class="akun_id">
-			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $akun->id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($akun->id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($akun->id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
-        </div></div></th>
-	<?php } ?>
-<?php } ?>		
-<?php if ($akun->kode->Visible) { // kode ?>
-	<?php if ($akun->SortUrl($akun->kode) == "") { ?>
-		<th data-name="kode"><div id="elh_akun_kode" class="akun_kode"><div class="ewTableHeaderCaption"><?php echo $akun->kode->FldCaption() ?></div></div></th>
-	<?php } else { ?>
-		<th data-name="kode"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $akun->SortUrl($akun->kode) ?>',1);"><div id="elh_akun_kode" class="akun_kode">
-			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $akun->kode->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($akun->kode->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($akun->kode->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
-        </div></div></th>
-	<?php } ?>
-<?php } ?>		
-<?php if ($akun->nama->Visible) { // nama ?>
-	<?php if ($akun->SortUrl($akun->nama) == "") { ?>
-		<th data-name="nama"><div id="elh_akun_nama" class="akun_nama"><div class="ewTableHeaderCaption"><?php echo $akun->nama->FldCaption() ?></div></div></th>
-	<?php } else { ?>
-		<th data-name="nama"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $akun->SortUrl($akun->nama) ?>',1);"><div id="elh_akun_nama" class="akun_nama">
-			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $akun->nama->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($akun->nama->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($akun->nama->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
+		<th data-name="group_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $akun->SortUrl($akun->group_id) ?>',2);"><div id="elh_akun_group_id" class="akun_group_id">
+			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $akun->group_id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($akun->group_id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($akun->group_id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
 <?php } ?>		
@@ -1910,17 +2127,26 @@ $akun_list->ListOptions->Render("header", "left");
 	<?php if ($akun->SortUrl($akun->subgrup_id) == "") { ?>
 		<th data-name="subgrup_id"><div id="elh_akun_subgrup_id" class="akun_subgrup_id"><div class="ewTableHeaderCaption"><?php echo $akun->subgrup_id->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="subgrup_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $akun->SortUrl($akun->subgrup_id) ?>',1);"><div id="elh_akun_subgrup_id" class="akun_subgrup_id">
+		<th data-name="subgrup_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $akun->SortUrl($akun->subgrup_id) ?>',2);"><div id="elh_akun_subgrup_id" class="akun_subgrup_id">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $akun->subgrup_id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($akun->subgrup_id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($akun->subgrup_id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
 <?php } ?>		
-<?php if ($akun->user_id->Visible) { // user_id ?>
-	<?php if ($akun->SortUrl($akun->user_id) == "") { ?>
-		<th data-name="user_id"><div id="elh_akun_user_id" class="akun_user_id"><div class="ewTableHeaderCaption"><?php echo $akun->user_id->FldCaption() ?></div></div></th>
+<?php if ($akun->kode->Visible) { // kode ?>
+	<?php if ($akun->SortUrl($akun->kode) == "") { ?>
+		<th data-name="kode"><div id="elh_akun_kode" class="akun_kode"><div class="ewTableHeaderCaption"><?php echo $akun->kode->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="user_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $akun->SortUrl($akun->user_id) ?>',1);"><div id="elh_akun_user_id" class="akun_user_id">
-			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $akun->user_id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($akun->user_id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($akun->user_id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
+		<th data-name="kode"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $akun->SortUrl($akun->kode) ?>',2);"><div id="elh_akun_kode" class="akun_kode">
+			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $akun->kode->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($akun->kode->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($akun->kode->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
+        </div></div></th>
+	<?php } ?>
+<?php } ?>		
+<?php if ($akun->nama->Visible) { // nama ?>
+	<?php if ($akun->SortUrl($akun->nama) == "") { ?>
+		<th data-name="nama"><div id="elh_akun_nama" class="akun_nama"><div class="ewTableHeaderCaption"><?php echo $akun->nama->FldCaption() ?></div></div></th>
+	<?php } else { ?>
+		<th data-name="nama"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $akun->SortUrl($akun->nama) ?>',2);"><div id="elh_akun_nama" class="akun_nama">
+			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $akun->nama->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($akun->nama->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($akun->nama->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
 <?php } ?>		
@@ -1928,7 +2154,7 @@ $akun_list->ListOptions->Render("header", "left");
 	<?php if ($akun->SortUrl($akun->matauang_id) == "") { ?>
 		<th data-name="matauang_id"><div id="elh_akun_matauang_id" class="akun_matauang_id"><div class="ewTableHeaderCaption"><?php echo $akun->matauang_id->FldCaption() ?></div></div></th>
 	<?php } else { ?>
-		<th data-name="matauang_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $akun->SortUrl($akun->matauang_id) ?>',1);"><div id="elh_akun_matauang_id" class="akun_matauang_id">
+		<th data-name="matauang_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $akun->SortUrl($akun->matauang_id) ?>',2);"><div id="elh_akun_matauang_id" class="akun_matauang_id">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $akun->matauang_id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($akun->matauang_id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($akun->matauang_id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
@@ -1998,13 +2224,21 @@ while ($akun_list->RecCnt < $akun_list->StopRec) {
 // Render list options (body, left)
 $akun_list->ListOptions->Render("body", "left", $akun_list->RowCnt);
 ?>
-	<?php if ($akun->id->Visible) { // id ?>
-		<td data-name="id"<?php echo $akun->id->CellAttributes() ?>>
-<span id="el<?php echo $akun_list->RowCnt ?>_akun_id" class="akun_id">
-<span<?php echo $akun->id->ViewAttributes() ?>>
-<?php echo $akun->id->ListViewValue() ?></span>
+	<?php if ($akun->group_id->Visible) { // group_id ?>
+		<td data-name="group_id"<?php echo $akun->group_id->CellAttributes() ?>>
+<span id="el<?php echo $akun_list->RowCnt ?>_akun_group_id" class="akun_group_id">
+<span<?php echo $akun->group_id->ViewAttributes() ?>>
+<?php echo $akun->group_id->ListViewValue() ?></span>
 </span>
 <a id="<?php echo $akun_list->PageObjName . "_row_" . $akun_list->RowCnt ?>"></a></td>
+	<?php } ?>
+	<?php if ($akun->subgrup_id->Visible) { // subgrup_id ?>
+		<td data-name="subgrup_id"<?php echo $akun->subgrup_id->CellAttributes() ?>>
+<span id="el<?php echo $akun_list->RowCnt ?>_akun_subgrup_id" class="akun_subgrup_id">
+<span<?php echo $akun->subgrup_id->ViewAttributes() ?>>
+<?php echo $akun->subgrup_id->ListViewValue() ?></span>
+</span>
+</td>
 	<?php } ?>
 	<?php if ($akun->kode->Visible) { // kode ?>
 		<td data-name="kode"<?php echo $akun->kode->CellAttributes() ?>>
@@ -2019,22 +2253,6 @@ $akun_list->ListOptions->Render("body", "left", $akun_list->RowCnt);
 <span id="el<?php echo $akun_list->RowCnt ?>_akun_nama" class="akun_nama">
 <span<?php echo $akun->nama->ViewAttributes() ?>>
 <?php echo $akun->nama->ListViewValue() ?></span>
-</span>
-</td>
-	<?php } ?>
-	<?php if ($akun->subgrup_id->Visible) { // subgrup_id ?>
-		<td data-name="subgrup_id"<?php echo $akun->subgrup_id->CellAttributes() ?>>
-<span id="el<?php echo $akun_list->RowCnt ?>_akun_subgrup_id" class="akun_subgrup_id">
-<span<?php echo $akun->subgrup_id->ViewAttributes() ?>>
-<?php echo $akun->subgrup_id->ListViewValue() ?></span>
-</span>
-</td>
-	<?php } ?>
-	<?php if ($akun->user_id->Visible) { // user_id ?>
-		<td data-name="user_id"<?php echo $akun->user_id->CellAttributes() ?>>
-<span id="el<?php echo $akun_list->RowCnt ?>_akun_user_id" class="akun_user_id">
-<span<?php echo $akun->user_id->ViewAttributes() ?>>
-<?php echo $akun->user_id->ListViewValue() ?></span>
 </span>
 </td>
 	<?php } ?>

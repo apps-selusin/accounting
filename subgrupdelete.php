@@ -6,7 +6,6 @@ ob_start(); // Turn on output buffering
 <?php include_once ((EW_USE_ADODB) ? "adodb5/adodb.inc.php" : "ewmysql13.php") ?>
 <?php include_once "phpfn13.php" ?>
 <?php include_once "subgrupinfo.php" ?>
-<?php include_once "grupinfo.php" ?>
 <?php include_once "userfn13.php" ?>
 <?php
 
@@ -231,9 +230,6 @@ class csubgrup_delete extends csubgrup {
 			$GLOBALS["Table"] = &$GLOBALS["subgrup"];
 		}
 
-		// Table object (grup)
-		if (!isset($GLOBALS['grup'])) $GLOBALS['grup'] = new cgrup();
-
 		// Page ID
 		if (!defined("EW_PAGE_ID"))
 			define("EW_PAGE_ID", 'delete', TRUE);
@@ -255,8 +251,6 @@ class csubgrup_delete extends csubgrup {
 	function Page_Init() {
 		global $gsExport, $gsCustomExport, $gsExportFile, $UserProfile, $Language, $Security, $objForm;
 		$this->CurrentAction = (@$_GET["a"] <> "") ? $_GET["a"] : @$_POST["a_list"]; // Set up current action
-		$this->id->SetVisibility();
-		$this->id->Visible = !$this->IsAdd() && !$this->IsCopy() && !$this->IsGridAdd();
 		$this->grup_id->SetVisibility();
 		$this->kode->SetVisibility();
 		$this->nama->SetVisibility();
@@ -335,9 +329,6 @@ class csubgrup_delete extends csubgrup {
 	//
 	function Page_Main() {
 		global $Language;
-
-		// Set up master/detail parameters
-		$this->SetUpMasterParms();
 
 		// Set up Breadcrumb
 		$this->SetupBreadcrumb();
@@ -475,7 +466,26 @@ class csubgrup_delete extends csubgrup {
 		$this->id->ViewCustomAttributes = "";
 
 		// grup_id
-		$this->grup_id->ViewValue = $this->grup_id->CurrentValue;
+		if (strval($this->grup_id->CurrentValue) <> "") {
+			$sFilterWrk = "`id`" . ew_SearchString("=", $this->grup_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+		$sSqlWrk = "SELECT `id`, `name` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `grup`";
+		$sWhereWrk = "";
+		$this->grup_id->LookupFilters = array();
+		ew_AddFilter($sWhereWrk, $sFilterWrk);
+		$this->Lookup_Selecting($this->grup_id, $sWhereWrk); // Call Lookup selecting
+		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			if ($rswrk && !$rswrk->EOF) { // Lookup values found
+				$arwrk = array();
+				$arwrk[1] = $rswrk->fields('DispFld');
+				$this->grup_id->ViewValue = $this->grup_id->DisplayValue($arwrk);
+				$rswrk->Close();
+			} else {
+				$this->grup_id->ViewValue = $this->grup_id->CurrentValue;
+			}
+		} else {
+			$this->grup_id->ViewValue = NULL;
+		}
 		$this->grup_id->ViewCustomAttributes = "";
 
 		// kode
@@ -485,11 +495,6 @@ class csubgrup_delete extends csubgrup {
 		// nama
 		$this->nama->ViewValue = $this->nama->CurrentValue;
 		$this->nama->ViewCustomAttributes = "";
-
-			// id
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-			$this->id->TooltipValue = "";
 
 			// grup_id
 			$this->grup_id->LinkCustomAttributes = "";
@@ -589,66 +594,6 @@ class csubgrup_delete extends csubgrup {
 			}
 		}
 		return $DeleteRows;
-	}
-
-	// Set up master/detail based on QueryString
-	function SetUpMasterParms() {
-		$bValidMaster = FALSE;
-
-		// Get the keys for master table
-		if (isset($_GET[EW_TABLE_SHOW_MASTER])) {
-			$sMasterTblVar = $_GET[EW_TABLE_SHOW_MASTER];
-			if ($sMasterTblVar == "") {
-				$bValidMaster = TRUE;
-				$this->DbMasterFilter = "";
-				$this->DbDetailFilter = "";
-			}
-			if ($sMasterTblVar == "grup") {
-				$bValidMaster = TRUE;
-				if (@$_GET["fk_id"] <> "") {
-					$GLOBALS["grup"]->id->setQueryStringValue($_GET["fk_id"]);
-					$this->grup_id->setQueryStringValue($GLOBALS["grup"]->id->QueryStringValue);
-					$this->grup_id->setSessionValue($this->grup_id->QueryStringValue);
-					if (!is_numeric($GLOBALS["grup"]->id->QueryStringValue)) $bValidMaster = FALSE;
-				} else {
-					$bValidMaster = FALSE;
-				}
-			}
-		} elseif (isset($_POST[EW_TABLE_SHOW_MASTER])) {
-			$sMasterTblVar = $_POST[EW_TABLE_SHOW_MASTER];
-			if ($sMasterTblVar == "") {
-				$bValidMaster = TRUE;
-				$this->DbMasterFilter = "";
-				$this->DbDetailFilter = "";
-			}
-			if ($sMasterTblVar == "grup") {
-				$bValidMaster = TRUE;
-				if (@$_POST["fk_id"] <> "") {
-					$GLOBALS["grup"]->id->setFormValue($_POST["fk_id"]);
-					$this->grup_id->setFormValue($GLOBALS["grup"]->id->FormValue);
-					$this->grup_id->setSessionValue($this->grup_id->FormValue);
-					if (!is_numeric($GLOBALS["grup"]->id->FormValue)) $bValidMaster = FALSE;
-				} else {
-					$bValidMaster = FALSE;
-				}
-			}
-		}
-		if ($bValidMaster) {
-
-			// Save current master table
-			$this->setCurrentMasterTable($sMasterTblVar);
-
-			// Reset start record counter (new master key)
-			$this->StartRec = 1;
-			$this->setStartRecordNumber($this->StartRec);
-
-			// Clear previous master key from Session
-			if ($sMasterTblVar <> "grup") {
-				if ($this->grup_id->CurrentValue == "") $this->grup_id->setSessionValue("");
-			}
-		}
-		$this->DbMasterFilter = $this->GetMasterFilter(); // Get master filter
-		$this->DbDetailFilter = $this->GetDetailFilter(); // Get detail filter
 	}
 
 	// Set up Breadcrumb
@@ -779,8 +724,9 @@ fsubgrupdelete.ValidateRequired = false;
 <?php } ?>
 
 // Dynamic selection lists
-// Form object for search
+fsubgrupdelete.Lists["x_grup_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_name","","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"grup"};
 
+// Form object for search
 </script>
 <script type="text/javascript">
 
@@ -811,9 +757,6 @@ $subgrup_delete->ShowMessage();
 <?php echo $subgrup->TableCustomInnerHtml ?>
 	<thead>
 	<tr class="ewTableHeader">
-<?php if ($subgrup->id->Visible) { // id ?>
-		<th><span id="elh_subgrup_id" class="subgrup_id"><?php echo $subgrup->id->FldCaption() ?></span></th>
-<?php } ?>
 <?php if ($subgrup->grup_id->Visible) { // grup_id ?>
 		<th><span id="elh_subgrup_grup_id" class="subgrup_grup_id"><?php echo $subgrup->grup_id->FldCaption() ?></span></th>
 <?php } ?>
@@ -844,14 +787,6 @@ while (!$subgrup_delete->Recordset->EOF) {
 	$subgrup_delete->RenderRow();
 ?>
 	<tr<?php echo $subgrup->RowAttributes() ?>>
-<?php if ($subgrup->id->Visible) { // id ?>
-		<td<?php echo $subgrup->id->CellAttributes() ?>>
-<span id="el<?php echo $subgrup_delete->RowCnt ?>_subgrup_id" class="subgrup_id">
-<span<?php echo $subgrup->id->ViewAttributes() ?>>
-<?php echo $subgrup->id->ListViewValue() ?></span>
-</span>
-</td>
-<?php } ?>
 <?php if ($subgrup->grup_id->Visible) { // grup_id ?>
 		<td<?php echo $subgrup->grup_id->CellAttributes() ?>>
 <span id="el<?php echo $subgrup_delete->RowCnt ?>_subgrup_grup_id" class="subgrup_grup_id">

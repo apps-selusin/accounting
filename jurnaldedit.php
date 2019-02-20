@@ -6,6 +6,7 @@ ob_start(); // Turn on output buffering
 <?php include_once ((EW_USE_ADODB) ? "adodb5/adodb.inc.php" : "ewmysql13.php") ?>
 <?php include_once "phpfn13.php" ?>
 <?php include_once "jurnaldinfo.php" ?>
+<?php include_once "jurnalinfo.php" ?>
 <?php include_once "userfn13.php" ?>
 <?php
 
@@ -230,6 +231,9 @@ class cjurnald_edit extends cjurnald {
 			$GLOBALS["Table"] = &$GLOBALS["jurnald"];
 		}
 
+		// Table object (jurnal)
+		if (!isset($GLOBALS['jurnal'])) $GLOBALS['jurnal'] = new cjurnal();
+
 		// Page ID
 		if (!defined("EW_PAGE_ID"))
 			define("EW_PAGE_ID", 'edit', TRUE);
@@ -346,6 +350,15 @@ class cjurnald_edit extends cjurnald {
 	var $IsModal = FALSE;
 	var $DbMasterFilter;
 	var $DbDetailFilter;
+	var $DisplayRecs = 1;
+	var $StartRec;
+	var $StopRec;
+	var $TotalRecs = 0;
+	var $RecRange = 10;
+	var $Pager;
+	var $RecCnt;
+	var $RecKey = array();
+	var $Recordset;
 
 	// 
 	// Page main
@@ -359,9 +372,49 @@ class cjurnald_edit extends cjurnald {
 		if ($this->IsModal)
 			$gbSkipHeaderFooter = TRUE;
 
+		// Load current record
+		$bLoadCurrentRecord = FALSE;
+		$sReturnUrl = "";
+		$bMatchRecord = FALSE;
+
 		// Load key from QueryString
 		if (@$_GET["id"] <> "") {
 			$this->id->setQueryStringValue($_GET["id"]);
+			$this->RecKey["id"] = $this->id->QueryStringValue;
+		} else {
+			$bLoadCurrentRecord = TRUE;
+		}
+
+		// Set up master detail parameters
+		$this->SetUpMasterParms();
+
+		// Load recordset
+		$this->StartRec = 1; // Initialize start position
+		if ($this->Recordset = $this->LoadRecordset()) // Load records
+			$this->TotalRecs = $this->Recordset->RecordCount(); // Get record count
+		if ($this->TotalRecs <= 0) { // No record found
+			if ($this->getSuccessMessage() == "" && $this->getFailureMessage() == "")
+				$this->setFailureMessage($Language->Phrase("NoRecord")); // Set no record message
+			$this->Page_Terminate("jurnaldlist.php"); // Return to list page
+		} elseif ($bLoadCurrentRecord) { // Load current record position
+			$this->SetUpStartRec(); // Set up start record position
+
+			// Point to current record
+			if (intval($this->StartRec) <= intval($this->TotalRecs)) {
+				$bMatchRecord = TRUE;
+				$this->Recordset->Move($this->StartRec-1);
+			}
+		} else { // Match key values
+			while (!$this->Recordset->EOF) {
+				if (strval($this->id->CurrentValue) == strval($this->Recordset->fields('id'))) {
+					$this->setStartRecordNumber($this->StartRec); // Save record position
+					$bMatchRecord = TRUE;
+					break;
+				} else {
+					$this->StartRec++;
+					$this->Recordset->MoveNext();
+				}
+			}
 		}
 
 		// Process form if post back
@@ -370,11 +423,6 @@ class cjurnald_edit extends cjurnald {
 			$this->LoadFormValues(); // Get form values
 		} else {
 			$this->CurrentAction = "I"; // Default action is display
-		}
-
-		// Check if valid key
-		if ($this->id->CurrentValue == "") {
-			$this->Page_Terminate("jurnaldlist.php"); // Invalid key, return to list
 		}
 
 		// Validate form if post back
@@ -388,9 +436,12 @@ class cjurnald_edit extends cjurnald {
 		}
 		switch ($this->CurrentAction) {
 			case "I": // Get a record to display
-				if (!$this->LoadRow()) { // Load record based on key
-					if ($this->getFailureMessage() == "") $this->setFailureMessage($Language->Phrase("NoRecord")); // No record found
-					$this->Page_Terminate("jurnaldlist.php"); // No matching record, return to list
+				if (!$bMatchRecord) {
+					if ($this->getSuccessMessage() == "" && $this->getFailureMessage() == "")
+						$this->setFailureMessage($Language->Phrase("NoRecord")); // Set no record message
+					$this->Page_Terminate("jurnaldlist.php"); // Return to list page
+				} else {
+					$this->LoadRowValues($this->Recordset); // Load row values
 				}
 				break;
 			Case "U": // Update
@@ -494,6 +545,32 @@ class cjurnald_edit extends cjurnald {
 		$this->kredit->CurrentValue = $this->kredit->FormValue;
 	}
 
+	// Load recordset
+	function LoadRecordset($offset = -1, $rowcnt = -1) {
+
+		// Load List page SQL
+		$sSql = $this->SelectSQL();
+		$conn = &$this->Connection();
+
+		// Load recordset
+		$dbtype = ew_GetConnectionType($this->DBID);
+		if ($this->UseSelectLimit) {
+			$conn->raiseErrorFn = $GLOBALS["EW_ERROR_FN"];
+			if ($dbtype == "MSSQL") {
+				$rs = $conn->SelectLimit($sSql, $rowcnt, $offset, array("_hasOrderBy" => trim($this->getOrderBy()) || trim($this->getSessionOrderBy())));
+			} else {
+				$rs = $conn->SelectLimit($sSql, $rowcnt, $offset);
+			}
+			$conn->raiseErrorFn = '';
+		} else {
+			$rs = ew_LoadRecordset($sSql, $conn);
+		}
+
+		// Call Recordset Selected event
+		$this->Recordset_Selected($rs);
+		return $rs;
+	}
+
 	// Load row based on key values
 	function LoadRow() {
 		global $Security, $Language;
@@ -576,7 +653,26 @@ class cjurnald_edit extends cjurnald {
 		$this->jurnal_id->ViewCustomAttributes = "";
 
 		// akun_id
-		$this->akun_id->ViewValue = $this->akun_id->CurrentValue;
+		if (strval($this->akun_id->CurrentValue) <> "") {
+			$sFilterWrk = "`id`" . ew_SearchString("=", $this->akun_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+		$sSqlWrk = "SELECT `id`, `nama` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `akun`";
+		$sWhereWrk = "";
+		$this->akun_id->LookupFilters = array();
+		ew_AddFilter($sWhereWrk, $sFilterWrk);
+		$this->Lookup_Selecting($this->akun_id, $sWhereWrk); // Call Lookup selecting
+		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			if ($rswrk && !$rswrk->EOF) { // Lookup values found
+				$arwrk = array();
+				$arwrk[1] = $rswrk->fields('DispFld');
+				$this->akun_id->ViewValue = $this->akun_id->DisplayValue($arwrk);
+				$rswrk->Close();
+			} else {
+				$this->akun_id->ViewValue = $this->akun_id->CurrentValue;
+			}
+		} else {
+			$this->akun_id->ViewValue = NULL;
+		}
 		$this->akun_id->ViewCustomAttributes = "";
 
 		// debet
@@ -622,14 +718,33 @@ class cjurnald_edit extends cjurnald {
 			// jurnal_id
 			$this->jurnal_id->EditAttrs["class"] = "form-control";
 			$this->jurnal_id->EditCustomAttributes = "";
+			if ($this->jurnal_id->getSessionValue() <> "") {
+				$this->jurnal_id->CurrentValue = $this->jurnal_id->getSessionValue();
+			$this->jurnal_id->ViewValue = $this->jurnal_id->CurrentValue;
+			$this->jurnal_id->ViewCustomAttributes = "";
+			} else {
 			$this->jurnal_id->EditValue = ew_HtmlEncode($this->jurnal_id->CurrentValue);
 			$this->jurnal_id->PlaceHolder = ew_RemoveHtml($this->jurnal_id->FldCaption());
+			}
 
 			// akun_id
 			$this->akun_id->EditAttrs["class"] = "form-control";
 			$this->akun_id->EditCustomAttributes = "";
-			$this->akun_id->EditValue = ew_HtmlEncode($this->akun_id->CurrentValue);
-			$this->akun_id->PlaceHolder = ew_RemoveHtml($this->akun_id->FldCaption());
+			if (trim(strval($this->akun_id->CurrentValue)) == "") {
+				$sFilterWrk = "0=1";
+			} else {
+				$sFilterWrk = "`id`" . ew_SearchString("=", $this->akun_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+			}
+			$sSqlWrk = "SELECT `id`, `nama` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld`, '' AS `SelectFilterFld`, '' AS `SelectFilterFld2`, '' AS `SelectFilterFld3`, '' AS `SelectFilterFld4` FROM `akun`";
+			$sWhereWrk = "";
+			$this->akun_id->LookupFilters = array();
+			ew_AddFilter($sWhereWrk, $sFilterWrk);
+			$this->Lookup_Selecting($this->akun_id, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			$arwrk = ($rswrk) ? $rswrk->GetRows() : array();
+			if ($rswrk) $rswrk->Close();
+			$this->akun_id->EditValue = $arwrk;
 
 			// debet
 			$this->debet->EditAttrs["class"] = "form-control";
@@ -690,9 +805,6 @@ class cjurnald_edit extends cjurnald {
 			return ($gsFormError == "");
 		if (!ew_CheckInteger($this->jurnal_id->FormValue)) {
 			ew_AddMessage($gsFormError, $this->jurnal_id->FldErrMsg());
-		}
-		if (!ew_CheckInteger($this->akun_id->FormValue)) {
-			ew_AddMessage($gsFormError, $this->akun_id->FldErrMsg());
 		}
 		if (!ew_CheckNumber($this->debet->FormValue)) {
 			ew_AddMessage($gsFormError, $this->debet->FldErrMsg());
@@ -780,6 +892,67 @@ class cjurnald_edit extends cjurnald {
 		return $EditRow;
 	}
 
+	// Set up master/detail based on QueryString
+	function SetUpMasterParms() {
+		$bValidMaster = FALSE;
+
+		// Get the keys for master table
+		if (isset($_GET[EW_TABLE_SHOW_MASTER])) {
+			$sMasterTblVar = $_GET[EW_TABLE_SHOW_MASTER];
+			if ($sMasterTblVar == "") {
+				$bValidMaster = TRUE;
+				$this->DbMasterFilter = "";
+				$this->DbDetailFilter = "";
+			}
+			if ($sMasterTblVar == "jurnal") {
+				$bValidMaster = TRUE;
+				if (@$_GET["fk_id"] <> "") {
+					$GLOBALS["jurnal"]->id->setQueryStringValue($_GET["fk_id"]);
+					$this->jurnal_id->setQueryStringValue($GLOBALS["jurnal"]->id->QueryStringValue);
+					$this->jurnal_id->setSessionValue($this->jurnal_id->QueryStringValue);
+					if (!is_numeric($GLOBALS["jurnal"]->id->QueryStringValue)) $bValidMaster = FALSE;
+				} else {
+					$bValidMaster = FALSE;
+				}
+			}
+		} elseif (isset($_POST[EW_TABLE_SHOW_MASTER])) {
+			$sMasterTblVar = $_POST[EW_TABLE_SHOW_MASTER];
+			if ($sMasterTblVar == "") {
+				$bValidMaster = TRUE;
+				$this->DbMasterFilter = "";
+				$this->DbDetailFilter = "";
+			}
+			if ($sMasterTblVar == "jurnal") {
+				$bValidMaster = TRUE;
+				if (@$_POST["fk_id"] <> "") {
+					$GLOBALS["jurnal"]->id->setFormValue($_POST["fk_id"]);
+					$this->jurnal_id->setFormValue($GLOBALS["jurnal"]->id->FormValue);
+					$this->jurnal_id->setSessionValue($this->jurnal_id->FormValue);
+					if (!is_numeric($GLOBALS["jurnal"]->id->FormValue)) $bValidMaster = FALSE;
+				} else {
+					$bValidMaster = FALSE;
+				}
+			}
+		}
+		if ($bValidMaster) {
+
+			// Save current master table
+			$this->setCurrentMasterTable($sMasterTblVar);
+			$this->setSessionWhere($this->GetDetailFilter());
+
+			// Reset start record counter (new master key)
+			$this->StartRec = 1;
+			$this->setStartRecordNumber($this->StartRec);
+
+			// Clear previous master key from Session
+			if ($sMasterTblVar <> "jurnal") {
+				if ($this->jurnal_id->CurrentValue == "") $this->jurnal_id->setSessionValue("");
+			}
+		}
+		$this->DbMasterFilter = $this->GetMasterFilter(); // Get master filter
+		$this->DbDetailFilter = $this->GetDetailFilter(); // Get detail filter
+	}
+
 	// Set up Breadcrumb
 	function SetupBreadcrumb() {
 		global $Breadcrumb, $Language;
@@ -795,6 +968,18 @@ class cjurnald_edit extends cjurnald {
 		global $gsLanguage;
 		$pageId = $pageId ?: $this->PageID;
 		switch ($fld->FldVar) {
+		case "x_akun_id":
+			$sSqlWrk = "";
+			$sSqlWrk = "SELECT `id` AS `LinkFld`, `nama` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `akun`";
+			$sWhereWrk = "";
+			$this->akun_id->LookupFilters = array();
+			$fld->LookupFilters += array("s" => $sSqlWrk, "d" => "", "f0" => '`id` = {filter_value}', "t0" => "3", "fn0" => "");
+			$sSqlWrk = "";
+			$this->Lookup_Selecting($this->akun_id, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			if ($sSqlWrk <> "")
+				$fld->LookupFilters["s"] .= $sSqlWrk;
+			break;
 		}
 	}
 
@@ -917,9 +1102,6 @@ fjurnaldedit.Validate = function() {
 			elm = this.GetElements("x" + infix + "_jurnal_id");
 			if (elm && !ew_CheckInteger(elm.value))
 				return this.OnError(elm, "<?php echo ew_JsEncode2($jurnald->jurnal_id->FldErrMsg()) ?>");
-			elm = this.GetElements("x" + infix + "_akun_id");
-			if (elm && !ew_CheckInteger(elm.value))
-				return this.OnError(elm, "<?php echo ew_JsEncode2($jurnald->akun_id->FldErrMsg()) ?>");
 			elm = this.GetElements("x" + infix + "_debet");
 			if (elm && !ew_CheckNumber(elm.value))
 				return this.OnError(elm, "<?php echo ew_JsEncode2($jurnald->debet->FldErrMsg()) ?>");
@@ -959,8 +1141,9 @@ fjurnaldedit.ValidateRequired = false;
 <?php } ?>
 
 // Dynamic selection lists
-// Form object for search
+fjurnaldedit.Lists["x_akun_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_nama","","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"akun"};
 
+// Form object for search
 </script>
 <script type="text/javascript">
 
@@ -986,6 +1169,10 @@ $jurnald_edit->ShowMessage();
 <?php if ($jurnald_edit->IsModal) { ?>
 <input type="hidden" name="modal" value="1">
 <?php } ?>
+<?php if ($jurnald->getCurrentMasterTable() == "jurnal") { ?>
+<input type="hidden" name="<?php echo EW_TABLE_SHOW_MASTER ?>" value="jurnal">
+<input type="hidden" name="fk_id" value="<?php echo $jurnald->jurnal_id->getSessionValue() ?>">
+<?php } ?>
 <div>
 <?php if ($jurnald->id->Visible) { // id ?>
 	<div id="r_id" class="form-group">
@@ -1003,9 +1190,17 @@ $jurnald_edit->ShowMessage();
 	<div id="r_jurnal_id" class="form-group">
 		<label id="elh_jurnald_jurnal_id" for="x_jurnal_id" class="col-sm-2 control-label ewLabel"><?php echo $jurnald->jurnal_id->FldCaption() ?></label>
 		<div class="col-sm-10"><div<?php echo $jurnald->jurnal_id->CellAttributes() ?>>
+<?php if ($jurnald->jurnal_id->getSessionValue() <> "") { ?>
+<span id="el_jurnald_jurnal_id">
+<span<?php echo $jurnald->jurnal_id->ViewAttributes() ?>>
+<p class="form-control-static"><?php echo $jurnald->jurnal_id->ViewValue ?></p></span>
+</span>
+<input type="hidden" id="x_jurnal_id" name="x_jurnal_id" value="<?php echo ew_HtmlEncode($jurnald->jurnal_id->CurrentValue) ?>">
+<?php } else { ?>
 <span id="el_jurnald_jurnal_id">
 <input type="text" data-table="jurnald" data-field="x_jurnal_id" name="x_jurnal_id" id="x_jurnal_id" size="30" placeholder="<?php echo ew_HtmlEncode($jurnald->jurnal_id->getPlaceHolder()) ?>" value="<?php echo $jurnald->jurnal_id->EditValue ?>"<?php echo $jurnald->jurnal_id->EditAttributes() ?>>
 </span>
+<?php } ?>
 <?php echo $jurnald->jurnal_id->CustomMsg ?></div></div>
 	</div>
 <?php } ?>
@@ -1014,7 +1209,10 @@ $jurnald_edit->ShowMessage();
 		<label id="elh_jurnald_akun_id" for="x_akun_id" class="col-sm-2 control-label ewLabel"><?php echo $jurnald->akun_id->FldCaption() ?></label>
 		<div class="col-sm-10"><div<?php echo $jurnald->akun_id->CellAttributes() ?>>
 <span id="el_jurnald_akun_id">
-<input type="text" data-table="jurnald" data-field="x_akun_id" name="x_akun_id" id="x_akun_id" size="30" placeholder="<?php echo ew_HtmlEncode($jurnald->akun_id->getPlaceHolder()) ?>" value="<?php echo $jurnald->akun_id->EditValue ?>"<?php echo $jurnald->akun_id->EditAttributes() ?>>
+<select data-table="jurnald" data-field="x_akun_id" data-value-separator="<?php echo $jurnald->akun_id->DisplayValueSeparatorAttribute() ?>" id="x_akun_id" name="x_akun_id"<?php echo $jurnald->akun_id->EditAttributes() ?>>
+<?php echo $jurnald->akun_id->SelectOptionListHtml("x_akun_id") ?>
+</select>
+<input type="hidden" name="s_x_akun_id" id="s_x_akun_id" value="<?php echo $jurnald->akun_id->LookupFilterQuery() ?>">
 </span>
 <?php echo $jurnald->akun_id->CustomMsg ?></div></div>
 	</div>
@@ -1047,6 +1245,47 @@ $jurnald_edit->ShowMessage();
 <button class="btn btn-default ewButton" name="btnCancel" id="btnCancel" type="button" data-href="<?php echo $jurnald_edit->getReturnUrl() ?>"><?php echo $Language->Phrase("CancelBtn") ?></button>
 	</div>
 </div>
+<?php if (!isset($jurnald_edit->Pager)) $jurnald_edit->Pager = new cPrevNextPager($jurnald_edit->StartRec, $jurnald_edit->DisplayRecs, $jurnald_edit->TotalRecs) ?>
+<?php if ($jurnald_edit->Pager->RecordCount > 0 && $jurnald_edit->Pager->Visible) { ?>
+<div class="ewPager">
+<span><?php echo $Language->Phrase("Page") ?>&nbsp;</span>
+<div class="ewPrevNext"><div class="input-group">
+<div class="input-group-btn">
+<!--first page button-->
+	<?php if ($jurnald_edit->Pager->FirstButton->Enabled) { ?>
+	<a class="btn btn-default btn-sm" title="<?php echo $Language->Phrase("PagerFirst") ?>" href="<?php echo $jurnald_edit->PageUrl() ?>start=<?php echo $jurnald_edit->Pager->FirstButton->Start ?>"><span class="icon-first ewIcon"></span></a>
+	<?php } else { ?>
+	<a class="btn btn-default btn-sm disabled" title="<?php echo $Language->Phrase("PagerFirst") ?>"><span class="icon-first ewIcon"></span></a>
+	<?php } ?>
+<!--previous page button-->
+	<?php if ($jurnald_edit->Pager->PrevButton->Enabled) { ?>
+	<a class="btn btn-default btn-sm" title="<?php echo $Language->Phrase("PagerPrevious") ?>" href="<?php echo $jurnald_edit->PageUrl() ?>start=<?php echo $jurnald_edit->Pager->PrevButton->Start ?>"><span class="icon-prev ewIcon"></span></a>
+	<?php } else { ?>
+	<a class="btn btn-default btn-sm disabled" title="<?php echo $Language->Phrase("PagerPrevious") ?>"><span class="icon-prev ewIcon"></span></a>
+	<?php } ?>
+</div>
+<!--current page number-->
+	<input class="form-control input-sm" type="text" name="<?php echo EW_TABLE_PAGE_NO ?>" value="<?php echo $jurnald_edit->Pager->CurrentPage ?>">
+<div class="input-group-btn">
+<!--next page button-->
+	<?php if ($jurnald_edit->Pager->NextButton->Enabled) { ?>
+	<a class="btn btn-default btn-sm" title="<?php echo $Language->Phrase("PagerNext") ?>" href="<?php echo $jurnald_edit->PageUrl() ?>start=<?php echo $jurnald_edit->Pager->NextButton->Start ?>"><span class="icon-next ewIcon"></span></a>
+	<?php } else { ?>
+	<a class="btn btn-default btn-sm disabled" title="<?php echo $Language->Phrase("PagerNext") ?>"><span class="icon-next ewIcon"></span></a>
+	<?php } ?>
+<!--last page button-->
+	<?php if ($jurnald_edit->Pager->LastButton->Enabled) { ?>
+	<a class="btn btn-default btn-sm" title="<?php echo $Language->Phrase("PagerLast") ?>" href="<?php echo $jurnald_edit->PageUrl() ?>start=<?php echo $jurnald_edit->Pager->LastButton->Start ?>"><span class="icon-last ewIcon"></span></a>
+	<?php } else { ?>
+	<a class="btn btn-default btn-sm disabled" title="<?php echo $Language->Phrase("PagerLast") ?>"><span class="icon-last ewIcon"></span></a>
+	<?php } ?>
+</div>
+</div>
+</div>
+<span>&nbsp;<?php echo $Language->Phrase("of") ?>&nbsp;<?php echo $jurnald_edit->Pager->PageCount ?></span>
+</div>
+<?php } ?>
+<div class="clearfix"></div>
 <?php } ?>
 </form>
 <script type="text/javascript">
