@@ -622,6 +622,9 @@
     <menu id="4">
       <phrase id="menutext" value="Jurnal" />
     </menu>
+    <menu id="49">
+      <phrase id="menutext" value="Laba Rugi" />
+    </menu>
     <menu id="3">
       <phrase id="menutext" value="gudang" />
     </menu>
@@ -1122,6 +1125,9 @@
     </table>
     <table id="cf01_home_php">
       <phrase id="tblcaption" value="Home" />
+    </table>
+    <table id="cf02_labarugi_php">
+      <phrase id="tblcaption" value="Laba Rugi" />
     </table>
   </project>
 </ew-language>
