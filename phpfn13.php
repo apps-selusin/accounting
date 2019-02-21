@@ -4698,13 +4698,29 @@ function Database_Connecting(&$info) {
 		$info["user"] = "root";
 		$info["pass"] = "admin";
 		$info["port"] = "3307";
+		$info["db"]   = "accounting";
 	}
 	elseif ($info["id"] == "DB" && ew_CurrentUserIP() == "acc.selusin.web.id") { // Testing on web
 		$info["host"] = "localhost";
 		$info["user"] = "u591406990_acc";
 		$info["pass"] = "PresarioCQ43";
 		$info["port"] = "3306";
+		$info["db"]   = "u591406990_acc";
 	}
+	/*if (ew_CurrentUserIP () == "127.0.0.1"  || ew_CurrentUserIP () == ":: 1"  || ew_CurrentHost () == "localhost" ) { // testing on local PC
+		$info["host"] = "localhost";
+		$info["user"] = "root"; // sesuaikan dengan username database di komputer localhost
+		$info["pass"] = "admin"; // sesuaikan dengan password database di komputer localhost
+		$info["db"] = "accounting"; // sesuaikan dengan nama database di komputer localhost
+		$lines=file('00_dbport.txt');foreach ($lines as $line_num => $line){$port = $line;}
+		$info["port"] = $port; //$info["port"] = "3306";
+	} elseif (ew_CurrentHost () == "acc.selusin.web.id") { // setting koneksi database untuk komputer server
+		$info["host"] = "localhost";  // sesuaikan dengan ip address atau hostname komputer server
+		$info["user"] = "u473805576_simk5"; // sesuaikan dengan username database di komputer server
+		$info["pass"] = "PresarioCQ43"; // sesuaikan deengan password database di komputer server
+		$info["db"] = "u473805576_simk5"; // sesuaikan dengan nama database di komputer server
+		$info["port"] = "3306";
+	}*/
 }
 
 // Database Connected event
