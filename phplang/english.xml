@@ -620,7 +620,7 @@
       <phrase id="menutext" value="pajak" />
     </menu>
     <menu id="4">
-      <phrase id="menutext" value="jurnal" />
+      <phrase id="menutext" value="Jurnal" />
     </menu>
     <menu id="3">
       <phrase id="menutext" value="gudang" />
@@ -707,27 +707,27 @@
       </field>
     </table>
     <table id="jurnal">
-      <phrase id="tblcaption" value="jurnal" />
+      <phrase id="tblcaption" value="Jurnal" />
       <field id="id">
         <phrase id="fldcaption" value="id" />
       </field>
       <field id="tipejurnal_id">
-        <phrase id="fldcaption" value="tipejurnal id" />
+        <phrase id="fldcaption" value="Tipe Jurnal" />
       </field>
       <field id="period_id">
         <phrase id="fldcaption" value="period id" />
       </field>
       <field id="createon">
-        <phrase id="fldcaption" value="createon" />
+        <phrase id="fldcaption" value="Tanggal" />
       </field>
       <field id="keterangan">
-        <phrase id="fldcaption" value="keterangan" />
+        <phrase id="fldcaption" value="Keterangan" />
       </field>
       <field id="person_id">
         <phrase id="fldcaption" value="person id" />
       </field>
       <field id="nomer">
-        <phrase id="fldcaption" value="nomer" />
+        <phrase id="fldcaption" value="Nomor" />
       </field>
     </table>
     <table id="jurnald">

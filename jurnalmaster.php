@@ -1,11 +1,8 @@
 <?php
 
-// id
 // tipejurnal_id
-// period_id
 // createon
 // keterangan
-// person_id
 // nomer
 
 ?>
@@ -14,17 +11,6 @@
 <table id="tbl_jurnalmaster" class="table table-bordered table-striped ewViewTable">
 <?php echo $jurnal->TableCustomInnerHtml ?>
 	<tbody>
-<?php if ($jurnal->id->Visible) { // id ?>
-		<tr id="r_id">
-			<td><?php echo $jurnal->id->FldCaption() ?></td>
-			<td<?php echo $jurnal->id->CellAttributes() ?>>
-<span id="el_jurnal_id">
-<span<?php echo $jurnal->id->ViewAttributes() ?>>
-<?php echo $jurnal->id->ListViewValue() ?></span>
-</span>
-</td>
-		</tr>
-<?php } ?>
 <?php if ($jurnal->tipejurnal_id->Visible) { // tipejurnal_id ?>
 		<tr id="r_tipejurnal_id">
 			<td><?php echo $jurnal->tipejurnal_id->FldCaption() ?></td>
@@ -32,17 +18,6 @@
 <span id="el_jurnal_tipejurnal_id">
 <span<?php echo $jurnal->tipejurnal_id->ViewAttributes() ?>>
 <?php echo $jurnal->tipejurnal_id->ListViewValue() ?></span>
-</span>
-</td>
-		</tr>
-<?php } ?>
-<?php if ($jurnal->period_id->Visible) { // period_id ?>
-		<tr id="r_period_id">
-			<td><?php echo $jurnal->period_id->FldCaption() ?></td>
-			<td<?php echo $jurnal->period_id->CellAttributes() ?>>
-<span id="el_jurnal_period_id">
-<span<?php echo $jurnal->period_id->ViewAttributes() ?>>
-<?php echo $jurnal->period_id->ListViewValue() ?></span>
 </span>
 </td>
 		</tr>
@@ -65,17 +40,6 @@
 <span id="el_jurnal_keterangan">
 <span<?php echo $jurnal->keterangan->ViewAttributes() ?>>
 <?php echo $jurnal->keterangan->ListViewValue() ?></span>
-</span>
-</td>
-		</tr>
-<?php } ?>
-<?php if ($jurnal->person_id->Visible) { // person_id ?>
-		<tr id="r_person_id">
-			<td><?php echo $jurnal->person_id->FldCaption() ?></td>
-			<td<?php echo $jurnal->person_id->CellAttributes() ?>>
-<span id="el_jurnal_person_id">
-<span<?php echo $jurnal->person_id->ViewAttributes() ?>>
-<?php echo $jurnal->person_id->ListViewValue() ?></span>
 </span>
 </td>
 		</tr>

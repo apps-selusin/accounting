@@ -256,10 +256,8 @@ class cjurnal_add extends cjurnal {
 		$objForm = new cFormObj();
 		$this->CurrentAction = (@$_GET["a"] <> "") ? $_GET["a"] : @$_POST["a_list"]; // Set up current action
 		$this->tipejurnal_id->SetVisibility();
-		$this->period_id->SetVisibility();
 		$this->createon->SetVisibility();
 		$this->keterangan->SetVisibility();
-		$this->person_id->SetVisibility();
 		$this->nomer->SetVisibility();
 
 		// Global Page Loading event (in userfn*.php)
@@ -469,14 +467,10 @@ class cjurnal_add extends cjurnal {
 	function LoadDefaultValues() {
 		$this->tipejurnal_id->CurrentValue = NULL;
 		$this->tipejurnal_id->OldValue = $this->tipejurnal_id->CurrentValue;
-		$this->period_id->CurrentValue = NULL;
-		$this->period_id->OldValue = $this->period_id->CurrentValue;
 		$this->createon->CurrentValue = NULL;
 		$this->createon->OldValue = $this->createon->CurrentValue;
 		$this->keterangan->CurrentValue = NULL;
 		$this->keterangan->OldValue = $this->keterangan->CurrentValue;
-		$this->person_id->CurrentValue = NULL;
-		$this->person_id->OldValue = $this->person_id->CurrentValue;
 		$this->nomer->CurrentValue = NULL;
 		$this->nomer->OldValue = $this->nomer->CurrentValue;
 	}
@@ -489,18 +483,12 @@ class cjurnal_add extends cjurnal {
 		if (!$this->tipejurnal_id->FldIsDetailKey) {
 			$this->tipejurnal_id->setFormValue($objForm->GetValue("x_tipejurnal_id"));
 		}
-		if (!$this->period_id->FldIsDetailKey) {
-			$this->period_id->setFormValue($objForm->GetValue("x_period_id"));
-		}
 		if (!$this->createon->FldIsDetailKey) {
 			$this->createon->setFormValue($objForm->GetValue("x_createon"));
-			$this->createon->CurrentValue = ew_UnFormatDateTime($this->createon->CurrentValue, 0);
+			$this->createon->CurrentValue = ew_UnFormatDateTime($this->createon->CurrentValue, 7);
 		}
 		if (!$this->keterangan->FldIsDetailKey) {
 			$this->keterangan->setFormValue($objForm->GetValue("x_keterangan"));
-		}
-		if (!$this->person_id->FldIsDetailKey) {
-			$this->person_id->setFormValue($objForm->GetValue("x_person_id"));
 		}
 		if (!$this->nomer->FldIsDetailKey) {
 			$this->nomer->setFormValue($objForm->GetValue("x_nomer"));
@@ -512,11 +500,9 @@ class cjurnal_add extends cjurnal {
 		global $objForm;
 		$this->LoadOldRecord();
 		$this->tipejurnal_id->CurrentValue = $this->tipejurnal_id->FormValue;
-		$this->period_id->CurrentValue = $this->period_id->FormValue;
 		$this->createon->CurrentValue = $this->createon->FormValue;
-		$this->createon->CurrentValue = ew_UnFormatDateTime($this->createon->CurrentValue, 0);
+		$this->createon->CurrentValue = ew_UnFormatDateTime($this->createon->CurrentValue, 7);
 		$this->keterangan->CurrentValue = $this->keterangan->FormValue;
-		$this->person_id->CurrentValue = $this->person_id->FormValue;
 		$this->nomer->CurrentValue = $this->nomer->FormValue;
 	}
 
@@ -667,7 +653,7 @@ class cjurnal_add extends cjurnal {
 
 		// createon
 		$this->createon->ViewValue = $this->createon->CurrentValue;
-		$this->createon->ViewValue = ew_FormatDateTime($this->createon->ViewValue, 0);
+		$this->createon->ViewValue = ew_FormatDateTime($this->createon->ViewValue, 7);
 		$this->createon->ViewCustomAttributes = "";
 
 		// keterangan
@@ -687,11 +673,6 @@ class cjurnal_add extends cjurnal {
 			$this->tipejurnal_id->HrefValue = "";
 			$this->tipejurnal_id->TooltipValue = "";
 
-			// period_id
-			$this->period_id->LinkCustomAttributes = "";
-			$this->period_id->HrefValue = "";
-			$this->period_id->TooltipValue = "";
-
 			// createon
 			$this->createon->LinkCustomAttributes = "";
 			$this->createon->HrefValue = "";
@@ -701,11 +682,6 @@ class cjurnal_add extends cjurnal {
 			$this->keterangan->LinkCustomAttributes = "";
 			$this->keterangan->HrefValue = "";
 			$this->keterangan->TooltipValue = "";
-
-			// person_id
-			$this->person_id->LinkCustomAttributes = "";
-			$this->person_id->HrefValue = "";
-			$this->person_id->TooltipValue = "";
 
 			// nomer
 			$this->nomer->LinkCustomAttributes = "";
@@ -732,34 +708,10 @@ class cjurnal_add extends cjurnal {
 			if ($rswrk) $rswrk->Close();
 			$this->tipejurnal_id->EditValue = $arwrk;
 
-			// period_id
-			$this->period_id->EditAttrs["class"] = "form-control";
-			$this->period_id->EditCustomAttributes = "";
-			if (trim(strval($this->period_id->CurrentValue)) == "") {
-				$sFilterWrk = "0=1";
-			} else {
-				$sFilterWrk = "`id`" . ew_SearchString("=", $this->period_id->CurrentValue, EW_DATATYPE_NUMBER, "");
-			}
-			$sSqlWrk = "SELECT `id`, `start` AS `DispFld`, `end` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld`, '' AS `SelectFilterFld`, '' AS `SelectFilterFld2`, '' AS `SelectFilterFld3`, '' AS `SelectFilterFld4` FROM `periode`";
-			$sWhereWrk = "";
-			$this->period_id->LookupFilters = array("df1" => "7", "df2" => "7");
-			ew_AddFilter($sWhereWrk, $sFilterWrk);
-			$this->Lookup_Selecting($this->period_id, $sWhereWrk); // Call Lookup selecting
-			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
-			$rswrk = Conn()->Execute($sSqlWrk);
-			$arwrk = ($rswrk) ? $rswrk->GetRows() : array();
-			if ($rswrk) $rswrk->Close();
-			$rowswrk = count($arwrk);
-			for ($rowcntwrk = 0; $rowcntwrk < $rowswrk; $rowcntwrk++) {
-				$arwrk[$rowcntwrk][1] = ew_FormatDateTime($arwrk[$rowcntwrk][1], 7);
-				$arwrk[$rowcntwrk][2] = ew_FormatDateTime($arwrk[$rowcntwrk][2], 7);
-			}
-			$this->period_id->EditValue = $arwrk;
-
 			// createon
 			$this->createon->EditAttrs["class"] = "form-control";
 			$this->createon->EditCustomAttributes = "";
-			$this->createon->EditValue = ew_HtmlEncode(ew_FormatDateTime($this->createon->CurrentValue, 8));
+			$this->createon->EditValue = ew_HtmlEncode(ew_FormatDateTime($this->createon->CurrentValue, 7));
 			$this->createon->PlaceHolder = ew_RemoveHtml($this->createon->FldCaption());
 
 			// keterangan
@@ -767,12 +719,6 @@ class cjurnal_add extends cjurnal {
 			$this->keterangan->EditCustomAttributes = "";
 			$this->keterangan->EditValue = ew_HtmlEncode($this->keterangan->CurrentValue);
 			$this->keterangan->PlaceHolder = ew_RemoveHtml($this->keterangan->FldCaption());
-
-			// person_id
-			$this->person_id->EditAttrs["class"] = "form-control";
-			$this->person_id->EditCustomAttributes = "";
-			$this->person_id->EditValue = ew_HtmlEncode($this->person_id->CurrentValue);
-			$this->person_id->PlaceHolder = ew_RemoveHtml($this->person_id->FldCaption());
 
 			// nomer
 			$this->nomer->EditAttrs["class"] = "form-control";
@@ -786,10 +732,6 @@ class cjurnal_add extends cjurnal {
 			$this->tipejurnal_id->LinkCustomAttributes = "";
 			$this->tipejurnal_id->HrefValue = "";
 
-			// period_id
-			$this->period_id->LinkCustomAttributes = "";
-			$this->period_id->HrefValue = "";
-
 			// createon
 			$this->createon->LinkCustomAttributes = "";
 			$this->createon->HrefValue = "";
@@ -797,10 +739,6 @@ class cjurnal_add extends cjurnal {
 			// keterangan
 			$this->keterangan->LinkCustomAttributes = "";
 			$this->keterangan->HrefValue = "";
-
-			// person_id
-			$this->person_id->LinkCustomAttributes = "";
-			$this->person_id->HrefValue = "";
 
 			// nomer
 			$this->nomer->LinkCustomAttributes = "";
@@ -827,11 +765,8 @@ class cjurnal_add extends cjurnal {
 		// Check if validation required
 		if (!EW_SERVER_VALIDATE)
 			return ($gsFormError == "");
-		if (!ew_CheckDateDef($this->createon->FormValue)) {
+		if (!ew_CheckEuroDate($this->createon->FormValue)) {
 			ew_AddMessage($gsFormError, $this->createon->FldErrMsg());
-		}
-		if (!ew_CheckInteger($this->person_id->FormValue)) {
-			ew_AddMessage($gsFormError, $this->person_id->FldErrMsg());
 		}
 
 		// Validate detail grid
@@ -871,17 +806,11 @@ class cjurnal_add extends cjurnal {
 		// tipejurnal_id
 		$this->tipejurnal_id->SetDbValueDef($rsnew, $this->tipejurnal_id->CurrentValue, NULL, FALSE);
 
-		// period_id
-		$this->period_id->SetDbValueDef($rsnew, $this->period_id->CurrentValue, NULL, FALSE);
-
 		// createon
-		$this->createon->SetDbValueDef($rsnew, ew_UnFormatDateTime($this->createon->CurrentValue, 0), NULL, FALSE);
+		$this->createon->SetDbValueDef($rsnew, ew_UnFormatDateTime($this->createon->CurrentValue, 7), NULL, FALSE);
 
 		// keterangan
 		$this->keterangan->SetDbValueDef($rsnew, $this->keterangan->CurrentValue, NULL, FALSE);
-
-		// person_id
-		$this->person_id->SetDbValueDef($rsnew, $this->person_id->CurrentValue, NULL, FALSE);
 
 		// nomer
 		$this->nomer->SetDbValueDef($rsnew, $this->nomer->CurrentValue, NULL, FALSE);
@@ -993,18 +922,6 @@ class cjurnal_add extends cjurnal {
 			$fld->LookupFilters += array("s" => $sSqlWrk, "d" => "", "f0" => '`id` = {filter_value}', "t0" => "3", "fn0" => "");
 			$sSqlWrk = "";
 			$this->Lookup_Selecting($this->tipejurnal_id, $sWhereWrk); // Call Lookup selecting
-			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
-			if ($sSqlWrk <> "")
-				$fld->LookupFilters["s"] .= $sSqlWrk;
-			break;
-		case "x_period_id":
-			$sSqlWrk = "";
-			$sSqlWrk = "SELECT `id` AS `LinkFld`, `start` AS `DispFld`, `end` AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `periode`";
-			$sWhereWrk = "";
-			$this->period_id->LookupFilters = array("df1" => "7", "df2" => "7");
-			$fld->LookupFilters += array("s" => $sSqlWrk, "d" => "", "f0" => '`id` = {filter_value}', "t0" => "3", "fn0" => "");
-			$sSqlWrk = "";
-			$this->Lookup_Selecting($this->period_id, $sWhereWrk); // Call Lookup selecting
 			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
 			if ($sSqlWrk <> "")
 				$fld->LookupFilters["s"] .= $sSqlWrk;
@@ -1129,11 +1046,8 @@ fjurnaladd.Validate = function() {
 		var infix = ($k[0]) ? String(i) : "";
 		$fobj.data("rowindex", infix);
 			elm = this.GetElements("x" + infix + "_createon");
-			if (elm && !ew_CheckDateDef(elm.value))
+			if (elm && !ew_CheckEuroDate(elm.value))
 				return this.OnError(elm, "<?php echo ew_JsEncode2($jurnal->createon->FldErrMsg()) ?>");
-			elm = this.GetElements("x" + infix + "_person_id");
-			if (elm && !ew_CheckInteger(elm.value))
-				return this.OnError(elm, "<?php echo ew_JsEncode2($jurnal->person_id->FldErrMsg()) ?>");
 
 			// Fire Form_CustomValidate event
 			if (!this.Form_CustomValidate(fobj))
@@ -1168,7 +1082,6 @@ fjurnaladd.ValidateRequired = false;
 
 // Dynamic selection lists
 fjurnaladd.Lists["x_tipejurnal_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_nama","","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"tipejurnal"};
-fjurnaladd.Lists["x_period_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_start","x_end","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"periode"};
 
 // Form object for search
 </script>
@@ -1210,25 +1123,17 @@ $jurnal_add->ShowMessage();
 <?php echo $jurnal->tipejurnal_id->CustomMsg ?></div></div>
 	</div>
 <?php } ?>
-<?php if ($jurnal->period_id->Visible) { // period_id ?>
-	<div id="r_period_id" class="form-group">
-		<label id="elh_jurnal_period_id" for="x_period_id" class="col-sm-2 control-label ewLabel"><?php echo $jurnal->period_id->FldCaption() ?></label>
-		<div class="col-sm-10"><div<?php echo $jurnal->period_id->CellAttributes() ?>>
-<span id="el_jurnal_period_id">
-<select data-table="jurnal" data-field="x_period_id" data-value-separator="<?php echo $jurnal->period_id->DisplayValueSeparatorAttribute() ?>" id="x_period_id" name="x_period_id"<?php echo $jurnal->period_id->EditAttributes() ?>>
-<?php echo $jurnal->period_id->SelectOptionListHtml("x_period_id") ?>
-</select>
-<input type="hidden" name="s_x_period_id" id="s_x_period_id" value="<?php echo $jurnal->period_id->LookupFilterQuery() ?>">
-</span>
-<?php echo $jurnal->period_id->CustomMsg ?></div></div>
-	</div>
-<?php } ?>
 <?php if ($jurnal->createon->Visible) { // createon ?>
 	<div id="r_createon" class="form-group">
 		<label id="elh_jurnal_createon" for="x_createon" class="col-sm-2 control-label ewLabel"><?php echo $jurnal->createon->FldCaption() ?></label>
 		<div class="col-sm-10"><div<?php echo $jurnal->createon->CellAttributes() ?>>
 <span id="el_jurnal_createon">
-<input type="text" data-table="jurnal" data-field="x_createon" name="x_createon" id="x_createon" placeholder="<?php echo ew_HtmlEncode($jurnal->createon->getPlaceHolder()) ?>" value="<?php echo $jurnal->createon->EditValue ?>"<?php echo $jurnal->createon->EditAttributes() ?>>
+<input type="text" data-table="jurnal" data-field="x_createon" data-format="7" name="x_createon" id="x_createon" placeholder="<?php echo ew_HtmlEncode($jurnal->createon->getPlaceHolder()) ?>" value="<?php echo $jurnal->createon->EditValue ?>"<?php echo $jurnal->createon->EditAttributes() ?>>
+<?php if (!$jurnal->createon->ReadOnly && !$jurnal->createon->Disabled && !isset($jurnal->createon->EditAttrs["readonly"]) && !isset($jurnal->createon->EditAttrs["disabled"])) { ?>
+<script type="text/javascript">
+ew_CreateCalendar("fjurnaladd", "x_createon", 7);
+</script>
+<?php } ?>
 </span>
 <?php echo $jurnal->createon->CustomMsg ?></div></div>
 	</div>
@@ -1241,16 +1146,6 @@ $jurnal_add->ShowMessage();
 <input type="text" data-table="jurnal" data-field="x_keterangan" name="x_keterangan" id="x_keterangan" size="30" maxlength="50" placeholder="<?php echo ew_HtmlEncode($jurnal->keterangan->getPlaceHolder()) ?>" value="<?php echo $jurnal->keterangan->EditValue ?>"<?php echo $jurnal->keterangan->EditAttributes() ?>>
 </span>
 <?php echo $jurnal->keterangan->CustomMsg ?></div></div>
-	</div>
-<?php } ?>
-<?php if ($jurnal->person_id->Visible) { // person_id ?>
-	<div id="r_person_id" class="form-group">
-		<label id="elh_jurnal_person_id" for="x_person_id" class="col-sm-2 control-label ewLabel"><?php echo $jurnal->person_id->FldCaption() ?></label>
-		<div class="col-sm-10"><div<?php echo $jurnal->person_id->CellAttributes() ?>>
-<span id="el_jurnal_person_id">
-<input type="text" data-table="jurnal" data-field="x_person_id" name="x_person_id" id="x_person_id" size="30" placeholder="<?php echo ew_HtmlEncode($jurnal->person_id->getPlaceHolder()) ?>" value="<?php echo $jurnal->person_id->EditValue ?>"<?php echo $jurnal->person_id->EditAttributes() ?>>
-</span>
-<?php echo $jurnal->person_id->CustomMsg ?></div></div>
 	</div>
 <?php } ?>
 <?php if ($jurnal->nomer->Visible) { // nomer ?>

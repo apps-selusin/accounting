@@ -68,9 +68,9 @@ class cjurnal extends cTable {
 		$this->fields['period_id'] = &$this->period_id;
 
 		// createon
-		$this->createon = new cField('jurnal', 'jurnal', 'x_createon', 'createon', '`createon`', ew_CastDateFieldForLike('`createon`', 0, "DB"), 135, 0, FALSE, '`createon`', FALSE, FALSE, FALSE, 'FORMATTED TEXT', 'TEXT');
+		$this->createon = new cField('jurnal', 'jurnal', 'x_createon', 'createon', '`createon`', ew_CastDateFieldForLike('`createon`', 7, "DB"), 135, 7, FALSE, '`createon`', FALSE, FALSE, FALSE, 'FORMATTED TEXT', 'TEXT');
 		$this->createon->Sortable = TRUE; // Allow sort
-		$this->createon->FldDefaultErrMsg = str_replace("%s", $GLOBALS["EW_DATE_FORMAT"], $Language->Phrase("IncorrectDate"));
+		$this->createon->FldDefaultErrMsg = str_replace("%s", $GLOBALS["EW_DATE_SEPARATOR"], $Language->Phrase("IncorrectDateDMY"));
 		$this->fields['createon'] = &$this->createon;
 
 		// keterangan
@@ -698,7 +698,7 @@ class cjurnal extends cTable {
 
 		// createon
 		$this->createon->ViewValue = $this->createon->CurrentValue;
-		$this->createon->ViewValue = ew_FormatDateTime($this->createon->ViewValue, 0);
+		$this->createon->ViewValue = ew_FormatDateTime($this->createon->ViewValue, 7);
 		$this->createon->ViewCustomAttributes = "";
 
 		// keterangan
@@ -776,7 +776,7 @@ class cjurnal extends cTable {
 		// createon
 		$this->createon->EditAttrs["class"] = "form-control";
 		$this->createon->EditCustomAttributes = "";
-		$this->createon->EditValue = ew_FormatDateTime($this->createon->CurrentValue, 8);
+		$this->createon->EditValue = ew_FormatDateTime($this->createon->CurrentValue, 7);
 		$this->createon->PlaceHolder = ew_RemoveHtml($this->createon->FldCaption());
 
 		// keterangan
@@ -824,12 +824,9 @@ class cjurnal extends cTable {
 			if ($Doc->Horizontal) { // Horizontal format, write header
 				$Doc->BeginExportRow();
 				if ($ExportPageType == "view") {
-					if ($this->id->Exportable) $Doc->ExportCaption($this->id);
 					if ($this->tipejurnal_id->Exportable) $Doc->ExportCaption($this->tipejurnal_id);
-					if ($this->period_id->Exportable) $Doc->ExportCaption($this->period_id);
 					if ($this->createon->Exportable) $Doc->ExportCaption($this->createon);
 					if ($this->keterangan->Exportable) $Doc->ExportCaption($this->keterangan);
-					if ($this->person_id->Exportable) $Doc->ExportCaption($this->person_id);
 					if ($this->nomer->Exportable) $Doc->ExportCaption($this->nomer);
 				} else {
 					if ($this->id->Exportable) $Doc->ExportCaption($this->id);
@@ -870,12 +867,9 @@ class cjurnal extends cTable {
 				if (!$Doc->ExportCustom) {
 					$Doc->BeginExportRow($RowCnt); // Allow CSS styles if enabled
 					if ($ExportPageType == "view") {
-						if ($this->id->Exportable) $Doc->ExportField($this->id);
 						if ($this->tipejurnal_id->Exportable) $Doc->ExportField($this->tipejurnal_id);
-						if ($this->period_id->Exportable) $Doc->ExportField($this->period_id);
 						if ($this->createon->Exportable) $Doc->ExportField($this->createon);
 						if ($this->keterangan->Exportable) $Doc->ExportField($this->keterangan);
-						if ($this->person_id->Exportable) $Doc->ExportField($this->person_id);
 						if ($this->nomer->Exportable) $Doc->ExportField($this->nomer);
 					} else {
 						if ($this->id->Exportable) $Doc->ExportField($this->id);

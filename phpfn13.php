@@ -4693,6 +4693,18 @@ function Database_Connecting(&$info) {
 	//	$info["pass"] = "";
 	//}
 
+	if ($info["id"] == "DB" && ew_CurrentUserIP() == "127.0.0.1") { // Testing on local PC
+		$info["host"] = "locahost";
+		$info["user"] = "root";
+		$info["pass"] = "admin";
+		$info["port"] = "3307";
+	}
+	elseif ($info["id"] == "DB" && ew_CurrentUserIP() == "acc.selusin.web.id") { // Testing on web
+		$info["host"] = "server52.hostinger.co.id";
+		$info["user"] = "u591406990_acc";
+		$info["pass"] = "PresarioCQ43";
+		$info["port"] = "3306";
+	}
 }
 
 // Database Connected event

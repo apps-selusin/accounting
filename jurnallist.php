@@ -343,13 +343,9 @@ class cjurnal_list extends cjurnal {
 
 		// Set up list options
 		$this->SetupListOptions();
-		$this->id->SetVisibility();
-		$this->id->Visible = !$this->IsAdd() && !$this->IsCopy() && !$this->IsGridAdd();
 		$this->tipejurnal_id->SetVisibility();
-		$this->period_id->SetVisibility();
 		$this->createon->SetVisibility();
 		$this->keterangan->SetVisibility();
-		$this->person_id->SetVisibility();
 		$this->nomer->SetVisibility();
 
 		// Global Page Loading event (in userfn*.php)
@@ -542,13 +538,15 @@ class cjurnal_list extends cjurnal {
 			}
 
 			// Get default search criteria
-			ew_AddFilter($this->DefaultSearchWhere, $this->BasicSearchWhere(TRUE));
+			ew_AddFilter($this->DefaultSearchWhere, $this->AdvancedSearchWhere(TRUE));
 
-			// Get basic search values
-			$this->LoadBasicSearchValues();
+			// Get and validate search values for advanced search
+			$this->LoadSearchValues(); // Get search values
 
 			// Process filter list
 			$this->ProcessFilterList();
+			if (!$this->ValidateSearch())
+				$this->setFailureMessage($gsSearchError);
 
 			// Restore search parms from Session if not searching / reset / export
 			if (($this->Export <> "" || $this->Command <> "search" && $this->Command <> "reset" && $this->Command <> "resetall") && $this->CheckSearchParms())
@@ -560,9 +558,9 @@ class cjurnal_list extends cjurnal {
 			// Set up sorting order
 			$this->SetUpSortOrder();
 
-			// Get basic search criteria
+			// Get search criteria for advanced search
 			if ($gsSearchError == "")
-				$sSrchBasic = $this->BasicSearchWhere();
+				$sSrchAdvanced = $this->AdvancedSearchWhere();
 		}
 
 		// Restore display records
@@ -578,10 +576,10 @@ class cjurnal_list extends cjurnal {
 		// Load search default if no existing search criteria
 		if (!$this->CheckSearchParms()) {
 
-			// Load basic search from default
-			$this->BasicSearch->LoadDefault();
-			if ($this->BasicSearch->Keyword != "")
-				$sSrchBasic = $this->BasicSearchWhere();
+			// Load advanced search from default
+			if ($this->LoadAdvancedSearchDefault()) {
+				$sSrchAdvanced = $this->AdvancedSearchWhere();
+			}
 		}
 
 		// Build search criteria
@@ -682,10 +680,6 @@ class cjurnal_list extends cjurnal {
 		$sFilterList = ew_Concat($sFilterList, $this->keterangan->AdvancedSearch->ToJSON(), ","); // Field keterangan
 		$sFilterList = ew_Concat($sFilterList, $this->person_id->AdvancedSearch->ToJSON(), ","); // Field person_id
 		$sFilterList = ew_Concat($sFilterList, $this->nomer->AdvancedSearch->ToJSON(), ","); // Field nomer
-		if ($this->BasicSearch->Keyword <> "") {
-			$sWrk = "\"" . EW_TABLE_BASIC_SEARCH . "\":\"" . ew_JsEncode2($this->BasicSearch->Keyword) . "\",\"" . EW_TABLE_BASIC_SEARCH_TYPE . "\":\"" . ew_JsEncode2($this->BasicSearch->Type) . "\"";
-			$sFilterList = ew_Concat($sFilterList, $sWrk, ",");
-		}
 		$sFilterList = preg_replace('/,$/', "", $sFilterList);
 
 		// Return filter list in json
@@ -781,139 +775,99 @@ class cjurnal_list extends cjurnal {
 		$this->nomer->AdvancedSearch->SearchValue2 = @$filter["y_nomer"];
 		$this->nomer->AdvancedSearch->SearchOperator2 = @$filter["w_nomer"];
 		$this->nomer->AdvancedSearch->Save();
-		$this->BasicSearch->setKeyword(@$filter[EW_TABLE_BASIC_SEARCH]);
-		$this->BasicSearch->setType(@$filter[EW_TABLE_BASIC_SEARCH_TYPE]);
 	}
 
-	// Return basic search SQL
-	function BasicSearchSQL($arKeywords, $type) {
+	// Advanced search WHERE clause based on QueryString
+	function AdvancedSearchWhere($Default = FALSE) {
+		global $Security;
 		$sWhere = "";
-		$this->BuildBasicSearchSQL($sWhere, $this->keterangan, $arKeywords, $type);
-		$this->BuildBasicSearchSQL($sWhere, $this->nomer, $arKeywords, $type);
+		$this->BuildSearchSql($sWhere, $this->id, $Default, FALSE); // id
+		$this->BuildSearchSql($sWhere, $this->tipejurnal_id, $Default, FALSE); // tipejurnal_id
+		$this->BuildSearchSql($sWhere, $this->period_id, $Default, FALSE); // period_id
+		$this->BuildSearchSql($sWhere, $this->createon, $Default, FALSE); // createon
+		$this->BuildSearchSql($sWhere, $this->keterangan, $Default, FALSE); // keterangan
+		$this->BuildSearchSql($sWhere, $this->person_id, $Default, FALSE); // person_id
+		$this->BuildSearchSql($sWhere, $this->nomer, $Default, FALSE); // nomer
+
+		// Set up search parm
+		if (!$Default && $sWhere <> "") {
+			$this->Command = "search";
+		}
+		if (!$Default && $this->Command == "search") {
+			$this->id->AdvancedSearch->Save(); // id
+			$this->tipejurnal_id->AdvancedSearch->Save(); // tipejurnal_id
+			$this->period_id->AdvancedSearch->Save(); // period_id
+			$this->createon->AdvancedSearch->Save(); // createon
+			$this->keterangan->AdvancedSearch->Save(); // keterangan
+			$this->person_id->AdvancedSearch->Save(); // person_id
+			$this->nomer->AdvancedSearch->Save(); // nomer
+		}
 		return $sWhere;
 	}
 
-	// Build basic search SQL
-	function BuildBasicSearchSQL(&$Where, &$Fld, $arKeywords, $type) {
-		global $EW_BASIC_SEARCH_IGNORE_PATTERN;
-		$sDefCond = ($type == "OR") ? "OR" : "AND";
-		$arSQL = array(); // Array for SQL parts
-		$arCond = array(); // Array for search conditions
-		$cnt = count($arKeywords);
-		$j = 0; // Number of SQL parts
-		for ($i = 0; $i < $cnt; $i++) {
-			$Keyword = $arKeywords[$i];
-			$Keyword = trim($Keyword);
-			if ($EW_BASIC_SEARCH_IGNORE_PATTERN <> "") {
-				$Keyword = preg_replace($EW_BASIC_SEARCH_IGNORE_PATTERN, "\\", $Keyword);
-				$ar = explode("\\", $Keyword);
-			} else {
-				$ar = array($Keyword);
-			}
-			foreach ($ar as $Keyword) {
-				if ($Keyword <> "") {
-					$sWrk = "";
-					if ($Keyword == "OR" && $type == "") {
-						if ($j > 0)
-							$arCond[$j-1] = "OR";
-					} elseif ($Keyword == EW_NULL_VALUE) {
-						$sWrk = $Fld->FldExpression . " IS NULL";
-					} elseif ($Keyword == EW_NOT_NULL_VALUE) {
-						$sWrk = $Fld->FldExpression . " IS NOT NULL";
-					} elseif ($Fld->FldIsVirtual) {
-						$sWrk = $Fld->FldVirtualExpression . ew_Like(ew_QuotedValue("%" . $Keyword . "%", EW_DATATYPE_STRING, $this->DBID), $this->DBID);
-					} elseif ($Fld->FldDataType != EW_DATATYPE_NUMBER || is_numeric($Keyword)) {
-						$sWrk = $Fld->FldBasicSearchExpression . ew_Like(ew_QuotedValue("%" . $Keyword . "%", EW_DATATYPE_STRING, $this->DBID), $this->DBID);
-					}
-					if ($sWrk <> "") {
-						$arSQL[$j] = $sWrk;
-						$arCond[$j] = $sDefCond;
-						$j += 1;
-					}
-				}
-			}
+	// Build search SQL
+	function BuildSearchSql(&$Where, &$Fld, $Default, $MultiValue) {
+		$FldParm = substr($Fld->FldVar, 2);
+		$FldVal = ($Default) ? $Fld->AdvancedSearch->SearchValueDefault : $Fld->AdvancedSearch->SearchValue; // @$_GET["x_$FldParm"]
+		$FldOpr = ($Default) ? $Fld->AdvancedSearch->SearchOperatorDefault : $Fld->AdvancedSearch->SearchOperator; // @$_GET["z_$FldParm"]
+		$FldCond = ($Default) ? $Fld->AdvancedSearch->SearchConditionDefault : $Fld->AdvancedSearch->SearchCondition; // @$_GET["v_$FldParm"]
+		$FldVal2 = ($Default) ? $Fld->AdvancedSearch->SearchValue2Default : $Fld->AdvancedSearch->SearchValue2; // @$_GET["y_$FldParm"]
+		$FldOpr2 = ($Default) ? $Fld->AdvancedSearch->SearchOperator2Default : $Fld->AdvancedSearch->SearchOperator2; // @$_GET["w_$FldParm"]
+		$sWrk = "";
+
+		//$FldVal = ew_StripSlashes($FldVal);
+		if (is_array($FldVal)) $FldVal = implode(",", $FldVal);
+
+		//$FldVal2 = ew_StripSlashes($FldVal2);
+		if (is_array($FldVal2)) $FldVal2 = implode(",", $FldVal2);
+		$FldOpr = strtoupper(trim($FldOpr));
+		if ($FldOpr == "") $FldOpr = "=";
+		$FldOpr2 = strtoupper(trim($FldOpr2));
+		if ($FldOpr2 == "") $FldOpr2 = "=";
+		if (EW_SEARCH_MULTI_VALUE_OPTION == 1)
+			$MultiValue = FALSE;
+		if ($MultiValue) {
+			$sWrk1 = ($FldVal <> "") ? ew_GetMultiSearchSql($Fld, $FldOpr, $FldVal, $this->DBID) : ""; // Field value 1
+			$sWrk2 = ($FldVal2 <> "") ? ew_GetMultiSearchSql($Fld, $FldOpr2, $FldVal2, $this->DBID) : ""; // Field value 2
+			$sWrk = $sWrk1; // Build final SQL
+			if ($sWrk2 <> "")
+				$sWrk = ($sWrk <> "") ? "($sWrk) $FldCond ($sWrk2)" : $sWrk2;
+		} else {
+			$FldVal = $this->ConvertSearchValue($Fld, $FldVal);
+			$FldVal2 = $this->ConvertSearchValue($Fld, $FldVal2);
+			$sWrk = ew_GetSearchSql($Fld, $FldVal, $FldOpr, $FldCond, $FldVal2, $FldOpr2, $this->DBID);
 		}
-		$cnt = count($arSQL);
-		$bQuoted = FALSE;
-		$sSql = "";
-		if ($cnt > 0) {
-			for ($i = 0; $i < $cnt-1; $i++) {
-				if ($arCond[$i] == "OR") {
-					if (!$bQuoted) $sSql .= "(";
-					$bQuoted = TRUE;
-				}
-				$sSql .= $arSQL[$i];
-				if ($bQuoted && $arCond[$i] <> "OR") {
-					$sSql .= ")";
-					$bQuoted = FALSE;
-				}
-				$sSql .= " " . $arCond[$i] . " ";
-			}
-			$sSql .= $arSQL[$cnt-1];
-			if ($bQuoted)
-				$sSql .= ")";
-		}
-		if ($sSql <> "") {
-			if ($Where <> "") $Where .= " OR ";
-			$Where .=  "(" . $sSql . ")";
-		}
+		ew_AddFilter($Where, $sWrk);
 	}
 
-	// Return basic search WHERE clause based on search keyword and type
-	function BasicSearchWhere($Default = FALSE) {
-		global $Security;
-		$sSearchStr = "";
-		$sSearchKeyword = ($Default) ? $this->BasicSearch->KeywordDefault : $this->BasicSearch->Keyword;
-		$sSearchType = ($Default) ? $this->BasicSearch->TypeDefault : $this->BasicSearch->Type;
-		if ($sSearchKeyword <> "") {
-			$sSearch = trim($sSearchKeyword);
-			if ($sSearchType <> "=") {
-				$ar = array();
-
-				// Match quoted keywords (i.e.: "...")
-				if (preg_match_all('/"([^"]*)"/i', $sSearch, $matches, PREG_SET_ORDER)) {
-					foreach ($matches as $match) {
-						$p = strpos($sSearch, $match[0]);
-						$str = substr($sSearch, 0, $p);
-						$sSearch = substr($sSearch, $p + strlen($match[0]));
-						if (strlen(trim($str)) > 0)
-							$ar = array_merge($ar, explode(" ", trim($str)));
-						$ar[] = $match[1]; // Save quoted keyword
-					}
-				}
-
-				// Match individual keywords
-				if (strlen(trim($sSearch)) > 0)
-					$ar = array_merge($ar, explode(" ", trim($sSearch)));
-
-				// Search keyword in any fields
-				if (($sSearchType == "OR" || $sSearchType == "AND") && $this->BasicSearch->BasicSearchAnyFields) {
-					foreach ($ar as $sKeyword) {
-						if ($sKeyword <> "") {
-							if ($sSearchStr <> "") $sSearchStr .= " " . $sSearchType . " ";
-							$sSearchStr .= "(" . $this->BasicSearchSQL(array($sKeyword), $sSearchType) . ")";
-						}
-					}
-				} else {
-					$sSearchStr = $this->BasicSearchSQL($ar, $sSearchType);
-				}
-			} else {
-				$sSearchStr = $this->BasicSearchSQL(array($sSearch), $sSearchType);
-			}
-			if (!$Default) $this->Command = "search";
+	// Convert search value
+	function ConvertSearchValue(&$Fld, $FldVal) {
+		if ($FldVal == EW_NULL_VALUE || $FldVal == EW_NOT_NULL_VALUE)
+			return $FldVal;
+		$Value = $FldVal;
+		if ($Fld->FldDataType == EW_DATATYPE_BOOLEAN) {
+			if ($FldVal <> "") $Value = ($FldVal == "1" || strtolower(strval($FldVal)) == "y" || strtolower(strval($FldVal)) == "t") ? $Fld->TrueValue : $Fld->FalseValue;
+		} elseif ($Fld->FldDataType == EW_DATATYPE_DATE || $Fld->FldDataType == EW_DATATYPE_TIME) {
+			if ($FldVal <> "") $Value = ew_UnFormatDateTime($FldVal, $Fld->FldDateTimeFormat);
 		}
-		if (!$Default && $this->Command == "search") {
-			$this->BasicSearch->setKeyword($sSearchKeyword);
-			$this->BasicSearch->setType($sSearchType);
-		}
-		return $sSearchStr;
+		return $Value;
 	}
 
 	// Check if search parm exists
 	function CheckSearchParms() {
-
-		// Check basic search
-		if ($this->BasicSearch->IssetSession())
+		if ($this->id->AdvancedSearch->IssetSession())
+			return TRUE;
+		if ($this->tipejurnal_id->AdvancedSearch->IssetSession())
+			return TRUE;
+		if ($this->period_id->AdvancedSearch->IssetSession())
+			return TRUE;
+		if ($this->createon->AdvancedSearch->IssetSession())
+			return TRUE;
+		if ($this->keterangan->AdvancedSearch->IssetSession())
+			return TRUE;
+		if ($this->person_id->AdvancedSearch->IssetSession())
+			return TRUE;
+		if ($this->nomer->AdvancedSearch->IssetSession())
 			return TRUE;
 		return FALSE;
 	}
@@ -925,8 +879,8 @@ class cjurnal_list extends cjurnal {
 		$this->SearchWhere = "";
 		$this->setSearchWhere($this->SearchWhere);
 
-		// Clear basic search parameters
-		$this->ResetBasicSearchParms();
+		// Clear advanced search parameters
+		$this->ResetAdvancedSearchParms();
 	}
 
 	// Load advanced search default values
@@ -934,17 +888,29 @@ class cjurnal_list extends cjurnal {
 		return FALSE;
 	}
 
-	// Clear all basic search parameters
-	function ResetBasicSearchParms() {
-		$this->BasicSearch->UnsetSession();
+	// Clear all advanced search parameters
+	function ResetAdvancedSearchParms() {
+		$this->id->AdvancedSearch->UnsetSession();
+		$this->tipejurnal_id->AdvancedSearch->UnsetSession();
+		$this->period_id->AdvancedSearch->UnsetSession();
+		$this->createon->AdvancedSearch->UnsetSession();
+		$this->keterangan->AdvancedSearch->UnsetSession();
+		$this->person_id->AdvancedSearch->UnsetSession();
+		$this->nomer->AdvancedSearch->UnsetSession();
 	}
 
 	// Restore all search parameters
 	function RestoreSearchParms() {
 		$this->RestoreSearch = TRUE;
 
-		// Restore basic search values
-		$this->BasicSearch->Load();
+		// Restore advanced search values
+		$this->id->AdvancedSearch->Load();
+		$this->tipejurnal_id->AdvancedSearch->Load();
+		$this->period_id->AdvancedSearch->Load();
+		$this->createon->AdvancedSearch->Load();
+		$this->keterangan->AdvancedSearch->Load();
+		$this->person_id->AdvancedSearch->Load();
+		$this->nomer->AdvancedSearch->Load();
 	}
 
 	// Set up sort parameters
@@ -957,12 +923,9 @@ class cjurnal_list extends cjurnal {
 		if (@$_GET["order"] <> "") {
 			$this->CurrentOrder = ew_StripSlashes(@$_GET["order"]);
 			$this->CurrentOrderType = @$_GET["ordertype"];
-			$this->UpdateSort($this->id, $bCtrl); // id
 			$this->UpdateSort($this->tipejurnal_id, $bCtrl); // tipejurnal_id
-			$this->UpdateSort($this->period_id, $bCtrl); // period_id
 			$this->UpdateSort($this->createon, $bCtrl); // createon
 			$this->UpdateSort($this->keterangan, $bCtrl); // keterangan
-			$this->UpdateSort($this->person_id, $bCtrl); // person_id
 			$this->UpdateSort($this->nomer, $bCtrl); // nomer
 			$this->setStartRecordNumber(1); // Reset start position
 		}
@@ -996,12 +959,9 @@ class cjurnal_list extends cjurnal {
 			if ($this->Command == "resetsort") {
 				$sOrderBy = "";
 				$this->setSessionOrderBy($sOrderBy);
-				$this->id->setSort("");
 				$this->tipejurnal_id->setSort("");
-				$this->period_id->setSort("");
 				$this->createon->setSort("");
 				$this->keterangan->setSort("");
-				$this->person_id->setSort("");
 				$this->nomer->setSort("");
 			}
 
@@ -1083,6 +1043,14 @@ class cjurnal_list extends cjurnal {
 		$item->ShowInDropDown = FALSE;
 		$item->ShowInButtonGroup = FALSE;
 
+		// "sequence"
+		$item = &$this->ListOptions->Add("sequence");
+		$item->CssStyle = "white-space: nowrap;";
+		$item->Visible = TRUE;
+		$item->OnLeft = TRUE; // Always on left
+		$item->ShowInDropDown = FALSE;
+		$item->ShowInButtonGroup = FALSE;
+
 		// Drop down button for ListOptions
 		$this->ListOptions->UseImageAndText = TRUE;
 		$this->ListOptions->UseDropDownButton = FALSE;
@@ -1103,6 +1071,10 @@ class cjurnal_list extends cjurnal {
 	function RenderListOptions() {
 		global $Security, $Language, $objForm;
 		$this->ListOptions->LoadDefault();
+
+		// "sequence"
+		$oListOpt = &$this->ListOptions->Items["sequence"];
+		$oListOpt->Body = ew_FormatSeqNo($this->RecCnt);
 
 		// "view"
 		$oListOpt = &$this->ListOptions->Items["view"];
@@ -1487,11 +1459,46 @@ class cjurnal_list extends cjurnal {
 		}
 	}
 
-	// Load basic search values
-	function LoadBasicSearchValues() {
-		$this->BasicSearch->Keyword = @$_GET[EW_TABLE_BASIC_SEARCH];
-		if ($this->BasicSearch->Keyword <> "") $this->Command = "search";
-		$this->BasicSearch->Type = @$_GET[EW_TABLE_BASIC_SEARCH_TYPE];
+	// Load search values for validation
+	function LoadSearchValues() {
+		global $objForm;
+
+		// Load search values
+		// id
+
+		$this->id->AdvancedSearch->SearchValue = ew_StripSlashes(@$_GET["x_id"]);
+		if ($this->id->AdvancedSearch->SearchValue <> "") $this->Command = "search";
+		$this->id->AdvancedSearch->SearchOperator = @$_GET["z_id"];
+
+		// tipejurnal_id
+		$this->tipejurnal_id->AdvancedSearch->SearchValue = ew_StripSlashes(@$_GET["x_tipejurnal_id"]);
+		if ($this->tipejurnal_id->AdvancedSearch->SearchValue <> "") $this->Command = "search";
+		$this->tipejurnal_id->AdvancedSearch->SearchOperator = @$_GET["z_tipejurnal_id"];
+
+		// period_id
+		$this->period_id->AdvancedSearch->SearchValue = ew_StripSlashes(@$_GET["x_period_id"]);
+		if ($this->period_id->AdvancedSearch->SearchValue <> "") $this->Command = "search";
+		$this->period_id->AdvancedSearch->SearchOperator = @$_GET["z_period_id"];
+
+		// createon
+		$this->createon->AdvancedSearch->SearchValue = ew_StripSlashes(@$_GET["x_createon"]);
+		if ($this->createon->AdvancedSearch->SearchValue <> "") $this->Command = "search";
+		$this->createon->AdvancedSearch->SearchOperator = @$_GET["z_createon"];
+
+		// keterangan
+		$this->keterangan->AdvancedSearch->SearchValue = ew_StripSlashes(@$_GET["x_keterangan"]);
+		if ($this->keterangan->AdvancedSearch->SearchValue <> "") $this->Command = "search";
+		$this->keterangan->AdvancedSearch->SearchOperator = @$_GET["z_keterangan"];
+
+		// person_id
+		$this->person_id->AdvancedSearch->SearchValue = ew_StripSlashes(@$_GET["x_person_id"]);
+		if ($this->person_id->AdvancedSearch->SearchValue <> "") $this->Command = "search";
+		$this->person_id->AdvancedSearch->SearchOperator = @$_GET["z_person_id"];
+
+		// nomer
+		$this->nomer->AdvancedSearch->SearchValue = ew_StripSlashes(@$_GET["x_nomer"]);
+		if ($this->nomer->AdvancedSearch->SearchValue <> "") $this->Command = "search";
+		$this->nomer->AdvancedSearch->SearchOperator = @$_GET["z_nomer"];
 	}
 
 	// Load recordset
@@ -1673,7 +1680,7 @@ class cjurnal_list extends cjurnal {
 
 		// createon
 		$this->createon->ViewValue = $this->createon->CurrentValue;
-		$this->createon->ViewValue = ew_FormatDateTime($this->createon->ViewValue, 0);
+		$this->createon->ViewValue = ew_FormatDateTime($this->createon->ViewValue, 7);
 		$this->createon->ViewCustomAttributes = "";
 
 		// keterangan
@@ -1688,20 +1695,10 @@ class cjurnal_list extends cjurnal {
 		$this->nomer->ViewValue = $this->nomer->CurrentValue;
 		$this->nomer->ViewCustomAttributes = "";
 
-			// id
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-			$this->id->TooltipValue = "";
-
 			// tipejurnal_id
 			$this->tipejurnal_id->LinkCustomAttributes = "";
 			$this->tipejurnal_id->HrefValue = "";
 			$this->tipejurnal_id->TooltipValue = "";
-
-			// period_id
-			$this->period_id->LinkCustomAttributes = "";
-			$this->period_id->HrefValue = "";
-			$this->period_id->TooltipValue = "";
 
 			// createon
 			$this->createon->LinkCustomAttributes = "";
@@ -1713,20 +1710,92 @@ class cjurnal_list extends cjurnal {
 			$this->keterangan->HrefValue = "";
 			$this->keterangan->TooltipValue = "";
 
-			// person_id
-			$this->person_id->LinkCustomAttributes = "";
-			$this->person_id->HrefValue = "";
-			$this->person_id->TooltipValue = "";
-
 			// nomer
 			$this->nomer->LinkCustomAttributes = "";
 			$this->nomer->HrefValue = "";
 			$this->nomer->TooltipValue = "";
+		} elseif ($this->RowType == EW_ROWTYPE_SEARCH) { // Search row
+
+			// tipejurnal_id
+			$this->tipejurnal_id->EditAttrs["class"] = "form-control";
+			$this->tipejurnal_id->EditCustomAttributes = "";
+			if (trim(strval($this->tipejurnal_id->AdvancedSearch->SearchValue)) == "") {
+				$sFilterWrk = "0=1";
+			} else {
+				$sFilterWrk = "`id`" . ew_SearchString("=", $this->tipejurnal_id->AdvancedSearch->SearchValue, EW_DATATYPE_NUMBER, "");
+			}
+			$sSqlWrk = "SELECT `id`, `nama` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld`, '' AS `SelectFilterFld`, '' AS `SelectFilterFld2`, '' AS `SelectFilterFld3`, '' AS `SelectFilterFld4` FROM `tipejurnal`";
+			$sWhereWrk = "";
+			$this->tipejurnal_id->LookupFilters = array();
+			ew_AddFilter($sWhereWrk, $sFilterWrk);
+			$this->Lookup_Selecting($this->tipejurnal_id, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			$arwrk = ($rswrk) ? $rswrk->GetRows() : array();
+			if ($rswrk) $rswrk->Close();
+			$this->tipejurnal_id->EditValue = $arwrk;
+
+			// createon
+			$this->createon->EditAttrs["class"] = "form-control";
+			$this->createon->EditCustomAttributes = "";
+			$this->createon->EditValue = ew_HtmlEncode(ew_FormatDateTime(ew_UnFormatDateTime($this->createon->AdvancedSearch->SearchValue, 7), 7));
+			$this->createon->PlaceHolder = ew_RemoveHtml($this->createon->FldCaption());
+
+			// keterangan
+			$this->keterangan->EditAttrs["class"] = "form-control";
+			$this->keterangan->EditCustomAttributes = "";
+			$this->keterangan->EditValue = ew_HtmlEncode($this->keterangan->AdvancedSearch->SearchValue);
+			$this->keterangan->PlaceHolder = ew_RemoveHtml($this->keterangan->FldCaption());
+
+			// nomer
+			$this->nomer->EditAttrs["class"] = "form-control";
+			$this->nomer->EditCustomAttributes = "";
+			$this->nomer->EditValue = ew_HtmlEncode($this->nomer->AdvancedSearch->SearchValue);
+			$this->nomer->PlaceHolder = ew_RemoveHtml($this->nomer->FldCaption());
+		}
+		if ($this->RowType == EW_ROWTYPE_ADD ||
+			$this->RowType == EW_ROWTYPE_EDIT ||
+			$this->RowType == EW_ROWTYPE_SEARCH) { // Add / Edit / Search row
+			$this->SetupFieldTitles();
 		}
 
 		// Call Row Rendered event
 		if ($this->RowType <> EW_ROWTYPE_AGGREGATEINIT)
 			$this->Row_Rendered();
+	}
+
+	// Validate search
+	function ValidateSearch() {
+		global $gsSearchError;
+
+		// Initialize
+		$gsSearchError = "";
+
+		// Check if validation required
+		if (!EW_SERVER_VALIDATE)
+			return TRUE;
+
+		// Return validate result
+		$ValidateSearch = ($gsSearchError == "");
+
+		// Call Form_CustomValidate event
+		$sFormCustomError = "";
+		$ValidateSearch = $ValidateSearch && $this->Form_CustomValidate($sFormCustomError);
+		if ($sFormCustomError <> "") {
+			ew_AddMessage($gsSearchError, $sFormCustomError);
+		}
+		return $ValidateSearch;
+	}
+
+	// Load advanced search
+	function LoadAdvancedSearch() {
+		$this->id->AdvancedSearch->Load();
+		$this->tipejurnal_id->AdvancedSearch->Load();
+		$this->period_id->AdvancedSearch->Load();
+		$this->createon->AdvancedSearch->Load();
+		$this->keterangan->AdvancedSearch->Load();
+		$this->person_id->AdvancedSearch->Load();
+		$this->nomer->AdvancedSearch->Load();
 	}
 
 	// Set up Breadcrumb
@@ -1742,16 +1811,38 @@ class cjurnal_list extends cjurnal {
 	function SetupLookupFilters($fld, $pageId = null) {
 		global $gsLanguage;
 		$pageId = $pageId ?: $this->PageID;
-		switch ($fld->FldVar) {
-		}
+		if ($pageId == "list") {
+			switch ($fld->FldVar) {
+			}
+		} elseif ($pageId == "extbs") {
+			switch ($fld->FldVar) {
+		case "x_tipejurnal_id":
+			$sSqlWrk = "";
+			$sSqlWrk = "SELECT `id` AS `LinkFld`, `nama` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `tipejurnal`";
+			$sWhereWrk = "";
+			$this->tipejurnal_id->LookupFilters = array();
+			$fld->LookupFilters += array("s" => $sSqlWrk, "d" => "", "f0" => '`id` = {filter_value}', "t0" => "3", "fn0" => "");
+			$sSqlWrk = "";
+			$this->Lookup_Selecting($this->tipejurnal_id, $sWhereWrk); // Call Lookup selecting
+			if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			if ($sSqlWrk <> "")
+				$fld->LookupFilters["s"] .= $sSqlWrk;
+			break;
+			}
+		} 
 	}
 
 	// Setup AutoSuggest filters of a field
 	function SetupAutoSuggestFilters($fld, $pageId = null) {
 		global $gsLanguage;
 		$pageId = $pageId ?: $this->PageID;
-		switch ($fld->FldVar) {
-		}
+		if ($pageId == "list") {
+			switch ($fld->FldVar) {
+			}
+		} elseif ($pageId == "extbs") {
+			switch ($fld->FldVar) {
+			}
+		} 
 	}
 
 	// Page Load event
@@ -1917,10 +2008,40 @@ fjurnallist.ValidateRequired = false;
 
 // Dynamic selection lists
 fjurnallist.Lists["x_tipejurnal_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_nama","","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"tipejurnal"};
-fjurnallist.Lists["x_period_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_start","x_end","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"periode"};
 
 // Form object for search
 var CurrentSearchForm = fjurnallistsrch = new ew_Form("fjurnallistsrch");
+
+// Validate function for search
+fjurnallistsrch.Validate = function(fobj) {
+	if (!this.ValidateRequired)
+		return true; // Ignore validation
+	fobj = fobj || this.Form;
+	var infix = "";
+
+	// Fire Form_CustomValidate event
+	if (!this.Form_CustomValidate(fobj))
+		return false;
+	return true;
+}
+
+// Form_CustomValidate event
+fjurnallistsrch.Form_CustomValidate = 
+ function(fobj) { // DO NOT CHANGE THIS LINE!
+
+ 	// Your custom validation code here, return false if invalid. 
+ 	return true;
+ }
+
+// Use JavaScript validation or not
+<?php if (EW_CLIENT_VALIDATE) { ?>
+fjurnallistsrch.ValidateRequired = true; // Use JavaScript validation
+<?php } else { ?>
+fjurnallistsrch.ValidateRequired = false; // No JavaScript validation
+<?php } ?>
+
+// Dynamic selection lists
+fjurnallistsrch.Lists["x_tipejurnal_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_nama","","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"tipejurnal"};
 </script>
 <script type="text/javascript">
 
@@ -1973,21 +2094,33 @@ $jurnal_list->RenderOtherOptions();
 <input type="hidden" name="cmd" value="search">
 <input type="hidden" name="t" value="jurnal">
 	<div class="ewBasicSearch">
+<?php
+if ($gsSearchError == "")
+	$jurnal_list->LoadAdvancedSearch(); // Load advanced search
+
+// Render for search
+$jurnal->RowType = EW_ROWTYPE_SEARCH;
+
+// Render row
+$jurnal->ResetAttrs();
+$jurnal_list->RenderRow();
+?>
 <div id="xsr_1" class="ewRow">
-	<div class="ewQuickSearch input-group">
-	<input type="text" name="<?php echo EW_TABLE_BASIC_SEARCH ?>" id="<?php echo EW_TABLE_BASIC_SEARCH ?>" class="form-control" value="<?php echo ew_HtmlEncode($jurnal_list->BasicSearch->getKeyword()) ?>" placeholder="<?php echo ew_HtmlEncode($Language->Phrase("Search")) ?>">
-	<input type="hidden" name="<?php echo EW_TABLE_BASIC_SEARCH_TYPE ?>" id="<?php echo EW_TABLE_BASIC_SEARCH_TYPE ?>" value="<?php echo ew_HtmlEncode($jurnal_list->BasicSearch->getType()) ?>">
-	<div class="input-group-btn">
-		<button type="button" data-toggle="dropdown" class="btn btn-default"><span id="searchtype"><?php echo $jurnal_list->BasicSearch->getTypeNameShort() ?></span><span class="caret"></span></button>
-		<ul class="dropdown-menu pull-right" role="menu">
-			<li<?php if ($jurnal_list->BasicSearch->getType() == "") echo " class=\"active\""; ?>><a href="javascript:void(0);" onclick="ew_SetSearchType(this)"><?php echo $Language->Phrase("QuickSearchAuto") ?></a></li>
-			<li<?php if ($jurnal_list->BasicSearch->getType() == "=") echo " class=\"active\""; ?>><a href="javascript:void(0);" onclick="ew_SetSearchType(this,'=')"><?php echo $Language->Phrase("QuickSearchExact") ?></a></li>
-			<li<?php if ($jurnal_list->BasicSearch->getType() == "AND") echo " class=\"active\""; ?>><a href="javascript:void(0);" onclick="ew_SetSearchType(this,'AND')"><?php echo $Language->Phrase("QuickSearchAll") ?></a></li>
-			<li<?php if ($jurnal_list->BasicSearch->getType() == "OR") echo " class=\"active\""; ?>><a href="javascript:void(0);" onclick="ew_SetSearchType(this,'OR')"><?php echo $Language->Phrase("QuickSearchAny") ?></a></li>
-		</ul>
+<?php if ($jurnal->tipejurnal_id->Visible) { // tipejurnal_id ?>
+	<div id="xsc_tipejurnal_id" class="ewCell form-group">
+		<label for="x_tipejurnal_id" class="ewSearchCaption ewLabel"><?php echo $jurnal->tipejurnal_id->FldCaption() ?></label>
+		<span class="ewSearchOperator"><?php echo $Language->Phrase("=") ?><input type="hidden" name="z_tipejurnal_id" id="z_tipejurnal_id" value="="></span>
+		<span class="ewSearchField">
+<select data-table="jurnal" data-field="x_tipejurnal_id" data-value-separator="<?php echo $jurnal->tipejurnal_id->DisplayValueSeparatorAttribute() ?>" id="x_tipejurnal_id" name="x_tipejurnal_id"<?php echo $jurnal->tipejurnal_id->EditAttributes() ?>>
+<?php echo $jurnal->tipejurnal_id->SelectOptionListHtml("x_tipejurnal_id") ?>
+</select>
+<input type="hidden" name="s_x_tipejurnal_id" id="s_x_tipejurnal_id" value="<?php echo $jurnal->tipejurnal_id->LookupFilterQuery(false, "extbs") ?>">
+</span>
+	</div>
+<?php } ?>
+</div>
+<div id="xsr_2" class="ewRow">
 	<button class="btn btn-primary ewButton" name="btnsubmit" id="btnsubmit" type="submit"><?php echo $Language->Phrase("QuickSearchBtn") ?></button>
-	</div>
-	</div>
 </div>
 	</div>
 </div>
@@ -2021,30 +2154,12 @@ $jurnal_list->RenderListOptions();
 // Render list options (header, left)
 $jurnal_list->ListOptions->Render("header", "left");
 ?>
-<?php if ($jurnal->id->Visible) { // id ?>
-	<?php if ($jurnal->SortUrl($jurnal->id) == "") { ?>
-		<th data-name="id"><div id="elh_jurnal_id" class="jurnal_id"><div class="ewTableHeaderCaption"><?php echo $jurnal->id->FldCaption() ?></div></div></th>
-	<?php } else { ?>
-		<th data-name="id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $jurnal->SortUrl($jurnal->id) ?>',2);"><div id="elh_jurnal_id" class="jurnal_id">
-			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $jurnal->id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($jurnal->id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($jurnal->id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
-        </div></div></th>
-	<?php } ?>
-<?php } ?>		
 <?php if ($jurnal->tipejurnal_id->Visible) { // tipejurnal_id ?>
 	<?php if ($jurnal->SortUrl($jurnal->tipejurnal_id) == "") { ?>
 		<th data-name="tipejurnal_id"><div id="elh_jurnal_tipejurnal_id" class="jurnal_tipejurnal_id"><div class="ewTableHeaderCaption"><?php echo $jurnal->tipejurnal_id->FldCaption() ?></div></div></th>
 	<?php } else { ?>
 		<th data-name="tipejurnal_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $jurnal->SortUrl($jurnal->tipejurnal_id) ?>',2);"><div id="elh_jurnal_tipejurnal_id" class="jurnal_tipejurnal_id">
 			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $jurnal->tipejurnal_id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($jurnal->tipejurnal_id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($jurnal->tipejurnal_id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
-        </div></div></th>
-	<?php } ?>
-<?php } ?>		
-<?php if ($jurnal->period_id->Visible) { // period_id ?>
-	<?php if ($jurnal->SortUrl($jurnal->period_id) == "") { ?>
-		<th data-name="period_id"><div id="elh_jurnal_period_id" class="jurnal_period_id"><div class="ewTableHeaderCaption"><?php echo $jurnal->period_id->FldCaption() ?></div></div></th>
-	<?php } else { ?>
-		<th data-name="period_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $jurnal->SortUrl($jurnal->period_id) ?>',2);"><div id="elh_jurnal_period_id" class="jurnal_period_id">
-			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $jurnal->period_id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($jurnal->period_id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($jurnal->period_id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
 <?php } ?>		
@@ -2062,16 +2177,7 @@ $jurnal_list->ListOptions->Render("header", "left");
 		<th data-name="keterangan"><div id="elh_jurnal_keterangan" class="jurnal_keterangan"><div class="ewTableHeaderCaption"><?php echo $jurnal->keterangan->FldCaption() ?></div></div></th>
 	<?php } else { ?>
 		<th data-name="keterangan"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $jurnal->SortUrl($jurnal->keterangan) ?>',2);"><div id="elh_jurnal_keterangan" class="jurnal_keterangan">
-			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $jurnal->keterangan->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($jurnal->keterangan->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($jurnal->keterangan->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
-        </div></div></th>
-	<?php } ?>
-<?php } ?>		
-<?php if ($jurnal->person_id->Visible) { // person_id ?>
-	<?php if ($jurnal->SortUrl($jurnal->person_id) == "") { ?>
-		<th data-name="person_id"><div id="elh_jurnal_person_id" class="jurnal_person_id"><div class="ewTableHeaderCaption"><?php echo $jurnal->person_id->FldCaption() ?></div></div></th>
-	<?php } else { ?>
-		<th data-name="person_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $jurnal->SortUrl($jurnal->person_id) ?>',2);"><div id="elh_jurnal_person_id" class="jurnal_person_id">
-			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $jurnal->person_id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($jurnal->person_id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($jurnal->person_id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
+			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $jurnal->keterangan->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($jurnal->keterangan->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($jurnal->keterangan->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
 <?php } ?>		
@@ -2080,7 +2186,7 @@ $jurnal_list->ListOptions->Render("header", "left");
 		<th data-name="nomer"><div id="elh_jurnal_nomer" class="jurnal_nomer"><div class="ewTableHeaderCaption"><?php echo $jurnal->nomer->FldCaption() ?></div></div></th>
 	<?php } else { ?>
 		<th data-name="nomer"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $jurnal->SortUrl($jurnal->nomer) ?>',2);"><div id="elh_jurnal_nomer" class="jurnal_nomer">
-			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $jurnal->nomer->FldCaption() ?><?php echo $Language->Phrase("SrchLegend") ?></span><span class="ewTableHeaderSort"><?php if ($jurnal->nomer->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($jurnal->nomer->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
+			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $jurnal->nomer->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($jurnal->nomer->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($jurnal->nomer->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
         </div></div></th>
 	<?php } ?>
 <?php } ?>		
@@ -2149,29 +2255,13 @@ while ($jurnal_list->RecCnt < $jurnal_list->StopRec) {
 // Render list options (body, left)
 $jurnal_list->ListOptions->Render("body", "left", $jurnal_list->RowCnt);
 ?>
-	<?php if ($jurnal->id->Visible) { // id ?>
-		<td data-name="id"<?php echo $jurnal->id->CellAttributes() ?>>
-<span id="el<?php echo $jurnal_list->RowCnt ?>_jurnal_id" class="jurnal_id">
-<span<?php echo $jurnal->id->ViewAttributes() ?>>
-<?php echo $jurnal->id->ListViewValue() ?></span>
-</span>
-<a id="<?php echo $jurnal_list->PageObjName . "_row_" . $jurnal_list->RowCnt ?>"></a></td>
-	<?php } ?>
 	<?php if ($jurnal->tipejurnal_id->Visible) { // tipejurnal_id ?>
 		<td data-name="tipejurnal_id"<?php echo $jurnal->tipejurnal_id->CellAttributes() ?>>
 <span id="el<?php echo $jurnal_list->RowCnt ?>_jurnal_tipejurnal_id" class="jurnal_tipejurnal_id">
 <span<?php echo $jurnal->tipejurnal_id->ViewAttributes() ?>>
 <?php echo $jurnal->tipejurnal_id->ListViewValue() ?></span>
 </span>
-</td>
-	<?php } ?>
-	<?php if ($jurnal->period_id->Visible) { // period_id ?>
-		<td data-name="period_id"<?php echo $jurnal->period_id->CellAttributes() ?>>
-<span id="el<?php echo $jurnal_list->RowCnt ?>_jurnal_period_id" class="jurnal_period_id">
-<span<?php echo $jurnal->period_id->ViewAttributes() ?>>
-<?php echo $jurnal->period_id->ListViewValue() ?></span>
-</span>
-</td>
+<a id="<?php echo $jurnal_list->PageObjName . "_row_" . $jurnal_list->RowCnt ?>"></a></td>
 	<?php } ?>
 	<?php if ($jurnal->createon->Visible) { // createon ?>
 		<td data-name="createon"<?php echo $jurnal->createon->CellAttributes() ?>>
@@ -2186,14 +2276,6 @@ $jurnal_list->ListOptions->Render("body", "left", $jurnal_list->RowCnt);
 <span id="el<?php echo $jurnal_list->RowCnt ?>_jurnal_keterangan" class="jurnal_keterangan">
 <span<?php echo $jurnal->keterangan->ViewAttributes() ?>>
 <?php echo $jurnal->keterangan->ListViewValue() ?></span>
-</span>
-</td>
-	<?php } ?>
-	<?php if ($jurnal->person_id->Visible) { // person_id ?>
-		<td data-name="person_id"<?php echo $jurnal->person_id->CellAttributes() ?>>
-<span id="el<?php echo $jurnal_list->RowCnt ?>_jurnal_person_id" class="jurnal_person_id">
-<span<?php echo $jurnal->person_id->ViewAttributes() ?>>
-<?php echo $jurnal->person_id->ListViewValue() ?></span>
 </span>
 </td>
 	<?php } ?>

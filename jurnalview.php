@@ -309,13 +309,9 @@ class cjurnal_view extends cjurnal {
 	function Page_Init() {
 		global $gsExport, $gsCustomExport, $gsExportFile, $UserProfile, $Language, $Security, $objForm;
 		$this->CurrentAction = (@$_GET["a"] <> "") ? $_GET["a"] : @$_POST["a_list"]; // Set up current action
-		$this->id->SetVisibility();
-		$this->id->Visible = !$this->IsAdd() && !$this->IsCopy() && !$this->IsGridAdd();
 		$this->tipejurnal_id->SetVisibility();
-		$this->period_id->SetVisibility();
 		$this->createon->SetVisibility();
 		$this->keterangan->SetVisibility();
-		$this->person_id->SetVisibility();
 		$this->nomer->SetVisibility();
 
 		// Global Page Loading event (in userfn*.php)
@@ -804,7 +800,7 @@ class cjurnal_view extends cjurnal {
 
 		// createon
 		$this->createon->ViewValue = $this->createon->CurrentValue;
-		$this->createon->ViewValue = ew_FormatDateTime($this->createon->ViewValue, 0);
+		$this->createon->ViewValue = ew_FormatDateTime($this->createon->ViewValue, 7);
 		$this->createon->ViewCustomAttributes = "";
 
 		// keterangan
@@ -819,20 +815,10 @@ class cjurnal_view extends cjurnal {
 		$this->nomer->ViewValue = $this->nomer->CurrentValue;
 		$this->nomer->ViewCustomAttributes = "";
 
-			// id
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-			$this->id->TooltipValue = "";
-
 			// tipejurnal_id
 			$this->tipejurnal_id->LinkCustomAttributes = "";
 			$this->tipejurnal_id->HrefValue = "";
 			$this->tipejurnal_id->TooltipValue = "";
-
-			// period_id
-			$this->period_id->LinkCustomAttributes = "";
-			$this->period_id->HrefValue = "";
-			$this->period_id->TooltipValue = "";
 
 			// createon
 			$this->createon->LinkCustomAttributes = "";
@@ -843,11 +829,6 @@ class cjurnal_view extends cjurnal {
 			$this->keterangan->LinkCustomAttributes = "";
 			$this->keterangan->HrefValue = "";
 			$this->keterangan->TooltipValue = "";
-
-			// person_id
-			$this->person_id->LinkCustomAttributes = "";
-			$this->person_id->HrefValue = "";
-			$this->person_id->TooltipValue = "";
 
 			// nomer
 			$this->nomer->LinkCustomAttributes = "";
@@ -1044,7 +1025,6 @@ fjurnalview.ValidateRequired = false;
 
 // Dynamic selection lists
 fjurnalview.Lists["x_tipejurnal_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_nama","","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"tipejurnal"};
-fjurnalview.Lists["x_period_id"] = {"LinkField":"x_id","Ajax":true,"AutoFill":false,"DisplayFields":["x_start","x_end","",""],"ParentFields":[],"ChildFields":[],"FilterFields":[],"Options":[],"Template":"","LinkTable":"periode"};
 
 // Form object for search
 </script>
@@ -1079,17 +1059,6 @@ $jurnal_view->ShowMessage();
 <input type="hidden" name="modal" value="1">
 <?php } ?>
 <table class="table table-bordered table-striped ewViewTable">
-<?php if ($jurnal->id->Visible) { // id ?>
-	<tr id="r_id">
-		<td><span id="elh_jurnal_id"><?php echo $jurnal->id->FldCaption() ?></span></td>
-		<td data-name="id"<?php echo $jurnal->id->CellAttributes() ?>>
-<span id="el_jurnal_id">
-<span<?php echo $jurnal->id->ViewAttributes() ?>>
-<?php echo $jurnal->id->ViewValue ?></span>
-</span>
-</td>
-	</tr>
-<?php } ?>
 <?php if ($jurnal->tipejurnal_id->Visible) { // tipejurnal_id ?>
 	<tr id="r_tipejurnal_id">
 		<td><span id="elh_jurnal_tipejurnal_id"><?php echo $jurnal->tipejurnal_id->FldCaption() ?></span></td>
@@ -1097,17 +1066,6 @@ $jurnal_view->ShowMessage();
 <span id="el_jurnal_tipejurnal_id">
 <span<?php echo $jurnal->tipejurnal_id->ViewAttributes() ?>>
 <?php echo $jurnal->tipejurnal_id->ViewValue ?></span>
-</span>
-</td>
-	</tr>
-<?php } ?>
-<?php if ($jurnal->period_id->Visible) { // period_id ?>
-	<tr id="r_period_id">
-		<td><span id="elh_jurnal_period_id"><?php echo $jurnal->period_id->FldCaption() ?></span></td>
-		<td data-name="period_id"<?php echo $jurnal->period_id->CellAttributes() ?>>
-<span id="el_jurnal_period_id">
-<span<?php echo $jurnal->period_id->ViewAttributes() ?>>
-<?php echo $jurnal->period_id->ViewValue ?></span>
 </span>
 </td>
 	</tr>
@@ -1130,17 +1088,6 @@ $jurnal_view->ShowMessage();
 <span id="el_jurnal_keterangan">
 <span<?php echo $jurnal->keterangan->ViewAttributes() ?>>
 <?php echo $jurnal->keterangan->ViewValue ?></span>
-</span>
-</td>
-	</tr>
-<?php } ?>
-<?php if ($jurnal->person_id->Visible) { // person_id ?>
-	<tr id="r_person_id">
-		<td><span id="elh_jurnal_person_id"><?php echo $jurnal->person_id->FldCaption() ?></span></td>
-		<td data-name="person_id"<?php echo $jurnal->person_id->CellAttributes() ?>>
-<span id="el_jurnal_person_id">
-<span<?php echo $jurnal->person_id->ViewAttributes() ?>>
-<?php echo $jurnal->person_id->ViewValue ?></span>
 </span>
 </td>
 	</tr>
