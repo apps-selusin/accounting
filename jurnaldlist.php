@@ -346,9 +346,6 @@ class cjurnald_list extends cjurnald {
 
 		// Set up list options
 		$this->SetupListOptions();
-		$this->id->SetVisibility();
-		$this->id->Visible = !$this->IsAdd() && !$this->IsCopy() && !$this->IsGridAdd();
-		$this->jurnal_id->SetVisibility();
 		$this->akun_id->SetVisibility();
 		$this->debet->SetVisibility();
 		$this->kredit->SetVisibility();
@@ -643,8 +640,6 @@ class cjurnald_list extends cjurnald {
 		if (@$_GET["order"] <> "") {
 			$this->CurrentOrder = ew_StripSlashes(@$_GET["order"]);
 			$this->CurrentOrderType = @$_GET["ordertype"];
-			$this->UpdateSort($this->id, $bCtrl); // id
-			$this->UpdateSort($this->jurnal_id, $bCtrl); // jurnal_id
 			$this->UpdateSort($this->akun_id, $bCtrl); // akun_id
 			$this->UpdateSort($this->debet, $bCtrl); // debet
 			$this->UpdateSort($this->kredit, $bCtrl); // kredit
@@ -684,8 +679,6 @@ class cjurnald_list extends cjurnald {
 			if ($this->Command == "resetsort") {
 				$sOrderBy = "";
 				$this->setSessionOrderBy($sOrderBy);
-				$this->id->setSort("");
-				$this->jurnal_id->setSort("");
 				$this->akun_id->setSort("");
 				$this->debet->setSort("");
 				$this->kredit->setSort("");
@@ -747,6 +740,14 @@ class cjurnald_list extends cjurnald {
 		$item->ShowInDropDown = FALSE;
 		$item->ShowInButtonGroup = FALSE;
 
+		// "sequence"
+		$item = &$this->ListOptions->Add("sequence");
+		$item->CssStyle = "white-space: nowrap;";
+		$item->Visible = TRUE;
+		$item->OnLeft = TRUE; // Always on left
+		$item->ShowInDropDown = FALSE;
+		$item->ShowInButtonGroup = FALSE;
+
 		// Drop down button for ListOptions
 		$this->ListOptions->UseImageAndText = TRUE;
 		$this->ListOptions->UseDropDownButton = FALSE;
@@ -767,6 +768,10 @@ class cjurnald_list extends cjurnald {
 	function RenderListOptions() {
 		global $Security, $Language, $objForm;
 		$this->ListOptions->LoadDefault();
+
+		// "sequence"
+		$oListOpt = &$this->ListOptions->Items["sequence"];
+		$oListOpt->Body = ew_FormatSeqNo($this->RecCnt);
 
 		// "view"
 		$oListOpt = &$this->ListOptions->Items["view"];
@@ -1218,21 +1223,15 @@ class cjurnald_list extends cjurnald {
 
 		// debet
 		$this->debet->ViewValue = $this->debet->CurrentValue;
+		$this->debet->ViewValue = ew_FormatNumber($this->debet->ViewValue, 2, -2, -2, -2);
+		$this->debet->CellCssStyle .= "text-align: right;";
 		$this->debet->ViewCustomAttributes = "";
 
 		// kredit
 		$this->kredit->ViewValue = $this->kredit->CurrentValue;
+		$this->kredit->ViewValue = ew_FormatNumber($this->kredit->ViewValue, 2, -2, -2, -2);
+		$this->kredit->CellCssStyle .= "text-align: right;";
 		$this->kredit->ViewCustomAttributes = "";
-
-			// id
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-			$this->id->TooltipValue = "";
-
-			// jurnal_id
-			$this->jurnal_id->LinkCustomAttributes = "";
-			$this->jurnal_id->HrefValue = "";
-			$this->jurnal_id->TooltipValue = "";
 
 			// akun_id
 			$this->akun_id->LinkCustomAttributes = "";
@@ -1593,24 +1592,6 @@ $jurnald_list->RenderListOptions();
 // Render list options (header, left)
 $jurnald_list->ListOptions->Render("header", "left");
 ?>
-<?php if ($jurnald->id->Visible) { // id ?>
-	<?php if ($jurnald->SortUrl($jurnald->id) == "") { ?>
-		<th data-name="id"><div id="elh_jurnald_id" class="jurnald_id"><div class="ewTableHeaderCaption"><?php echo $jurnald->id->FldCaption() ?></div></div></th>
-	<?php } else { ?>
-		<th data-name="id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $jurnald->SortUrl($jurnald->id) ?>',2);"><div id="elh_jurnald_id" class="jurnald_id">
-			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $jurnald->id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($jurnald->id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($jurnald->id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
-        </div></div></th>
-	<?php } ?>
-<?php } ?>		
-<?php if ($jurnald->jurnal_id->Visible) { // jurnal_id ?>
-	<?php if ($jurnald->SortUrl($jurnald->jurnal_id) == "") { ?>
-		<th data-name="jurnal_id"><div id="elh_jurnald_jurnal_id" class="jurnald_jurnal_id"><div class="ewTableHeaderCaption"><?php echo $jurnald->jurnal_id->FldCaption() ?></div></div></th>
-	<?php } else { ?>
-		<th data-name="jurnal_id"><div class="ewPointer" onclick="ew_Sort(event,'<?php echo $jurnald->SortUrl($jurnald->jurnal_id) ?>',2);"><div id="elh_jurnald_jurnal_id" class="jurnald_jurnal_id">
-			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $jurnald->jurnal_id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($jurnald->jurnal_id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($jurnald->jurnal_id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
-        </div></div></th>
-	<?php } ?>
-<?php } ?>		
 <?php if ($jurnald->akun_id->Visible) { // akun_id ?>
 	<?php if ($jurnald->SortUrl($jurnald->akun_id) == "") { ?>
 		<th data-name="akun_id"><div id="elh_jurnald_akun_id" class="jurnald_akun_id"><div class="ewTableHeaderCaption"><?php echo $jurnald->akun_id->FldCaption() ?></div></div></th>
@@ -1703,29 +1684,13 @@ while ($jurnald_list->RecCnt < $jurnald_list->StopRec) {
 // Render list options (body, left)
 $jurnald_list->ListOptions->Render("body", "left", $jurnald_list->RowCnt);
 ?>
-	<?php if ($jurnald->id->Visible) { // id ?>
-		<td data-name="id"<?php echo $jurnald->id->CellAttributes() ?>>
-<span id="el<?php echo $jurnald_list->RowCnt ?>_jurnald_id" class="jurnald_id">
-<span<?php echo $jurnald->id->ViewAttributes() ?>>
-<?php echo $jurnald->id->ListViewValue() ?></span>
-</span>
-<a id="<?php echo $jurnald_list->PageObjName . "_row_" . $jurnald_list->RowCnt ?>"></a></td>
-	<?php } ?>
-	<?php if ($jurnald->jurnal_id->Visible) { // jurnal_id ?>
-		<td data-name="jurnal_id"<?php echo $jurnald->jurnal_id->CellAttributes() ?>>
-<span id="el<?php echo $jurnald_list->RowCnt ?>_jurnald_jurnal_id" class="jurnald_jurnal_id">
-<span<?php echo $jurnald->jurnal_id->ViewAttributes() ?>>
-<?php echo $jurnald->jurnal_id->ListViewValue() ?></span>
-</span>
-</td>
-	<?php } ?>
 	<?php if ($jurnald->akun_id->Visible) { // akun_id ?>
 		<td data-name="akun_id"<?php echo $jurnald->akun_id->CellAttributes() ?>>
 <span id="el<?php echo $jurnald_list->RowCnt ?>_jurnald_akun_id" class="jurnald_akun_id">
 <span<?php echo $jurnald->akun_id->ViewAttributes() ?>>
 <?php echo $jurnald->akun_id->ListViewValue() ?></span>
 </span>
-</td>
+<a id="<?php echo $jurnald_list->PageObjName . "_row_" . $jurnald_list->RowCnt ?>"></a></td>
 	<?php } ?>
 	<?php if ($jurnald->debet->Visible) { // debet ?>
 		<td data-name="debet"<?php echo $jurnald->debet->CellAttributes() ?>>

@@ -258,9 +258,6 @@ class cjurnald_edit extends cjurnald {
 		// Create form object
 		$objForm = new cFormObj();
 		$this->CurrentAction = (@$_GET["a"] <> "") ? $_GET["a"] : @$_POST["a_list"]; // Set up current action
-		$this->id->SetVisibility();
-		$this->id->Visible = !$this->IsAdd() && !$this->IsCopy() && !$this->IsGridAdd();
-		$this->jurnal_id->SetVisibility();
 		$this->akun_id->SetVisibility();
 		$this->debet->SetVisibility();
 		$this->kredit->SetVisibility();
@@ -518,11 +515,6 @@ class cjurnald_edit extends cjurnald {
 
 		// Load from form
 		global $objForm;
-		if (!$this->id->FldIsDetailKey)
-			$this->id->setFormValue($objForm->GetValue("x_id"));
-		if (!$this->jurnal_id->FldIsDetailKey) {
-			$this->jurnal_id->setFormValue($objForm->GetValue("x_jurnal_id"));
-		}
 		if (!$this->akun_id->FldIsDetailKey) {
 			$this->akun_id->setFormValue($objForm->GetValue("x_akun_id"));
 		}
@@ -532,6 +524,8 @@ class cjurnald_edit extends cjurnald {
 		if (!$this->kredit->FldIsDetailKey) {
 			$this->kredit->setFormValue($objForm->GetValue("x_kredit"));
 		}
+		if (!$this->id->FldIsDetailKey)
+			$this->id->setFormValue($objForm->GetValue("x_id"));
 	}
 
 	// Restore form values
@@ -539,7 +533,6 @@ class cjurnald_edit extends cjurnald {
 		global $objForm;
 		$this->LoadRow();
 		$this->id->CurrentValue = $this->id->FormValue;
-		$this->jurnal_id->CurrentValue = $this->jurnal_id->FormValue;
 		$this->akun_id->CurrentValue = $this->akun_id->FormValue;
 		$this->debet->CurrentValue = $this->debet->FormValue;
 		$this->kredit->CurrentValue = $this->kredit->FormValue;
@@ -677,21 +670,15 @@ class cjurnald_edit extends cjurnald {
 
 		// debet
 		$this->debet->ViewValue = $this->debet->CurrentValue;
+		$this->debet->ViewValue = ew_FormatNumber($this->debet->ViewValue, 2, -2, -2, -2);
+		$this->debet->CellCssStyle .= "text-align: right;";
 		$this->debet->ViewCustomAttributes = "";
 
 		// kredit
 		$this->kredit->ViewValue = $this->kredit->CurrentValue;
+		$this->kredit->ViewValue = ew_FormatNumber($this->kredit->ViewValue, 2, -2, -2, -2);
+		$this->kredit->CellCssStyle .= "text-align: right;";
 		$this->kredit->ViewCustomAttributes = "";
-
-			// id
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-			$this->id->TooltipValue = "";
-
-			// jurnal_id
-			$this->jurnal_id->LinkCustomAttributes = "";
-			$this->jurnal_id->HrefValue = "";
-			$this->jurnal_id->TooltipValue = "";
 
 			// akun_id
 			$this->akun_id->LinkCustomAttributes = "";
@@ -708,24 +695,6 @@ class cjurnald_edit extends cjurnald {
 			$this->kredit->HrefValue = "";
 			$this->kredit->TooltipValue = "";
 		} elseif ($this->RowType == EW_ROWTYPE_EDIT) { // Edit row
-
-			// id
-			$this->id->EditAttrs["class"] = "form-control";
-			$this->id->EditCustomAttributes = "";
-			$this->id->EditValue = $this->id->CurrentValue;
-			$this->id->ViewCustomAttributes = "";
-
-			// jurnal_id
-			$this->jurnal_id->EditAttrs["class"] = "form-control";
-			$this->jurnal_id->EditCustomAttributes = "";
-			if ($this->jurnal_id->getSessionValue() <> "") {
-				$this->jurnal_id->CurrentValue = $this->jurnal_id->getSessionValue();
-			$this->jurnal_id->ViewValue = $this->jurnal_id->CurrentValue;
-			$this->jurnal_id->ViewCustomAttributes = "";
-			} else {
-			$this->jurnal_id->EditValue = ew_HtmlEncode($this->jurnal_id->CurrentValue);
-			$this->jurnal_id->PlaceHolder = ew_RemoveHtml($this->jurnal_id->FldCaption());
-			}
 
 			// akun_id
 			$this->akun_id->EditAttrs["class"] = "form-control";
@@ -751,26 +720,18 @@ class cjurnald_edit extends cjurnald {
 			$this->debet->EditCustomAttributes = "";
 			$this->debet->EditValue = ew_HtmlEncode($this->debet->CurrentValue);
 			$this->debet->PlaceHolder = ew_RemoveHtml($this->debet->FldCaption());
-			if (strval($this->debet->EditValue) <> "" && is_numeric($this->debet->EditValue)) $this->debet->EditValue = ew_FormatNumber($this->debet->EditValue, -2, -1, -2, 0);
+			if (strval($this->debet->EditValue) <> "" && is_numeric($this->debet->EditValue)) $this->debet->EditValue = ew_FormatNumber($this->debet->EditValue, -2, -2, -2, -2);
 
 			// kredit
 			$this->kredit->EditAttrs["class"] = "form-control";
 			$this->kredit->EditCustomAttributes = "";
 			$this->kredit->EditValue = ew_HtmlEncode($this->kredit->CurrentValue);
 			$this->kredit->PlaceHolder = ew_RemoveHtml($this->kredit->FldCaption());
-			if (strval($this->kredit->EditValue) <> "" && is_numeric($this->kredit->EditValue)) $this->kredit->EditValue = ew_FormatNumber($this->kredit->EditValue, -2, -1, -2, 0);
+			if (strval($this->kredit->EditValue) <> "" && is_numeric($this->kredit->EditValue)) $this->kredit->EditValue = ew_FormatNumber($this->kredit->EditValue, -2, -2, -2, -2);
 
 			// Edit refer script
-			// id
-
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-
-			// jurnal_id
-			$this->jurnal_id->LinkCustomAttributes = "";
-			$this->jurnal_id->HrefValue = "";
-
 			// akun_id
+
 			$this->akun_id->LinkCustomAttributes = "";
 			$this->akun_id->HrefValue = "";
 
@@ -803,9 +764,6 @@ class cjurnald_edit extends cjurnald {
 		// Check if validation required
 		if (!EW_SERVER_VALIDATE)
 			return ($gsFormError == "");
-		if (!ew_CheckInteger($this->jurnal_id->FormValue)) {
-			ew_AddMessage($gsFormError, $this->jurnal_id->FldErrMsg());
-		}
 		if (!ew_CheckNumber($this->debet->FormValue)) {
 			ew_AddMessage($gsFormError, $this->debet->FldErrMsg());
 		}
@@ -847,9 +805,6 @@ class cjurnald_edit extends cjurnald {
 			$rsold = &$rs->fields;
 			$this->LoadDbValues($rsold);
 			$rsnew = array();
-
-			// jurnal_id
-			$this->jurnal_id->SetDbValueDef($rsnew, $this->jurnal_id->CurrentValue, NULL, $this->jurnal_id->ReadOnly);
 
 			// akun_id
 			$this->akun_id->SetDbValueDef($rsnew, $this->akun_id->CurrentValue, NULL, $this->akun_id->ReadOnly);
@@ -1099,9 +1054,6 @@ fjurnaldedit.Validate = function() {
 	for (var i = startcnt; i <= rowcnt; i++) {
 		var infix = ($k[0]) ? String(i) : "";
 		$fobj.data("rowindex", infix);
-			elm = this.GetElements("x" + infix + "_jurnal_id");
-			if (elm && !ew_CheckInteger(elm.value))
-				return this.OnError(elm, "<?php echo ew_JsEncode2($jurnald->jurnal_id->FldErrMsg()) ?>");
 			elm = this.GetElements("x" + infix + "_debet");
 			if (elm && !ew_CheckNumber(elm.value))
 				return this.OnError(elm, "<?php echo ew_JsEncode2($jurnald->debet->FldErrMsg()) ?>");
@@ -1174,36 +1126,6 @@ $jurnald_edit->ShowMessage();
 <input type="hidden" name="fk_id" value="<?php echo $jurnald->jurnal_id->getSessionValue() ?>">
 <?php } ?>
 <div>
-<?php if ($jurnald->id->Visible) { // id ?>
-	<div id="r_id" class="form-group">
-		<label id="elh_jurnald_id" class="col-sm-2 control-label ewLabel"><?php echo $jurnald->id->FldCaption() ?></label>
-		<div class="col-sm-10"><div<?php echo $jurnald->id->CellAttributes() ?>>
-<span id="el_jurnald_id">
-<span<?php echo $jurnald->id->ViewAttributes() ?>>
-<p class="form-control-static"><?php echo $jurnald->id->EditValue ?></p></span>
-</span>
-<input type="hidden" data-table="jurnald" data-field="x_id" name="x_id" id="x_id" value="<?php echo ew_HtmlEncode($jurnald->id->CurrentValue) ?>">
-<?php echo $jurnald->id->CustomMsg ?></div></div>
-	</div>
-<?php } ?>
-<?php if ($jurnald->jurnal_id->Visible) { // jurnal_id ?>
-	<div id="r_jurnal_id" class="form-group">
-		<label id="elh_jurnald_jurnal_id" for="x_jurnal_id" class="col-sm-2 control-label ewLabel"><?php echo $jurnald->jurnal_id->FldCaption() ?></label>
-		<div class="col-sm-10"><div<?php echo $jurnald->jurnal_id->CellAttributes() ?>>
-<?php if ($jurnald->jurnal_id->getSessionValue() <> "") { ?>
-<span id="el_jurnald_jurnal_id">
-<span<?php echo $jurnald->jurnal_id->ViewAttributes() ?>>
-<p class="form-control-static"><?php echo $jurnald->jurnal_id->ViewValue ?></p></span>
-</span>
-<input type="hidden" id="x_jurnal_id" name="x_jurnal_id" value="<?php echo ew_HtmlEncode($jurnald->jurnal_id->CurrentValue) ?>">
-<?php } else { ?>
-<span id="el_jurnald_jurnal_id">
-<input type="text" data-table="jurnald" data-field="x_jurnal_id" name="x_jurnal_id" id="x_jurnal_id" size="30" placeholder="<?php echo ew_HtmlEncode($jurnald->jurnal_id->getPlaceHolder()) ?>" value="<?php echo $jurnald->jurnal_id->EditValue ?>"<?php echo $jurnald->jurnal_id->EditAttributes() ?>>
-</span>
-<?php } ?>
-<?php echo $jurnald->jurnal_id->CustomMsg ?></div></div>
-	</div>
-<?php } ?>
 <?php if ($jurnald->akun_id->Visible) { // akun_id ?>
 	<div id="r_akun_id" class="form-group">
 		<label id="elh_jurnald_akun_id" for="x_akun_id" class="col-sm-2 control-label ewLabel"><?php echo $jurnald->akun_id->FldCaption() ?></label>
@@ -1222,7 +1144,7 @@ $jurnald_edit->ShowMessage();
 		<label id="elh_jurnald_debet" for="x_debet" class="col-sm-2 control-label ewLabel"><?php echo $jurnald->debet->FldCaption() ?></label>
 		<div class="col-sm-10"><div<?php echo $jurnald->debet->CellAttributes() ?>>
 <span id="el_jurnald_debet">
-<input type="text" data-table="jurnald" data-field="x_debet" name="x_debet" id="x_debet" size="30" placeholder="<?php echo ew_HtmlEncode($jurnald->debet->getPlaceHolder()) ?>" value="<?php echo $jurnald->debet->EditValue ?>"<?php echo $jurnald->debet->EditAttributes() ?>>
+<input type="text" data-table="jurnald" data-field="x_debet" name="x_debet" id="x_debet" size="15" placeholder="<?php echo ew_HtmlEncode($jurnald->debet->getPlaceHolder()) ?>" value="<?php echo $jurnald->debet->EditValue ?>"<?php echo $jurnald->debet->EditAttributes() ?>>
 </span>
 <?php echo $jurnald->debet->CustomMsg ?></div></div>
 	</div>
@@ -1232,12 +1154,13 @@ $jurnald_edit->ShowMessage();
 		<label id="elh_jurnald_kredit" for="x_kredit" class="col-sm-2 control-label ewLabel"><?php echo $jurnald->kredit->FldCaption() ?></label>
 		<div class="col-sm-10"><div<?php echo $jurnald->kredit->CellAttributes() ?>>
 <span id="el_jurnald_kredit">
-<input type="text" data-table="jurnald" data-field="x_kredit" name="x_kredit" id="x_kredit" size="30" placeholder="<?php echo ew_HtmlEncode($jurnald->kredit->getPlaceHolder()) ?>" value="<?php echo $jurnald->kredit->EditValue ?>"<?php echo $jurnald->kredit->EditAttributes() ?>>
+<input type="text" data-table="jurnald" data-field="x_kredit" name="x_kredit" id="x_kredit" size="15" placeholder="<?php echo ew_HtmlEncode($jurnald->kredit->getPlaceHolder()) ?>" value="<?php echo $jurnald->kredit->EditValue ?>"<?php echo $jurnald->kredit->EditAttributes() ?>>
 </span>
 <?php echo $jurnald->kredit->CustomMsg ?></div></div>
 	</div>
 <?php } ?>
 </div>
+<input type="hidden" data-table="jurnald" data-field="x_id" name="x_id" id="x_id" value="<?php echo ew_HtmlEncode($jurnald->id->CurrentValue) ?>">
 <?php if (!$jurnald_edit->IsModal) { ?>
 <div class="form-group">
 	<div class="col-sm-offset-2 col-sm-10">

@@ -310,9 +310,9 @@ class cjurnal_view extends cjurnal {
 		global $gsExport, $gsCustomExport, $gsExportFile, $UserProfile, $Language, $Security, $objForm;
 		$this->CurrentAction = (@$_GET["a"] <> "") ? $_GET["a"] : @$_POST["a_list"]; // Set up current action
 		$this->tipejurnal_id->SetVisibility();
+		$this->nomer->SetVisibility();
 		$this->createon->SetVisibility();
 		$this->keterangan->SetVisibility();
-		$this->nomer->SetVisibility();
 
 		// Global Page Loading event (in userfn*.php)
 		Page_Loading();
@@ -700,12 +700,12 @@ class cjurnal_view extends cjurnal {
 		$row = &$rs->fields;
 		$this->Row_Selected($row);
 		$this->id->setDbValue($rs->fields('id'));
-		$this->tipejurnal_id->setDbValue($rs->fields('tipejurnal_id'));
 		$this->period_id->setDbValue($rs->fields('period_id'));
+		$this->person_id->setDbValue($rs->fields('person_id'));
+		$this->tipejurnal_id->setDbValue($rs->fields('tipejurnal_id'));
+		$this->nomer->setDbValue($rs->fields('nomer'));
 		$this->createon->setDbValue($rs->fields('createon'));
 		$this->keterangan->setDbValue($rs->fields('keterangan'));
-		$this->person_id->setDbValue($rs->fields('person_id'));
-		$this->nomer->setDbValue($rs->fields('nomer'));
 	}
 
 	// Load DbValue from recordset
@@ -713,12 +713,12 @@ class cjurnal_view extends cjurnal {
 		if (!$rs || !is_array($rs) && $rs->EOF) return;
 		$row = is_array($rs) ? $rs : $rs->fields;
 		$this->id->DbValue = $row['id'];
-		$this->tipejurnal_id->DbValue = $row['tipejurnal_id'];
 		$this->period_id->DbValue = $row['period_id'];
+		$this->person_id->DbValue = $row['person_id'];
+		$this->tipejurnal_id->DbValue = $row['tipejurnal_id'];
+		$this->nomer->DbValue = $row['nomer'];
 		$this->createon->DbValue = $row['createon'];
 		$this->keterangan->DbValue = $row['keterangan'];
-		$this->person_id->DbValue = $row['person_id'];
-		$this->nomer->DbValue = $row['nomer'];
 	}
 
 	// Render row values based on field settings
@@ -738,41 +738,18 @@ class cjurnal_view extends cjurnal {
 
 		// Common render codes for all row types
 		// id
-		// tipejurnal_id
 		// period_id
+		// person_id
+		// tipejurnal_id
+		// nomer
 		// createon
 		// keterangan
-		// person_id
-		// nomer
 
 		if ($this->RowType == EW_ROWTYPE_VIEW) { // View row
 
 		// id
 		$this->id->ViewValue = $this->id->CurrentValue;
 		$this->id->ViewCustomAttributes = "";
-
-		// tipejurnal_id
-		if (strval($this->tipejurnal_id->CurrentValue) <> "") {
-			$sFilterWrk = "`id`" . ew_SearchString("=", $this->tipejurnal_id->CurrentValue, EW_DATATYPE_NUMBER, "");
-		$sSqlWrk = "SELECT `id`, `nama` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `tipejurnal`";
-		$sWhereWrk = "";
-		$this->tipejurnal_id->LookupFilters = array();
-		ew_AddFilter($sWhereWrk, $sFilterWrk);
-		$this->Lookup_Selecting($this->tipejurnal_id, $sWhereWrk); // Call Lookup selecting
-		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
-			$rswrk = Conn()->Execute($sSqlWrk);
-			if ($rswrk && !$rswrk->EOF) { // Lookup values found
-				$arwrk = array();
-				$arwrk[1] = $rswrk->fields('DispFld');
-				$this->tipejurnal_id->ViewValue = $this->tipejurnal_id->DisplayValue($arwrk);
-				$rswrk->Close();
-			} else {
-				$this->tipejurnal_id->ViewValue = $this->tipejurnal_id->CurrentValue;
-			}
-		} else {
-			$this->tipejurnal_id->ViewValue = NULL;
-		}
-		$this->tipejurnal_id->ViewCustomAttributes = "";
 
 		// period_id
 		if (strval($this->period_id->CurrentValue) <> "") {
@@ -798,6 +775,37 @@ class cjurnal_view extends cjurnal {
 		}
 		$this->period_id->ViewCustomAttributes = "";
 
+		// person_id
+		$this->person_id->ViewValue = $this->person_id->CurrentValue;
+		$this->person_id->ViewCustomAttributes = "";
+
+		// tipejurnal_id
+		if (strval($this->tipejurnal_id->CurrentValue) <> "") {
+			$sFilterWrk = "`id`" . ew_SearchString("=", $this->tipejurnal_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+		$sSqlWrk = "SELECT `id`, `nama` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `tipejurnal`";
+		$sWhereWrk = "";
+		$this->tipejurnal_id->LookupFilters = array();
+		ew_AddFilter($sWhereWrk, $sFilterWrk);
+		$this->Lookup_Selecting($this->tipejurnal_id, $sWhereWrk); // Call Lookup selecting
+		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			if ($rswrk && !$rswrk->EOF) { // Lookup values found
+				$arwrk = array();
+				$arwrk[1] = $rswrk->fields('DispFld');
+				$this->tipejurnal_id->ViewValue = $this->tipejurnal_id->DisplayValue($arwrk);
+				$rswrk->Close();
+			} else {
+				$this->tipejurnal_id->ViewValue = $this->tipejurnal_id->CurrentValue;
+			}
+		} else {
+			$this->tipejurnal_id->ViewValue = NULL;
+		}
+		$this->tipejurnal_id->ViewCustomAttributes = "";
+
+		// nomer
+		$this->nomer->ViewValue = $this->nomer->CurrentValue;
+		$this->nomer->ViewCustomAttributes = "";
+
 		// createon
 		$this->createon->ViewValue = $this->createon->CurrentValue;
 		$this->createon->ViewValue = ew_FormatDateTime($this->createon->ViewValue, 7);
@@ -807,18 +815,15 @@ class cjurnal_view extends cjurnal {
 		$this->keterangan->ViewValue = $this->keterangan->CurrentValue;
 		$this->keterangan->ViewCustomAttributes = "";
 
-		// person_id
-		$this->person_id->ViewValue = $this->person_id->CurrentValue;
-		$this->person_id->ViewCustomAttributes = "";
-
-		// nomer
-		$this->nomer->ViewValue = $this->nomer->CurrentValue;
-		$this->nomer->ViewCustomAttributes = "";
-
 			// tipejurnal_id
 			$this->tipejurnal_id->LinkCustomAttributes = "";
 			$this->tipejurnal_id->HrefValue = "";
 			$this->tipejurnal_id->TooltipValue = "";
+
+			// nomer
+			$this->nomer->LinkCustomAttributes = "";
+			$this->nomer->HrefValue = "";
+			$this->nomer->TooltipValue = "";
 
 			// createon
 			$this->createon->LinkCustomAttributes = "";
@@ -829,11 +834,6 @@ class cjurnal_view extends cjurnal {
 			$this->keterangan->LinkCustomAttributes = "";
 			$this->keterangan->HrefValue = "";
 			$this->keterangan->TooltipValue = "";
-
-			// nomer
-			$this->nomer->LinkCustomAttributes = "";
-			$this->nomer->HrefValue = "";
-			$this->nomer->TooltipValue = "";
 		}
 
 		// Call Row Rendered event
@@ -1070,6 +1070,17 @@ $jurnal_view->ShowMessage();
 </td>
 	</tr>
 <?php } ?>
+<?php if ($jurnal->nomer->Visible) { // nomer ?>
+	<tr id="r_nomer">
+		<td><span id="elh_jurnal_nomer"><?php echo $jurnal->nomer->FldCaption() ?></span></td>
+		<td data-name="nomer"<?php echo $jurnal->nomer->CellAttributes() ?>>
+<span id="el_jurnal_nomer">
+<span<?php echo $jurnal->nomer->ViewAttributes() ?>>
+<?php echo $jurnal->nomer->ViewValue ?></span>
+</span>
+</td>
+	</tr>
+<?php } ?>
 <?php if ($jurnal->createon->Visible) { // createon ?>
 	<tr id="r_createon">
 		<td><span id="elh_jurnal_createon"><?php echo $jurnal->createon->FldCaption() ?></span></td>
@@ -1088,17 +1099,6 @@ $jurnal_view->ShowMessage();
 <span id="el_jurnal_keterangan">
 <span<?php echo $jurnal->keterangan->ViewAttributes() ?>>
 <?php echo $jurnal->keterangan->ViewValue ?></span>
-</span>
-</td>
-	</tr>
-<?php } ?>
-<?php if ($jurnal->nomer->Visible) { // nomer ?>
-	<tr id="r_nomer">
-		<td><span id="elh_jurnal_nomer"><?php echo $jurnal->nomer->FldCaption() ?></span></td>
-		<td data-name="nomer"<?php echo $jurnal->nomer->CellAttributes() ?>>
-<span id="el_jurnal_nomer">
-<span<?php echo $jurnal->nomer->ViewAttributes() ?>>
-<?php echo $jurnal->nomer->ViewValue ?></span>
 </span>
 </td>
 	</tr>

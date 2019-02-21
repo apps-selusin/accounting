@@ -255,9 +255,6 @@ class cjurnald_delete extends cjurnald {
 	function Page_Init() {
 		global $gsExport, $gsCustomExport, $gsExportFile, $UserProfile, $Language, $Security, $objForm;
 		$this->CurrentAction = (@$_GET["a"] <> "") ? $_GET["a"] : @$_POST["a_list"]; // Set up current action
-		$this->id->SetVisibility();
-		$this->id->Visible = !$this->IsAdd() && !$this->IsCopy() && !$this->IsGridAdd();
-		$this->jurnal_id->SetVisibility();
 		$this->akun_id->SetVisibility();
 		$this->debet->SetVisibility();
 		$this->kredit->SetVisibility();
@@ -515,21 +512,15 @@ class cjurnald_delete extends cjurnald {
 
 		// debet
 		$this->debet->ViewValue = $this->debet->CurrentValue;
+		$this->debet->ViewValue = ew_FormatNumber($this->debet->ViewValue, 2, -2, -2, -2);
+		$this->debet->CellCssStyle .= "text-align: right;";
 		$this->debet->ViewCustomAttributes = "";
 
 		// kredit
 		$this->kredit->ViewValue = $this->kredit->CurrentValue;
+		$this->kredit->ViewValue = ew_FormatNumber($this->kredit->ViewValue, 2, -2, -2, -2);
+		$this->kredit->CellCssStyle .= "text-align: right;";
 		$this->kredit->ViewCustomAttributes = "";
-
-			// id
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-			$this->id->TooltipValue = "";
-
-			// jurnal_id
-			$this->jurnal_id->LinkCustomAttributes = "";
-			$this->jurnal_id->HrefValue = "";
-			$this->jurnal_id->TooltipValue = "";
 
 			// akun_id
 			$this->akun_id->LinkCustomAttributes = "";
@@ -852,12 +843,6 @@ $jurnald_delete->ShowMessage();
 <?php echo $jurnald->TableCustomInnerHtml ?>
 	<thead>
 	<tr class="ewTableHeader">
-<?php if ($jurnald->id->Visible) { // id ?>
-		<th><span id="elh_jurnald_id" class="jurnald_id"><?php echo $jurnald->id->FldCaption() ?></span></th>
-<?php } ?>
-<?php if ($jurnald->jurnal_id->Visible) { // jurnal_id ?>
-		<th><span id="elh_jurnald_jurnal_id" class="jurnald_jurnal_id"><?php echo $jurnald->jurnal_id->FldCaption() ?></span></th>
-<?php } ?>
 <?php if ($jurnald->akun_id->Visible) { // akun_id ?>
 		<th><span id="elh_jurnald_akun_id" class="jurnald_akun_id"><?php echo $jurnald->akun_id->FldCaption() ?></span></th>
 <?php } ?>
@@ -888,22 +873,6 @@ while (!$jurnald_delete->Recordset->EOF) {
 	$jurnald_delete->RenderRow();
 ?>
 	<tr<?php echo $jurnald->RowAttributes() ?>>
-<?php if ($jurnald->id->Visible) { // id ?>
-		<td<?php echo $jurnald->id->CellAttributes() ?>>
-<span id="el<?php echo $jurnald_delete->RowCnt ?>_jurnald_id" class="jurnald_id">
-<span<?php echo $jurnald->id->ViewAttributes() ?>>
-<?php echo $jurnald->id->ListViewValue() ?></span>
-</span>
-</td>
-<?php } ?>
-<?php if ($jurnald->jurnal_id->Visible) { // jurnal_id ?>
-		<td<?php echo $jurnald->jurnal_id->CellAttributes() ?>>
-<span id="el<?php echo $jurnald_delete->RowCnt ?>_jurnald_jurnal_id" class="jurnald_jurnal_id">
-<span<?php echo $jurnald->jurnal_id->ViewAttributes() ?>>
-<?php echo $jurnald->jurnal_id->ListViewValue() ?></span>
-</span>
-</td>
-<?php } ?>
 <?php if ($jurnald->akun_id->Visible) { // akun_id ?>
 		<td<?php echo $jurnald->akun_id->CellAttributes() ?>>
 <span id="el<?php echo $jurnald_delete->RowCnt ?>_jurnald_akun_id" class="jurnald_akun_id">

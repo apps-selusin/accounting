@@ -38,7 +38,7 @@ class cjurnald extends cTable {
 		$this->DetailEdit = TRUE; // Allow detail edit
 		$this->DetailView = TRUE; // Allow detail view
 		$this->ShowMultipleDetails = FALSE; // Show multiple details
-		$this->GridAddRowCount = 5;
+		$this->GridAddRowCount = 2;
 		$this->AllowAddDeleteRow = ew_AllowAddDeleteRow(); // Allow add/delete row
 		$this->UserIDAllowSecurity = 0; // User ID Allow
 		$this->BasicSearch = new cBasicSearch($this->TableVar);
@@ -681,10 +681,14 @@ class cjurnald extends cTable {
 
 		// debet
 		$this->debet->ViewValue = $this->debet->CurrentValue;
+		$this->debet->ViewValue = ew_FormatNumber($this->debet->ViewValue, 2, -2, -2, -2);
+		$this->debet->CellCssStyle .= "text-align: right;";
 		$this->debet->ViewCustomAttributes = "";
 
 		// kredit
 		$this->kredit->ViewValue = $this->kredit->CurrentValue;
+		$this->kredit->ViewValue = ew_FormatNumber($this->kredit->ViewValue, 2, -2, -2, -2);
+		$this->kredit->CellCssStyle .= "text-align: right;";
 		$this->kredit->ViewCustomAttributes = "";
 
 		// id
@@ -750,14 +754,14 @@ class cjurnald extends cTable {
 		$this->debet->EditCustomAttributes = "";
 		$this->debet->EditValue = $this->debet->CurrentValue;
 		$this->debet->PlaceHolder = ew_RemoveHtml($this->debet->FldCaption());
-		if (strval($this->debet->EditValue) <> "" && is_numeric($this->debet->EditValue)) $this->debet->EditValue = ew_FormatNumber($this->debet->EditValue, -2, -1, -2, 0);
+		if (strval($this->debet->EditValue) <> "" && is_numeric($this->debet->EditValue)) $this->debet->EditValue = ew_FormatNumber($this->debet->EditValue, -2, -2, -2, -2);
 
 		// kredit
 		$this->kredit->EditAttrs["class"] = "form-control";
 		$this->kredit->EditCustomAttributes = "";
 		$this->kredit->EditValue = $this->kredit->CurrentValue;
 		$this->kredit->PlaceHolder = ew_RemoveHtml($this->kredit->FldCaption());
-		if (strval($this->kredit->EditValue) <> "" && is_numeric($this->kredit->EditValue)) $this->kredit->EditValue = ew_FormatNumber($this->kredit->EditValue, -2, -1, -2, 0);
+		if (strval($this->kredit->EditValue) <> "" && is_numeric($this->kredit->EditValue)) $this->kredit->EditValue = ew_FormatNumber($this->kredit->EditValue, -2, -2, -2, -2);
 
 		// Call Row Rendered event
 		$this->Row_Rendered();
@@ -786,8 +790,6 @@ class cjurnald extends cTable {
 			if ($Doc->Horizontal) { // Horizontal format, write header
 				$Doc->BeginExportRow();
 				if ($ExportPageType == "view") {
-					if ($this->id->Exportable) $Doc->ExportCaption($this->id);
-					if ($this->jurnal_id->Exportable) $Doc->ExportCaption($this->jurnal_id);
 					if ($this->akun_id->Exportable) $Doc->ExportCaption($this->akun_id);
 					if ($this->debet->Exportable) $Doc->ExportCaption($this->debet);
 					if ($this->kredit->Exportable) $Doc->ExportCaption($this->kredit);
@@ -828,8 +830,6 @@ class cjurnald extends cTable {
 				if (!$Doc->ExportCustom) {
 					$Doc->BeginExportRow($RowCnt); // Allow CSS styles if enabled
 					if ($ExportPageType == "view") {
-						if ($this->id->Exportable) $Doc->ExportField($this->id);
-						if ($this->jurnal_id->Exportable) $Doc->ExportField($this->jurnal_id);
 						if ($this->akun_id->Exportable) $Doc->ExportField($this->akun_id);
 						if ($this->debet->Exportable) $Doc->ExportField($this->debet);
 						if ($this->kredit->Exportable) $Doc->ExportField($this->kredit);

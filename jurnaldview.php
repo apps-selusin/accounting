@@ -312,9 +312,6 @@ class cjurnald_view extends cjurnald {
 	function Page_Init() {
 		global $gsExport, $gsCustomExport, $gsExportFile, $UserProfile, $Language, $Security, $objForm;
 		$this->CurrentAction = (@$_GET["a"] <> "") ? $_GET["a"] : @$_POST["a_list"]; // Set up current action
-		$this->id->SetVisibility();
-		$this->id->Visible = !$this->IsAdd() && !$this->IsCopy() && !$this->IsGridAdd();
-		$this->jurnal_id->SetVisibility();
 		$this->akun_id->SetVisibility();
 		$this->debet->SetVisibility();
 		$this->kredit->SetVisibility();
@@ -712,21 +709,15 @@ class cjurnald_view extends cjurnald {
 
 		// debet
 		$this->debet->ViewValue = $this->debet->CurrentValue;
+		$this->debet->ViewValue = ew_FormatNumber($this->debet->ViewValue, 2, -2, -2, -2);
+		$this->debet->CellCssStyle .= "text-align: right;";
 		$this->debet->ViewCustomAttributes = "";
 
 		// kredit
 		$this->kredit->ViewValue = $this->kredit->CurrentValue;
+		$this->kredit->ViewValue = ew_FormatNumber($this->kredit->ViewValue, 2, -2, -2, -2);
+		$this->kredit->CellCssStyle .= "text-align: right;";
 		$this->kredit->ViewCustomAttributes = "";
-
-			// id
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-			$this->id->TooltipValue = "";
-
-			// jurnal_id
-			$this->jurnal_id->LinkCustomAttributes = "";
-			$this->jurnal_id->HrefValue = "";
-			$this->jurnal_id->TooltipValue = "";
 
 			// akun_id
 			$this->akun_id->LinkCustomAttributes = "";
@@ -999,28 +990,6 @@ $jurnald_view->ShowMessage();
 <input type="hidden" name="modal" value="1">
 <?php } ?>
 <table class="table table-bordered table-striped ewViewTable">
-<?php if ($jurnald->id->Visible) { // id ?>
-	<tr id="r_id">
-		<td><span id="elh_jurnald_id"><?php echo $jurnald->id->FldCaption() ?></span></td>
-		<td data-name="id"<?php echo $jurnald->id->CellAttributes() ?>>
-<span id="el_jurnald_id">
-<span<?php echo $jurnald->id->ViewAttributes() ?>>
-<?php echo $jurnald->id->ViewValue ?></span>
-</span>
-</td>
-	</tr>
-<?php } ?>
-<?php if ($jurnald->jurnal_id->Visible) { // jurnal_id ?>
-	<tr id="r_jurnal_id">
-		<td><span id="elh_jurnald_jurnal_id"><?php echo $jurnald->jurnal_id->FldCaption() ?></span></td>
-		<td data-name="jurnal_id"<?php echo $jurnald->jurnal_id->CellAttributes() ?>>
-<span id="el_jurnald_jurnal_id">
-<span<?php echo $jurnald->jurnal_id->ViewAttributes() ?>>
-<?php echo $jurnald->jurnal_id->ViewValue ?></span>
-</span>
-</td>
-	</tr>
-<?php } ?>
 <?php if ($jurnald->akun_id->Visible) { // akun_id ?>
 	<tr id="r_akun_id">
 		<td><span id="elh_jurnald_akun_id"><?php echo $jurnald->akun_id->FldCaption() ?></span></td>

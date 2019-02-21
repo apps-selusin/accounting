@@ -40,9 +40,6 @@ fjurnaldgrid.Validate = function() {
 		var checkrow = (gridinsert) ? !this.EmptyRow(infix) : true;
 		if (checkrow) {
 			addcnt++;
-			elm = this.GetElements("x" + infix + "_jurnal_id");
-			if (elm && !ew_CheckInteger(elm.value))
-				return this.OnError(elm, "<?php echo ew_JsEncode2($jurnald->jurnal_id->FldErrMsg()) ?>");
 			elm = this.GetElements("x" + infix + "_debet");
 			if (elm && !ew_CheckNumber(elm.value))
 				return this.OnError(elm, "<?php echo ew_JsEncode2($jurnald->debet->FldErrMsg()) ?>");
@@ -61,7 +58,6 @@ fjurnaldgrid.Validate = function() {
 // Check empty row
 fjurnaldgrid.EmptyRow = function(infix) {
 	var fobj = this.Form;
-	if (ew_ValueChanged(fobj, infix, "jurnal_id", false)) return false;
 	if (ew_ValueChanged(fobj, infix, "akun_id", false)) return false;
 	if (ew_ValueChanged(fobj, infix, "debet", false)) return false;
 	if (ew_ValueChanged(fobj, infix, "kredit", false)) return false;
@@ -156,24 +152,6 @@ $jurnald_grid->RenderListOptions();
 // Render list options (header, left)
 $jurnald_grid->ListOptions->Render("header", "left");
 ?>
-<?php if ($jurnald->id->Visible) { // id ?>
-	<?php if ($jurnald->SortUrl($jurnald->id) == "") { ?>
-		<th data-name="id"><div id="elh_jurnald_id" class="jurnald_id"><div class="ewTableHeaderCaption"><?php echo $jurnald->id->FldCaption() ?></div></div></th>
-	<?php } else { ?>
-		<th data-name="id"><div><div id="elh_jurnald_id" class="jurnald_id">
-			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $jurnald->id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($jurnald->id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($jurnald->id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
-        </div></div></th>
-	<?php } ?>
-<?php } ?>		
-<?php if ($jurnald->jurnal_id->Visible) { // jurnal_id ?>
-	<?php if ($jurnald->SortUrl($jurnald->jurnal_id) == "") { ?>
-		<th data-name="jurnal_id"><div id="elh_jurnald_jurnal_id" class="jurnald_jurnal_id"><div class="ewTableHeaderCaption"><?php echo $jurnald->jurnal_id->FldCaption() ?></div></div></th>
-	<?php } else { ?>
-		<th data-name="jurnal_id"><div><div id="elh_jurnald_jurnal_id" class="jurnald_jurnal_id">
-			<div class="ewTableHeaderBtn"><span class="ewTableHeaderCaption"><?php echo $jurnald->jurnal_id->FldCaption() ?></span><span class="ewTableHeaderSort"><?php if ($jurnald->jurnal_id->getSort() == "ASC") { ?><span class="caret ewSortUp"></span><?php } elseif ($jurnald->jurnal_id->getSort() == "DESC") { ?><span class="caret"></span><?php } ?></span></div>
-        </div></div></th>
-	<?php } ?>
-<?php } ?>		
 <?php if ($jurnald->akun_id->Visible) { // akun_id ?>
 	<?php if ($jurnald->SortUrl($jurnald->akun_id) == "") { ?>
 		<th data-name="akun_id"><div id="elh_jurnald_akun_id" class="jurnald_akun_id"><div class="ewTableHeaderCaption"><?php echo $jurnald->akun_id->FldCaption() ?></div></div></th>
@@ -310,77 +288,6 @@ while ($jurnald_grid->RecCnt < $jurnald_grid->StopRec) {
 // Render list options (body, left)
 $jurnald_grid->ListOptions->Render("body", "left", $jurnald_grid->RowCnt);
 ?>
-	<?php if ($jurnald->id->Visible) { // id ?>
-		<td data-name="id"<?php echo $jurnald->id->CellAttributes() ?>>
-<?php if ($jurnald->RowType == EW_ROWTYPE_ADD) { // Add record ?>
-<input type="hidden" data-table="jurnald" data-field="x_id" name="o<?php echo $jurnald_grid->RowIndex ?>_id" id="o<?php echo $jurnald_grid->RowIndex ?>_id" value="<?php echo ew_HtmlEncode($jurnald->id->OldValue) ?>">
-<?php } ?>
-<?php if ($jurnald->RowType == EW_ROWTYPE_EDIT) { // Edit record ?>
-<span id="el<?php echo $jurnald_grid->RowCnt ?>_jurnald_id" class="form-group jurnald_id">
-<span<?php echo $jurnald->id->ViewAttributes() ?>>
-<p class="form-control-static"><?php echo $jurnald->id->EditValue ?></p></span>
-</span>
-<input type="hidden" data-table="jurnald" data-field="x_id" name="x<?php echo $jurnald_grid->RowIndex ?>_id" id="x<?php echo $jurnald_grid->RowIndex ?>_id" value="<?php echo ew_HtmlEncode($jurnald->id->CurrentValue) ?>">
-<?php } ?>
-<?php if ($jurnald->RowType == EW_ROWTYPE_VIEW) { // View record ?>
-<span id="el<?php echo $jurnald_grid->RowCnt ?>_jurnald_id" class="jurnald_id">
-<span<?php echo $jurnald->id->ViewAttributes() ?>>
-<?php echo $jurnald->id->ListViewValue() ?></span>
-</span>
-<?php if ($jurnald->CurrentAction <> "F") { ?>
-<input type="hidden" data-table="jurnald" data-field="x_id" name="x<?php echo $jurnald_grid->RowIndex ?>_id" id="x<?php echo $jurnald_grid->RowIndex ?>_id" value="<?php echo ew_HtmlEncode($jurnald->id->FormValue) ?>">
-<input type="hidden" data-table="jurnald" data-field="x_id" name="o<?php echo $jurnald_grid->RowIndex ?>_id" id="o<?php echo $jurnald_grid->RowIndex ?>_id" value="<?php echo ew_HtmlEncode($jurnald->id->OldValue) ?>">
-<?php } else { ?>
-<input type="hidden" data-table="jurnald" data-field="x_id" name="fjurnaldgrid$x<?php echo $jurnald_grid->RowIndex ?>_id" id="fjurnaldgrid$x<?php echo $jurnald_grid->RowIndex ?>_id" value="<?php echo ew_HtmlEncode($jurnald->id->FormValue) ?>">
-<input type="hidden" data-table="jurnald" data-field="x_id" name="fjurnaldgrid$o<?php echo $jurnald_grid->RowIndex ?>_id" id="fjurnaldgrid$o<?php echo $jurnald_grid->RowIndex ?>_id" value="<?php echo ew_HtmlEncode($jurnald->id->OldValue) ?>">
-<?php } ?>
-<?php } ?>
-<a id="<?php echo $jurnald_grid->PageObjName . "_row_" . $jurnald_grid->RowCnt ?>"></a></td>
-	<?php } ?>
-	<?php if ($jurnald->jurnal_id->Visible) { // jurnal_id ?>
-		<td data-name="jurnal_id"<?php echo $jurnald->jurnal_id->CellAttributes() ?>>
-<?php if ($jurnald->RowType == EW_ROWTYPE_ADD) { // Add record ?>
-<?php if ($jurnald->jurnal_id->getSessionValue() <> "") { ?>
-<span id="el<?php echo $jurnald_grid->RowCnt ?>_jurnald_jurnal_id" class="form-group jurnald_jurnal_id">
-<span<?php echo $jurnald->jurnal_id->ViewAttributes() ?>>
-<p class="form-control-static"><?php echo $jurnald->jurnal_id->ViewValue ?></p></span>
-</span>
-<input type="hidden" id="x<?php echo $jurnald_grid->RowIndex ?>_jurnal_id" name="x<?php echo $jurnald_grid->RowIndex ?>_jurnal_id" value="<?php echo ew_HtmlEncode($jurnald->jurnal_id->CurrentValue) ?>">
-<?php } else { ?>
-<span id="el<?php echo $jurnald_grid->RowCnt ?>_jurnald_jurnal_id" class="form-group jurnald_jurnal_id">
-<input type="text" data-table="jurnald" data-field="x_jurnal_id" name="x<?php echo $jurnald_grid->RowIndex ?>_jurnal_id" id="x<?php echo $jurnald_grid->RowIndex ?>_jurnal_id" size="30" placeholder="<?php echo ew_HtmlEncode($jurnald->jurnal_id->getPlaceHolder()) ?>" value="<?php echo $jurnald->jurnal_id->EditValue ?>"<?php echo $jurnald->jurnal_id->EditAttributes() ?>>
-</span>
-<?php } ?>
-<input type="hidden" data-table="jurnald" data-field="x_jurnal_id" name="o<?php echo $jurnald_grid->RowIndex ?>_jurnal_id" id="o<?php echo $jurnald_grid->RowIndex ?>_jurnal_id" value="<?php echo ew_HtmlEncode($jurnald->jurnal_id->OldValue) ?>">
-<?php } ?>
-<?php if ($jurnald->RowType == EW_ROWTYPE_EDIT) { // Edit record ?>
-<?php if ($jurnald->jurnal_id->getSessionValue() <> "") { ?>
-<span id="el<?php echo $jurnald_grid->RowCnt ?>_jurnald_jurnal_id" class="form-group jurnald_jurnal_id">
-<span<?php echo $jurnald->jurnal_id->ViewAttributes() ?>>
-<p class="form-control-static"><?php echo $jurnald->jurnal_id->ViewValue ?></p></span>
-</span>
-<input type="hidden" id="x<?php echo $jurnald_grid->RowIndex ?>_jurnal_id" name="x<?php echo $jurnald_grid->RowIndex ?>_jurnal_id" value="<?php echo ew_HtmlEncode($jurnald->jurnal_id->CurrentValue) ?>">
-<?php } else { ?>
-<span id="el<?php echo $jurnald_grid->RowCnt ?>_jurnald_jurnal_id" class="form-group jurnald_jurnal_id">
-<input type="text" data-table="jurnald" data-field="x_jurnal_id" name="x<?php echo $jurnald_grid->RowIndex ?>_jurnal_id" id="x<?php echo $jurnald_grid->RowIndex ?>_jurnal_id" size="30" placeholder="<?php echo ew_HtmlEncode($jurnald->jurnal_id->getPlaceHolder()) ?>" value="<?php echo $jurnald->jurnal_id->EditValue ?>"<?php echo $jurnald->jurnal_id->EditAttributes() ?>>
-</span>
-<?php } ?>
-<?php } ?>
-<?php if ($jurnald->RowType == EW_ROWTYPE_VIEW) { // View record ?>
-<span id="el<?php echo $jurnald_grid->RowCnt ?>_jurnald_jurnal_id" class="jurnald_jurnal_id">
-<span<?php echo $jurnald->jurnal_id->ViewAttributes() ?>>
-<?php echo $jurnald->jurnal_id->ListViewValue() ?></span>
-</span>
-<?php if ($jurnald->CurrentAction <> "F") { ?>
-<input type="hidden" data-table="jurnald" data-field="x_jurnal_id" name="x<?php echo $jurnald_grid->RowIndex ?>_jurnal_id" id="x<?php echo $jurnald_grid->RowIndex ?>_jurnal_id" value="<?php echo ew_HtmlEncode($jurnald->jurnal_id->FormValue) ?>">
-<input type="hidden" data-table="jurnald" data-field="x_jurnal_id" name="o<?php echo $jurnald_grid->RowIndex ?>_jurnal_id" id="o<?php echo $jurnald_grid->RowIndex ?>_jurnal_id" value="<?php echo ew_HtmlEncode($jurnald->jurnal_id->OldValue) ?>">
-<?php } else { ?>
-<input type="hidden" data-table="jurnald" data-field="x_jurnal_id" name="fjurnaldgrid$x<?php echo $jurnald_grid->RowIndex ?>_jurnal_id" id="fjurnaldgrid$x<?php echo $jurnald_grid->RowIndex ?>_jurnal_id" value="<?php echo ew_HtmlEncode($jurnald->jurnal_id->FormValue) ?>">
-<input type="hidden" data-table="jurnald" data-field="x_jurnal_id" name="fjurnaldgrid$o<?php echo $jurnald_grid->RowIndex ?>_jurnal_id" id="fjurnaldgrid$o<?php echo $jurnald_grid->RowIndex ?>_jurnal_id" value="<?php echo ew_HtmlEncode($jurnald->jurnal_id->OldValue) ?>">
-<?php } ?>
-<?php } ?>
-</td>
-	<?php } ?>
 	<?php if ($jurnald->akun_id->Visible) { // akun_id ?>
 		<td data-name="akun_id"<?php echo $jurnald->akun_id->CellAttributes() ?>>
 <?php if ($jurnald->RowType == EW_ROWTYPE_ADD) { // Add record ?>
@@ -413,19 +320,26 @@ $jurnald_grid->ListOptions->Render("body", "left", $jurnald_grid->RowCnt);
 <input type="hidden" data-table="jurnald" data-field="x_akun_id" name="fjurnaldgrid$o<?php echo $jurnald_grid->RowIndex ?>_akun_id" id="fjurnaldgrid$o<?php echo $jurnald_grid->RowIndex ?>_akun_id" value="<?php echo ew_HtmlEncode($jurnald->akun_id->OldValue) ?>">
 <?php } ?>
 <?php } ?>
-</td>
+<a id="<?php echo $jurnald_grid->PageObjName . "_row_" . $jurnald_grid->RowCnt ?>"></a></td>
 	<?php } ?>
+<?php if ($jurnald->RowType == EW_ROWTYPE_ADD) { // Add record ?>
+<input type="hidden" data-table="jurnald" data-field="x_id" name="x<?php echo $jurnald_grid->RowIndex ?>_id" id="x<?php echo $jurnald_grid->RowIndex ?>_id" value="<?php echo ew_HtmlEncode($jurnald->id->CurrentValue) ?>">
+<input type="hidden" data-table="jurnald" data-field="x_id" name="o<?php echo $jurnald_grid->RowIndex ?>_id" id="o<?php echo $jurnald_grid->RowIndex ?>_id" value="<?php echo ew_HtmlEncode($jurnald->id->OldValue) ?>">
+<?php } ?>
+<?php if ($jurnald->RowType == EW_ROWTYPE_EDIT || $jurnald->CurrentMode == "edit") { ?>
+<input type="hidden" data-table="jurnald" data-field="x_id" name="x<?php echo $jurnald_grid->RowIndex ?>_id" id="x<?php echo $jurnald_grid->RowIndex ?>_id" value="<?php echo ew_HtmlEncode($jurnald->id->CurrentValue) ?>">
+<?php } ?>
 	<?php if ($jurnald->debet->Visible) { // debet ?>
 		<td data-name="debet"<?php echo $jurnald->debet->CellAttributes() ?>>
 <?php if ($jurnald->RowType == EW_ROWTYPE_ADD) { // Add record ?>
 <span id="el<?php echo $jurnald_grid->RowCnt ?>_jurnald_debet" class="form-group jurnald_debet">
-<input type="text" data-table="jurnald" data-field="x_debet" name="x<?php echo $jurnald_grid->RowIndex ?>_debet" id="x<?php echo $jurnald_grid->RowIndex ?>_debet" size="30" placeholder="<?php echo ew_HtmlEncode($jurnald->debet->getPlaceHolder()) ?>" value="<?php echo $jurnald->debet->EditValue ?>"<?php echo $jurnald->debet->EditAttributes() ?>>
+<input type="text" data-table="jurnald" data-field="x_debet" name="x<?php echo $jurnald_grid->RowIndex ?>_debet" id="x<?php echo $jurnald_grid->RowIndex ?>_debet" size="15" placeholder="<?php echo ew_HtmlEncode($jurnald->debet->getPlaceHolder()) ?>" value="<?php echo $jurnald->debet->EditValue ?>"<?php echo $jurnald->debet->EditAttributes() ?>>
 </span>
 <input type="hidden" data-table="jurnald" data-field="x_debet" name="o<?php echo $jurnald_grid->RowIndex ?>_debet" id="o<?php echo $jurnald_grid->RowIndex ?>_debet" value="<?php echo ew_HtmlEncode($jurnald->debet->OldValue) ?>">
 <?php } ?>
 <?php if ($jurnald->RowType == EW_ROWTYPE_EDIT) { // Edit record ?>
 <span id="el<?php echo $jurnald_grid->RowCnt ?>_jurnald_debet" class="form-group jurnald_debet">
-<input type="text" data-table="jurnald" data-field="x_debet" name="x<?php echo $jurnald_grid->RowIndex ?>_debet" id="x<?php echo $jurnald_grid->RowIndex ?>_debet" size="30" placeholder="<?php echo ew_HtmlEncode($jurnald->debet->getPlaceHolder()) ?>" value="<?php echo $jurnald->debet->EditValue ?>"<?php echo $jurnald->debet->EditAttributes() ?>>
+<input type="text" data-table="jurnald" data-field="x_debet" name="x<?php echo $jurnald_grid->RowIndex ?>_debet" id="x<?php echo $jurnald_grid->RowIndex ?>_debet" size="15" placeholder="<?php echo ew_HtmlEncode($jurnald->debet->getPlaceHolder()) ?>" value="<?php echo $jurnald->debet->EditValue ?>"<?php echo $jurnald->debet->EditAttributes() ?>>
 </span>
 <?php } ?>
 <?php if ($jurnald->RowType == EW_ROWTYPE_VIEW) { // View record ?>
@@ -447,13 +361,13 @@ $jurnald_grid->ListOptions->Render("body", "left", $jurnald_grid->RowCnt);
 		<td data-name="kredit"<?php echo $jurnald->kredit->CellAttributes() ?>>
 <?php if ($jurnald->RowType == EW_ROWTYPE_ADD) { // Add record ?>
 <span id="el<?php echo $jurnald_grid->RowCnt ?>_jurnald_kredit" class="form-group jurnald_kredit">
-<input type="text" data-table="jurnald" data-field="x_kredit" name="x<?php echo $jurnald_grid->RowIndex ?>_kredit" id="x<?php echo $jurnald_grid->RowIndex ?>_kredit" size="30" placeholder="<?php echo ew_HtmlEncode($jurnald->kredit->getPlaceHolder()) ?>" value="<?php echo $jurnald->kredit->EditValue ?>"<?php echo $jurnald->kredit->EditAttributes() ?>>
+<input type="text" data-table="jurnald" data-field="x_kredit" name="x<?php echo $jurnald_grid->RowIndex ?>_kredit" id="x<?php echo $jurnald_grid->RowIndex ?>_kredit" size="15" placeholder="<?php echo ew_HtmlEncode($jurnald->kredit->getPlaceHolder()) ?>" value="<?php echo $jurnald->kredit->EditValue ?>"<?php echo $jurnald->kredit->EditAttributes() ?>>
 </span>
 <input type="hidden" data-table="jurnald" data-field="x_kredit" name="o<?php echo $jurnald_grid->RowIndex ?>_kredit" id="o<?php echo $jurnald_grid->RowIndex ?>_kredit" value="<?php echo ew_HtmlEncode($jurnald->kredit->OldValue) ?>">
 <?php } ?>
 <?php if ($jurnald->RowType == EW_ROWTYPE_EDIT) { // Edit record ?>
 <span id="el<?php echo $jurnald_grid->RowCnt ?>_jurnald_kredit" class="form-group jurnald_kredit">
-<input type="text" data-table="jurnald" data-field="x_kredit" name="x<?php echo $jurnald_grid->RowIndex ?>_kredit" id="x<?php echo $jurnald_grid->RowIndex ?>_kredit" size="30" placeholder="<?php echo ew_HtmlEncode($jurnald->kredit->getPlaceHolder()) ?>" value="<?php echo $jurnald->kredit->EditValue ?>"<?php echo $jurnald->kredit->EditAttributes() ?>>
+<input type="text" data-table="jurnald" data-field="x_kredit" name="x<?php echo $jurnald_grid->RowIndex ?>_kredit" id="x<?php echo $jurnald_grid->RowIndex ?>_kredit" size="15" placeholder="<?php echo ew_HtmlEncode($jurnald->kredit->getPlaceHolder()) ?>" value="<?php echo $jurnald->kredit->EditValue ?>"<?php echo $jurnald->kredit->EditAttributes() ?>>
 </span>
 <?php } ?>
 <?php if ($jurnald->RowType == EW_ROWTYPE_VIEW) { // View record ?>
@@ -513,43 +427,6 @@ fjurnaldgrid.UpdateOpts(<?php echo $jurnald_grid->RowIndex ?>);
 // Render list options (body, left)
 $jurnald_grid->ListOptions->Render("body", "left", $jurnald_grid->RowIndex);
 ?>
-	<?php if ($jurnald->id->Visible) { // id ?>
-		<td data-name="id">
-<?php if ($jurnald->CurrentAction <> "F") { ?>
-<?php } else { ?>
-<span id="el$rowindex$_jurnald_id" class="form-group jurnald_id">
-<span<?php echo $jurnald->id->ViewAttributes() ?>>
-<p class="form-control-static"><?php echo $jurnald->id->ViewValue ?></p></span>
-</span>
-<input type="hidden" data-table="jurnald" data-field="x_id" name="x<?php echo $jurnald_grid->RowIndex ?>_id" id="x<?php echo $jurnald_grid->RowIndex ?>_id" value="<?php echo ew_HtmlEncode($jurnald->id->FormValue) ?>">
-<?php } ?>
-<input type="hidden" data-table="jurnald" data-field="x_id" name="o<?php echo $jurnald_grid->RowIndex ?>_id" id="o<?php echo $jurnald_grid->RowIndex ?>_id" value="<?php echo ew_HtmlEncode($jurnald->id->OldValue) ?>">
-</td>
-	<?php } ?>
-	<?php if ($jurnald->jurnal_id->Visible) { // jurnal_id ?>
-		<td data-name="jurnal_id">
-<?php if ($jurnald->CurrentAction <> "F") { ?>
-<?php if ($jurnald->jurnal_id->getSessionValue() <> "") { ?>
-<span id="el$rowindex$_jurnald_jurnal_id" class="form-group jurnald_jurnal_id">
-<span<?php echo $jurnald->jurnal_id->ViewAttributes() ?>>
-<p class="form-control-static"><?php echo $jurnald->jurnal_id->ViewValue ?></p></span>
-</span>
-<input type="hidden" id="x<?php echo $jurnald_grid->RowIndex ?>_jurnal_id" name="x<?php echo $jurnald_grid->RowIndex ?>_jurnal_id" value="<?php echo ew_HtmlEncode($jurnald->jurnal_id->CurrentValue) ?>">
-<?php } else { ?>
-<span id="el$rowindex$_jurnald_jurnal_id" class="form-group jurnald_jurnal_id">
-<input type="text" data-table="jurnald" data-field="x_jurnal_id" name="x<?php echo $jurnald_grid->RowIndex ?>_jurnal_id" id="x<?php echo $jurnald_grid->RowIndex ?>_jurnal_id" size="30" placeholder="<?php echo ew_HtmlEncode($jurnald->jurnal_id->getPlaceHolder()) ?>" value="<?php echo $jurnald->jurnal_id->EditValue ?>"<?php echo $jurnald->jurnal_id->EditAttributes() ?>>
-</span>
-<?php } ?>
-<?php } else { ?>
-<span id="el$rowindex$_jurnald_jurnal_id" class="form-group jurnald_jurnal_id">
-<span<?php echo $jurnald->jurnal_id->ViewAttributes() ?>>
-<p class="form-control-static"><?php echo $jurnald->jurnal_id->ViewValue ?></p></span>
-</span>
-<input type="hidden" data-table="jurnald" data-field="x_jurnal_id" name="x<?php echo $jurnald_grid->RowIndex ?>_jurnal_id" id="x<?php echo $jurnald_grid->RowIndex ?>_jurnal_id" value="<?php echo ew_HtmlEncode($jurnald->jurnal_id->FormValue) ?>">
-<?php } ?>
-<input type="hidden" data-table="jurnald" data-field="x_jurnal_id" name="o<?php echo $jurnald_grid->RowIndex ?>_jurnal_id" id="o<?php echo $jurnald_grid->RowIndex ?>_jurnal_id" value="<?php echo ew_HtmlEncode($jurnald->jurnal_id->OldValue) ?>">
-</td>
-	<?php } ?>
 	<?php if ($jurnald->akun_id->Visible) { // akun_id ?>
 		<td data-name="akun_id">
 <?php if ($jurnald->CurrentAction <> "F") { ?>
@@ -573,7 +450,7 @@ $jurnald_grid->ListOptions->Render("body", "left", $jurnald_grid->RowIndex);
 		<td data-name="debet">
 <?php if ($jurnald->CurrentAction <> "F") { ?>
 <span id="el$rowindex$_jurnald_debet" class="form-group jurnald_debet">
-<input type="text" data-table="jurnald" data-field="x_debet" name="x<?php echo $jurnald_grid->RowIndex ?>_debet" id="x<?php echo $jurnald_grid->RowIndex ?>_debet" size="30" placeholder="<?php echo ew_HtmlEncode($jurnald->debet->getPlaceHolder()) ?>" value="<?php echo $jurnald->debet->EditValue ?>"<?php echo $jurnald->debet->EditAttributes() ?>>
+<input type="text" data-table="jurnald" data-field="x_debet" name="x<?php echo $jurnald_grid->RowIndex ?>_debet" id="x<?php echo $jurnald_grid->RowIndex ?>_debet" size="15" placeholder="<?php echo ew_HtmlEncode($jurnald->debet->getPlaceHolder()) ?>" value="<?php echo $jurnald->debet->EditValue ?>"<?php echo $jurnald->debet->EditAttributes() ?>>
 </span>
 <?php } else { ?>
 <span id="el$rowindex$_jurnald_debet" class="form-group jurnald_debet">
@@ -589,7 +466,7 @@ $jurnald_grid->ListOptions->Render("body", "left", $jurnald_grid->RowIndex);
 		<td data-name="kredit">
 <?php if ($jurnald->CurrentAction <> "F") { ?>
 <span id="el$rowindex$_jurnald_kredit" class="form-group jurnald_kredit">
-<input type="text" data-table="jurnald" data-field="x_kredit" name="x<?php echo $jurnald_grid->RowIndex ?>_kredit" id="x<?php echo $jurnald_grid->RowIndex ?>_kredit" size="30" placeholder="<?php echo ew_HtmlEncode($jurnald->kredit->getPlaceHolder()) ?>" value="<?php echo $jurnald->kredit->EditValue ?>"<?php echo $jurnald->kredit->EditAttributes() ?>>
+<input type="text" data-table="jurnald" data-field="x_kredit" name="x<?php echo $jurnald_grid->RowIndex ?>_kredit" id="x<?php echo $jurnald_grid->RowIndex ?>_kredit" size="15" placeholder="<?php echo ew_HtmlEncode($jurnald->kredit->getPlaceHolder()) ?>" value="<?php echo $jurnald->kredit->EditValue ?>"<?php echo $jurnald->kredit->EditAttributes() ?>>
 </span>
 <?php } else { ?>
 <span id="el$rowindex$_jurnald_kredit" class="form-group jurnald_kredit">

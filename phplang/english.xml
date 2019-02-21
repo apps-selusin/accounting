@@ -626,7 +626,7 @@
       <phrase id="menutext" value="gudang" />
     </menu>
     <menu id="5">
-      <phrase id="menutext" value="jurnald" />
+      <phrase id="menutext" value="Detail" />
     </menu>
     <menu id="6">
       <phrase id="menutext" value="kelompok" />
@@ -711,11 +711,17 @@
       <field id="id">
         <phrase id="fldcaption" value="id" />
       </field>
+      <field id="period_id">
+        <phrase id="fldcaption" value="period id" />
+      </field>
+      <field id="person_id">
+        <phrase id="fldcaption" value="person id" />
+      </field>
       <field id="tipejurnal_id">
         <phrase id="fldcaption" value="Tipe Jurnal" />
       </field>
-      <field id="period_id">
-        <phrase id="fldcaption" value="period id" />
+      <field id="nomer">
+        <phrase id="fldcaption" value="Nomor" />
       </field>
       <field id="createon">
         <phrase id="fldcaption" value="Tanggal" />
@@ -723,15 +729,9 @@
       <field id="keterangan">
         <phrase id="fldcaption" value="Keterangan" />
       </field>
-      <field id="person_id">
-        <phrase id="fldcaption" value="person id" />
-      </field>
-      <field id="nomer">
-        <phrase id="fldcaption" value="Nomor" />
-      </field>
     </table>
     <table id="jurnald">
-      <phrase id="tblcaption" value="jurnald" />
+      <phrase id="tblcaption" value="Detail" />
       <field id="id">
         <phrase id="fldcaption" value="id" />
       </field>
@@ -739,13 +739,13 @@
         <phrase id="fldcaption" value="jurnal id" />
       </field>
       <field id="akun_id">
-        <phrase id="fldcaption" value="akun id" />
+        <phrase id="fldcaption" value="Akun" />
       </field>
       <field id="debet">
-        <phrase id="fldcaption" value="debet" />
+        <phrase id="fldcaption" value="Debet" />
       </field>
       <field id="kredit">
-        <phrase id="fldcaption" value="kredit" />
+        <phrase id="fldcaption" value="Kredit" />
       </field>
     </table>
     <table id="kelompok">

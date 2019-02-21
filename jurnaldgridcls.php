@@ -284,9 +284,6 @@ class cjurnald_grid extends cjurnald {
 
 		// Set up list options
 		$this->SetupListOptions();
-		$this->id->SetVisibility();
-		$this->id->Visible = !$this->IsAdd() && !$this->IsCopy() && !$this->IsGridAdd();
-		$this->jurnal_id->SetVisibility();
 		$this->akun_id->SetVisibility();
 		$this->debet->SetVisibility();
 		$this->kredit->SetVisibility();
@@ -746,8 +743,6 @@ class cjurnald_grid extends cjurnald {
 	// Check if empty row
 	function EmptyRow() {
 		global $objForm;
-		if ($objForm->HasValue("x_jurnal_id") && $objForm->HasValue("o_jurnal_id") && $this->jurnal_id->CurrentValue <> $this->jurnal_id->OldValue)
-			return FALSE;
 		if ($objForm->HasValue("x_akun_id") && $objForm->HasValue("o_akun_id") && $this->akun_id->CurrentValue <> $this->akun_id->OldValue)
 			return FALSE;
 		if ($objForm->HasValue("x_debet") && $objForm->HasValue("o_debet") && $this->debet->CurrentValue <> $this->debet->OldValue)
@@ -918,6 +913,14 @@ class cjurnald_grid extends cjurnald {
 		$item->Visible = TRUE;
 		$item->OnLeft = FALSE;
 
+		// "sequence"
+		$item = &$this->ListOptions->Add("sequence");
+		$item->CssStyle = "white-space: nowrap;";
+		$item->Visible = TRUE;
+		$item->OnLeft = TRUE; // Always on left
+		$item->ShowInDropDown = FALSE;
+		$item->ShowInButtonGroup = FALSE;
+
 		// Drop down button for ListOptions
 		$this->ListOptions->UseImageAndText = TRUE;
 		$this->ListOptions->UseDropDownButton = FALSE;
@@ -966,6 +969,10 @@ class cjurnald_grid extends cjurnald {
 				$oListOpt->Body = "<a class=\"ewGridLink ewGridDelete\" title=\"" . ew_HtmlTitle($Language->Phrase("DeleteLink")) . "\" data-caption=\"" . ew_HtmlTitle($Language->Phrase("DeleteLink")) . "\" onclick=\"return ew_DeleteGridRow(this, " . $this->RowIndex . ");\">" . $Language->Phrase("DeleteLink") . "</a>";
 			}
 		}
+
+		// "sequence"
+		$oListOpt = &$this->ListOptions->Items["sequence"];
+		$oListOpt->Body = ew_FormatSeqNo($this->RecCnt);
 		if ($this->CurrentMode == "view") { // View mode
 
 		// "view"
@@ -1107,10 +1114,6 @@ class cjurnald_grid extends cjurnald {
 
 	// Load default values
 	function LoadDefaultValues() {
-		$this->id->CurrentValue = NULL;
-		$this->id->OldValue = $this->id->CurrentValue;
-		$this->jurnal_id->CurrentValue = NULL;
-		$this->jurnal_id->OldValue = $this->jurnal_id->CurrentValue;
 		$this->akun_id->CurrentValue = NULL;
 		$this->akun_id->OldValue = $this->akun_id->CurrentValue;
 		$this->debet->CurrentValue = NULL;
@@ -1125,12 +1128,6 @@ class cjurnald_grid extends cjurnald {
 		// Load from form
 		global $objForm;
 		$objForm->FormName = $this->FormName;
-		if (!$this->id->FldIsDetailKey && $this->CurrentAction <> "gridadd" && $this->CurrentAction <> "add")
-			$this->id->setFormValue($objForm->GetValue("x_id"));
-		if (!$this->jurnal_id->FldIsDetailKey) {
-			$this->jurnal_id->setFormValue($objForm->GetValue("x_jurnal_id"));
-		}
-		$this->jurnal_id->setOldValue($objForm->GetValue("o_jurnal_id"));
 		if (!$this->akun_id->FldIsDetailKey) {
 			$this->akun_id->setFormValue($objForm->GetValue("x_akun_id"));
 		}
@@ -1143,6 +1140,8 @@ class cjurnald_grid extends cjurnald {
 			$this->kredit->setFormValue($objForm->GetValue("x_kredit"));
 		}
 		$this->kredit->setOldValue($objForm->GetValue("o_kredit"));
+		if (!$this->id->FldIsDetailKey && $this->CurrentAction <> "gridadd" && $this->CurrentAction <> "add")
+			$this->id->setFormValue($objForm->GetValue("x_id"));
 	}
 
 	// Restore form values
@@ -1150,7 +1149,6 @@ class cjurnald_grid extends cjurnald {
 		global $objForm;
 		if ($this->CurrentAction <> "gridadd" && $this->CurrentAction <> "add")
 			$this->id->CurrentValue = $this->id->FormValue;
-		$this->jurnal_id->CurrentValue = $this->jurnal_id->FormValue;
 		$this->akun_id->CurrentValue = $this->akun_id->FormValue;
 		$this->debet->CurrentValue = $this->debet->FormValue;
 		$this->kredit->CurrentValue = $this->kredit->FormValue;
@@ -1321,21 +1319,15 @@ class cjurnald_grid extends cjurnald {
 
 		// debet
 		$this->debet->ViewValue = $this->debet->CurrentValue;
+		$this->debet->ViewValue = ew_FormatNumber($this->debet->ViewValue, 2, -2, -2, -2);
+		$this->debet->CellCssStyle .= "text-align: right;";
 		$this->debet->ViewCustomAttributes = "";
 
 		// kredit
 		$this->kredit->ViewValue = $this->kredit->CurrentValue;
+		$this->kredit->ViewValue = ew_FormatNumber($this->kredit->ViewValue, 2, -2, -2, -2);
+		$this->kredit->CellCssStyle .= "text-align: right;";
 		$this->kredit->ViewCustomAttributes = "";
-
-			// id
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-			$this->id->TooltipValue = "";
-
-			// jurnal_id
-			$this->jurnal_id->LinkCustomAttributes = "";
-			$this->jurnal_id->HrefValue = "";
-			$this->jurnal_id->TooltipValue = "";
 
 			// akun_id
 			$this->akun_id->LinkCustomAttributes = "";
@@ -1353,21 +1345,6 @@ class cjurnald_grid extends cjurnald {
 			$this->kredit->TooltipValue = "";
 		} elseif ($this->RowType == EW_ROWTYPE_ADD) { // Add row
 
-			// id
-			// jurnal_id
-
-			$this->jurnal_id->EditAttrs["class"] = "form-control";
-			$this->jurnal_id->EditCustomAttributes = "";
-			if ($this->jurnal_id->getSessionValue() <> "") {
-				$this->jurnal_id->CurrentValue = $this->jurnal_id->getSessionValue();
-				$this->jurnal_id->OldValue = $this->jurnal_id->CurrentValue;
-			$this->jurnal_id->ViewValue = $this->jurnal_id->CurrentValue;
-			$this->jurnal_id->ViewCustomAttributes = "";
-			} else {
-			$this->jurnal_id->EditValue = ew_HtmlEncode($this->jurnal_id->CurrentValue);
-			$this->jurnal_id->PlaceHolder = ew_RemoveHtml($this->jurnal_id->FldCaption());
-			}
-
 			// akun_id
 			$this->akun_id->EditAttrs["class"] = "form-control";
 			$this->akun_id->EditCustomAttributes = "";
@@ -1393,7 +1370,7 @@ class cjurnald_grid extends cjurnald {
 			$this->debet->EditValue = ew_HtmlEncode($this->debet->CurrentValue);
 			$this->debet->PlaceHolder = ew_RemoveHtml($this->debet->FldCaption());
 			if (strval($this->debet->EditValue) <> "" && is_numeric($this->debet->EditValue)) {
-			$this->debet->EditValue = ew_FormatNumber($this->debet->EditValue, -2, -1, -2, 0);
+			$this->debet->EditValue = ew_FormatNumber($this->debet->EditValue, -2, -2, -2, -2);
 			$this->debet->OldValue = $this->debet->EditValue;
 			}
 
@@ -1403,21 +1380,13 @@ class cjurnald_grid extends cjurnald {
 			$this->kredit->EditValue = ew_HtmlEncode($this->kredit->CurrentValue);
 			$this->kredit->PlaceHolder = ew_RemoveHtml($this->kredit->FldCaption());
 			if (strval($this->kredit->EditValue) <> "" && is_numeric($this->kredit->EditValue)) {
-			$this->kredit->EditValue = ew_FormatNumber($this->kredit->EditValue, -2, -1, -2, 0);
+			$this->kredit->EditValue = ew_FormatNumber($this->kredit->EditValue, -2, -2, -2, -2);
 			$this->kredit->OldValue = $this->kredit->EditValue;
 			}
 
 			// Add refer script
-			// id
-
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-
-			// jurnal_id
-			$this->jurnal_id->LinkCustomAttributes = "";
-			$this->jurnal_id->HrefValue = "";
-
 			// akun_id
+
 			$this->akun_id->LinkCustomAttributes = "";
 			$this->akun_id->HrefValue = "";
 
@@ -1430,25 +1399,6 @@ class cjurnald_grid extends cjurnald {
 			$this->kredit->HrefValue = "";
 		} elseif ($this->RowType == EW_ROWTYPE_EDIT) { // Edit row
 
-			// id
-			$this->id->EditAttrs["class"] = "form-control";
-			$this->id->EditCustomAttributes = "";
-			$this->id->EditValue = $this->id->CurrentValue;
-			$this->id->ViewCustomAttributes = "";
-
-			// jurnal_id
-			$this->jurnal_id->EditAttrs["class"] = "form-control";
-			$this->jurnal_id->EditCustomAttributes = "";
-			if ($this->jurnal_id->getSessionValue() <> "") {
-				$this->jurnal_id->CurrentValue = $this->jurnal_id->getSessionValue();
-				$this->jurnal_id->OldValue = $this->jurnal_id->CurrentValue;
-			$this->jurnal_id->ViewValue = $this->jurnal_id->CurrentValue;
-			$this->jurnal_id->ViewCustomAttributes = "";
-			} else {
-			$this->jurnal_id->EditValue = ew_HtmlEncode($this->jurnal_id->CurrentValue);
-			$this->jurnal_id->PlaceHolder = ew_RemoveHtml($this->jurnal_id->FldCaption());
-			}
-
 			// akun_id
 			$this->akun_id->EditAttrs["class"] = "form-control";
 			$this->akun_id->EditCustomAttributes = "";
@@ -1474,7 +1424,7 @@ class cjurnald_grid extends cjurnald {
 			$this->debet->EditValue = ew_HtmlEncode($this->debet->CurrentValue);
 			$this->debet->PlaceHolder = ew_RemoveHtml($this->debet->FldCaption());
 			if (strval($this->debet->EditValue) <> "" && is_numeric($this->debet->EditValue)) {
-			$this->debet->EditValue = ew_FormatNumber($this->debet->EditValue, -2, -1, -2, 0);
+			$this->debet->EditValue = ew_FormatNumber($this->debet->EditValue, -2, -2, -2, -2);
 			$this->debet->OldValue = $this->debet->EditValue;
 			}
 
@@ -1484,21 +1434,13 @@ class cjurnald_grid extends cjurnald {
 			$this->kredit->EditValue = ew_HtmlEncode($this->kredit->CurrentValue);
 			$this->kredit->PlaceHolder = ew_RemoveHtml($this->kredit->FldCaption());
 			if (strval($this->kredit->EditValue) <> "" && is_numeric($this->kredit->EditValue)) {
-			$this->kredit->EditValue = ew_FormatNumber($this->kredit->EditValue, -2, -1, -2, 0);
+			$this->kredit->EditValue = ew_FormatNumber($this->kredit->EditValue, -2, -2, -2, -2);
 			$this->kredit->OldValue = $this->kredit->EditValue;
 			}
 
 			// Edit refer script
-			// id
-
-			$this->id->LinkCustomAttributes = "";
-			$this->id->HrefValue = "";
-
-			// jurnal_id
-			$this->jurnal_id->LinkCustomAttributes = "";
-			$this->jurnal_id->HrefValue = "";
-
 			// akun_id
+
 			$this->akun_id->LinkCustomAttributes = "";
 			$this->akun_id->HrefValue = "";
 
@@ -1528,9 +1470,6 @@ class cjurnald_grid extends cjurnald {
 		// Check if validation required
 		if (!EW_SERVER_VALIDATE)
 			return ($gsFormError == "");
-		if (!ew_CheckInteger($this->jurnal_id->FormValue)) {
-			ew_AddMessage($gsFormError, $this->jurnal_id->FldErrMsg());
-		}
 		if (!ew_CheckNumber($this->debet->FormValue)) {
 			ew_AddMessage($gsFormError, $this->debet->FldErrMsg());
 		}
@@ -1649,9 +1588,6 @@ class cjurnald_grid extends cjurnald {
 			$this->LoadDbValues($rsold);
 			$rsnew = array();
 
-			// jurnal_id
-			$this->jurnal_id->SetDbValueDef($rsnew, $this->jurnal_id->CurrentValue, NULL, $this->jurnal_id->ReadOnly);
-
 			// akun_id
 			$this->akun_id->SetDbValueDef($rsnew, $this->akun_id->CurrentValue, NULL, $this->akun_id->ReadOnly);
 
@@ -1709,9 +1645,6 @@ class cjurnald_grid extends cjurnald {
 		}
 		$rsnew = array();
 
-		// jurnal_id
-		$this->jurnal_id->SetDbValueDef($rsnew, $this->jurnal_id->CurrentValue, NULL, FALSE);
-
 		// akun_id
 		$this->akun_id->SetDbValueDef($rsnew, $this->akun_id->CurrentValue, NULL, FALSE);
 
@@ -1720,6 +1653,11 @@ class cjurnald_grid extends cjurnald {
 
 		// kredit
 		$this->kredit->SetDbValueDef($rsnew, $this->kredit->CurrentValue, NULL, FALSE);
+
+		// jurnal_id
+		if ($this->jurnal_id->getSessionValue() <> "") {
+			$rsnew['jurnal_id'] = $this->jurnal_id->getSessionValue();
+		}
 
 		// Call Row Inserting event
 		$rs = ($rsold == NULL) ? NULL : $rsold->fields;

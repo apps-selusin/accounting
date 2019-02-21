@@ -1,9 +1,9 @@
 <?php
 
 // tipejurnal_id
+// nomer
 // createon
 // keterangan
-// nomer
 
 ?>
 <?php if ($jurnal->Visible) { ?>
@@ -18,6 +18,17 @@
 <span id="el_jurnal_tipejurnal_id">
 <span<?php echo $jurnal->tipejurnal_id->ViewAttributes() ?>>
 <?php echo $jurnal->tipejurnal_id->ListViewValue() ?></span>
+</span>
+</td>
+		</tr>
+<?php } ?>
+<?php if ($jurnal->nomer->Visible) { // nomer ?>
+		<tr id="r_nomer">
+			<td><?php echo $jurnal->nomer->FldCaption() ?></td>
+			<td<?php echo $jurnal->nomer->CellAttributes() ?>>
+<span id="el_jurnal_nomer">
+<span<?php echo $jurnal->nomer->ViewAttributes() ?>>
+<?php echo $jurnal->nomer->ListViewValue() ?></span>
 </span>
 </td>
 		</tr>
@@ -40,17 +51,6 @@
 <span id="el_jurnal_keterangan">
 <span<?php echo $jurnal->keterangan->ViewAttributes() ?>>
 <?php echo $jurnal->keterangan->ListViewValue() ?></span>
-</span>
-</td>
-		</tr>
-<?php } ?>
-<?php if ($jurnal->nomer->Visible) { // nomer ?>
-		<tr id="r_nomer">
-			<td><?php echo $jurnal->nomer->FldCaption() ?></td>
-			<td<?php echo $jurnal->nomer->CellAttributes() ?>>
-<span id="el_jurnal_nomer">
-<span<?php echo $jurnal->nomer->ViewAttributes() ?>>
-<?php echo $jurnal->nomer->ListViewValue() ?></span>
 </span>
 </td>
 		</tr>

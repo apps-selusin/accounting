@@ -8,12 +8,12 @@ $jurnal = NULL;
 //
 class cjurnal extends cTable {
 	var $id;
-	var $tipejurnal_id;
 	var $period_id;
+	var $person_id;
+	var $tipejurnal_id;
+	var $nomer;
 	var $createon;
 	var $keterangan;
-	var $person_id;
-	var $nomer;
 
 	//
 	// Table class constructor
@@ -40,7 +40,7 @@ class cjurnal extends cTable {
 		$this->DetailEdit = FALSE; // Allow detail edit
 		$this->DetailView = FALSE; // Allow detail view
 		$this->ShowMultipleDetails = FALSE; // Show multiple details
-		$this->GridAddRowCount = 5;
+		$this->GridAddRowCount = 2;
 		$this->AllowAddDeleteRow = ew_AllowAddDeleteRow(); // Allow add/delete row
 		$this->UserIDAllowSecurity = 0; // User ID Allow
 		$this->BasicSearch = new cBasicSearch($this->TableVar);
@@ -51,14 +51,6 @@ class cjurnal extends cTable {
 		$this->id->FldDefaultErrMsg = $Language->Phrase("IncorrectInteger");
 		$this->fields['id'] = &$this->id;
 
-		// tipejurnal_id
-		$this->tipejurnal_id = new cField('jurnal', 'jurnal', 'x_tipejurnal_id', 'tipejurnal_id', '`tipejurnal_id`', '`tipejurnal_id`', 3, -1, FALSE, '`tipejurnal_id`', FALSE, FALSE, FALSE, 'FORMATTED TEXT', 'SELECT');
-		$this->tipejurnal_id->Sortable = TRUE; // Allow sort
-		$this->tipejurnal_id->UsePleaseSelect = TRUE; // Use PleaseSelect by default
-		$this->tipejurnal_id->PleaseSelectText = $Language->Phrase("PleaseSelect"); // PleaseSelect text
-		$this->tipejurnal_id->FldDefaultErrMsg = $Language->Phrase("IncorrectInteger");
-		$this->fields['tipejurnal_id'] = &$this->tipejurnal_id;
-
 		// period_id
 		$this->period_id = new cField('jurnal', 'jurnal', 'x_period_id', 'period_id', '`period_id`', '`period_id`', 3, -1, FALSE, '`period_id`', FALSE, FALSE, FALSE, 'FORMATTED TEXT', 'SELECT');
 		$this->period_id->Sortable = TRUE; // Allow sort
@@ -67,6 +59,25 @@ class cjurnal extends cTable {
 		$this->period_id->FldDefaultErrMsg = $Language->Phrase("IncorrectInteger");
 		$this->fields['period_id'] = &$this->period_id;
 
+		// person_id
+		$this->person_id = new cField('jurnal', 'jurnal', 'x_person_id', 'person_id', '`person_id`', '`person_id`', 3, -1, FALSE, '`person_id`', FALSE, FALSE, FALSE, 'FORMATTED TEXT', 'TEXT');
+		$this->person_id->Sortable = TRUE; // Allow sort
+		$this->person_id->FldDefaultErrMsg = $Language->Phrase("IncorrectInteger");
+		$this->fields['person_id'] = &$this->person_id;
+
+		// tipejurnal_id
+		$this->tipejurnal_id = new cField('jurnal', 'jurnal', 'x_tipejurnal_id', 'tipejurnal_id', '`tipejurnal_id`', '`tipejurnal_id`', 3, -1, FALSE, '`tipejurnal_id`', FALSE, FALSE, FALSE, 'FORMATTED TEXT', 'SELECT');
+		$this->tipejurnal_id->Sortable = TRUE; // Allow sort
+		$this->tipejurnal_id->UsePleaseSelect = TRUE; // Use PleaseSelect by default
+		$this->tipejurnal_id->PleaseSelectText = $Language->Phrase("PleaseSelect"); // PleaseSelect text
+		$this->tipejurnal_id->FldDefaultErrMsg = $Language->Phrase("IncorrectInteger");
+		$this->fields['tipejurnal_id'] = &$this->tipejurnal_id;
+
+		// nomer
+		$this->nomer = new cField('jurnal', 'jurnal', 'x_nomer', 'nomer', '`nomer`', '`nomer`', 200, -1, FALSE, '`nomer`', FALSE, FALSE, FALSE, 'FORMATTED TEXT', 'TEXT');
+		$this->nomer->Sortable = TRUE; // Allow sort
+		$this->fields['nomer'] = &$this->nomer;
+
 		// createon
 		$this->createon = new cField('jurnal', 'jurnal', 'x_createon', 'createon', '`createon`', ew_CastDateFieldForLike('`createon`', 7, "DB"), 135, 7, FALSE, '`createon`', FALSE, FALSE, FALSE, 'FORMATTED TEXT', 'TEXT');
 		$this->createon->Sortable = TRUE; // Allow sort
@@ -74,20 +85,9 @@ class cjurnal extends cTable {
 		$this->fields['createon'] = &$this->createon;
 
 		// keterangan
-		$this->keterangan = new cField('jurnal', 'jurnal', 'x_keterangan', 'keterangan', '`keterangan`', '`keterangan`', 200, -1, FALSE, '`keterangan`', FALSE, FALSE, FALSE, 'FORMATTED TEXT', 'TEXT');
+		$this->keterangan = new cField('jurnal', 'jurnal', 'x_keterangan', 'keterangan', '`keterangan`', '`keterangan`', 200, -1, FALSE, '`keterangan`', FALSE, FALSE, FALSE, 'FORMATTED TEXT', 'TEXTAREA');
 		$this->keterangan->Sortable = TRUE; // Allow sort
 		$this->fields['keterangan'] = &$this->keterangan;
-
-		// person_id
-		$this->person_id = new cField('jurnal', 'jurnal', 'x_person_id', 'person_id', '`person_id`', '`person_id`', 3, -1, FALSE, '`person_id`', FALSE, FALSE, FALSE, 'FORMATTED TEXT', 'TEXT');
-		$this->person_id->Sortable = TRUE; // Allow sort
-		$this->person_id->FldDefaultErrMsg = $Language->Phrase("IncorrectInteger");
-		$this->fields['person_id'] = &$this->person_id;
-
-		// nomer
-		$this->nomer = new cField('jurnal', 'jurnal', 'x_nomer', 'nomer', '`nomer`', '`nomer`', 200, -1, FALSE, '`nomer`', FALSE, FALSE, FALSE, 'FORMATTED TEXT', 'TEXT');
-		$this->nomer->Sortable = TRUE; // Allow sort
-		$this->fields['nomer'] = &$this->nomer;
 	}
 
 	// Set Field Visibility
@@ -621,12 +621,12 @@ class cjurnal extends cTable {
 	// Load row values from recordset
 	function LoadListRowValues(&$rs) {
 		$this->id->setDbValue($rs->fields('id'));
-		$this->tipejurnal_id->setDbValue($rs->fields('tipejurnal_id'));
 		$this->period_id->setDbValue($rs->fields('period_id'));
+		$this->person_id->setDbValue($rs->fields('person_id'));
+		$this->tipejurnal_id->setDbValue($rs->fields('tipejurnal_id'));
+		$this->nomer->setDbValue($rs->fields('nomer'));
 		$this->createon->setDbValue($rs->fields('createon'));
 		$this->keterangan->setDbValue($rs->fields('keterangan'));
-		$this->person_id->setDbValue($rs->fields('person_id'));
-		$this->nomer->setDbValue($rs->fields('nomer'));
 	}
 
 	// Render list row values
@@ -638,39 +638,16 @@ class cjurnal extends cTable {
 
    // Common render codes
 		// id
-		// tipejurnal_id
 		// period_id
+		// person_id
+		// tipejurnal_id
+		// nomer
 		// createon
 		// keterangan
-		// person_id
-		// nomer
 		// id
 
 		$this->id->ViewValue = $this->id->CurrentValue;
 		$this->id->ViewCustomAttributes = "";
-
-		// tipejurnal_id
-		if (strval($this->tipejurnal_id->CurrentValue) <> "") {
-			$sFilterWrk = "`id`" . ew_SearchString("=", $this->tipejurnal_id->CurrentValue, EW_DATATYPE_NUMBER, "");
-		$sSqlWrk = "SELECT `id`, `nama` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `tipejurnal`";
-		$sWhereWrk = "";
-		$this->tipejurnal_id->LookupFilters = array();
-		ew_AddFilter($sWhereWrk, $sFilterWrk);
-		$this->Lookup_Selecting($this->tipejurnal_id, $sWhereWrk); // Call Lookup selecting
-		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
-			$rswrk = Conn()->Execute($sSqlWrk);
-			if ($rswrk && !$rswrk->EOF) { // Lookup values found
-				$arwrk = array();
-				$arwrk[1] = $rswrk->fields('DispFld');
-				$this->tipejurnal_id->ViewValue = $this->tipejurnal_id->DisplayValue($arwrk);
-				$rswrk->Close();
-			} else {
-				$this->tipejurnal_id->ViewValue = $this->tipejurnal_id->CurrentValue;
-			}
-		} else {
-			$this->tipejurnal_id->ViewValue = NULL;
-		}
-		$this->tipejurnal_id->ViewCustomAttributes = "";
 
 		// period_id
 		if (strval($this->period_id->CurrentValue) <> "") {
@@ -696,6 +673,37 @@ class cjurnal extends cTable {
 		}
 		$this->period_id->ViewCustomAttributes = "";
 
+		// person_id
+		$this->person_id->ViewValue = $this->person_id->CurrentValue;
+		$this->person_id->ViewCustomAttributes = "";
+
+		// tipejurnal_id
+		if (strval($this->tipejurnal_id->CurrentValue) <> "") {
+			$sFilterWrk = "`id`" . ew_SearchString("=", $this->tipejurnal_id->CurrentValue, EW_DATATYPE_NUMBER, "");
+		$sSqlWrk = "SELECT `id`, `nama` AS `DispFld`, '' AS `Disp2Fld`, '' AS `Disp3Fld`, '' AS `Disp4Fld` FROM `tipejurnal`";
+		$sWhereWrk = "";
+		$this->tipejurnal_id->LookupFilters = array();
+		ew_AddFilter($sWhereWrk, $sFilterWrk);
+		$this->Lookup_Selecting($this->tipejurnal_id, $sWhereWrk); // Call Lookup selecting
+		if ($sWhereWrk <> "") $sSqlWrk .= " WHERE " . $sWhereWrk;
+			$rswrk = Conn()->Execute($sSqlWrk);
+			if ($rswrk && !$rswrk->EOF) { // Lookup values found
+				$arwrk = array();
+				$arwrk[1] = $rswrk->fields('DispFld');
+				$this->tipejurnal_id->ViewValue = $this->tipejurnal_id->DisplayValue($arwrk);
+				$rswrk->Close();
+			} else {
+				$this->tipejurnal_id->ViewValue = $this->tipejurnal_id->CurrentValue;
+			}
+		} else {
+			$this->tipejurnal_id->ViewValue = NULL;
+		}
+		$this->tipejurnal_id->ViewCustomAttributes = "";
+
+		// nomer
+		$this->nomer->ViewValue = $this->nomer->CurrentValue;
+		$this->nomer->ViewCustomAttributes = "";
+
 		// createon
 		$this->createon->ViewValue = $this->createon->CurrentValue;
 		$this->createon->ViewValue = ew_FormatDateTime($this->createon->ViewValue, 7);
@@ -705,28 +713,30 @@ class cjurnal extends cTable {
 		$this->keterangan->ViewValue = $this->keterangan->CurrentValue;
 		$this->keterangan->ViewCustomAttributes = "";
 
-		// person_id
-		$this->person_id->ViewValue = $this->person_id->CurrentValue;
-		$this->person_id->ViewCustomAttributes = "";
-
-		// nomer
-		$this->nomer->ViewValue = $this->nomer->CurrentValue;
-		$this->nomer->ViewCustomAttributes = "";
-
 		// id
 		$this->id->LinkCustomAttributes = "";
 		$this->id->HrefValue = "";
 		$this->id->TooltipValue = "";
+
+		// period_id
+		$this->period_id->LinkCustomAttributes = "";
+		$this->period_id->HrefValue = "";
+		$this->period_id->TooltipValue = "";
+
+		// person_id
+		$this->person_id->LinkCustomAttributes = "";
+		$this->person_id->HrefValue = "";
+		$this->person_id->TooltipValue = "";
 
 		// tipejurnal_id
 		$this->tipejurnal_id->LinkCustomAttributes = "";
 		$this->tipejurnal_id->HrefValue = "";
 		$this->tipejurnal_id->TooltipValue = "";
 
-		// period_id
-		$this->period_id->LinkCustomAttributes = "";
-		$this->period_id->HrefValue = "";
-		$this->period_id->TooltipValue = "";
+		// nomer
+		$this->nomer->LinkCustomAttributes = "";
+		$this->nomer->HrefValue = "";
+		$this->nomer->TooltipValue = "";
 
 		// createon
 		$this->createon->LinkCustomAttributes = "";
@@ -737,16 +747,6 @@ class cjurnal extends cTable {
 		$this->keterangan->LinkCustomAttributes = "";
 		$this->keterangan->HrefValue = "";
 		$this->keterangan->TooltipValue = "";
-
-		// person_id
-		$this->person_id->LinkCustomAttributes = "";
-		$this->person_id->HrefValue = "";
-		$this->person_id->TooltipValue = "";
-
-		// nomer
-		$this->nomer->LinkCustomAttributes = "";
-		$this->nomer->HrefValue = "";
-		$this->nomer->TooltipValue = "";
 
 		// Call Row Rendered event
 		$this->Row_Rendered();
@@ -765,17 +765,29 @@ class cjurnal extends cTable {
 		$this->id->EditValue = $this->id->CurrentValue;
 		$this->id->ViewCustomAttributes = "";
 
-		// tipejurnal_id
-		$this->tipejurnal_id->EditAttrs["class"] = "form-control";
-		$this->tipejurnal_id->EditCustomAttributes = "";
-
 		// period_id
 		$this->period_id->EditAttrs["class"] = "form-control";
 		$this->period_id->EditCustomAttributes = "";
 
+		// person_id
+		$this->person_id->EditAttrs["class"] = "form-control";
+		$this->person_id->EditCustomAttributes = "";
+		$this->person_id->EditValue = $this->person_id->CurrentValue;
+		$this->person_id->PlaceHolder = ew_RemoveHtml($this->person_id->FldCaption());
+
+		// tipejurnal_id
+		$this->tipejurnal_id->EditAttrs["class"] = "form-control";
+		$this->tipejurnal_id->EditCustomAttributes = "";
+
+		// nomer
+		$this->nomer->EditAttrs["class"] = "form-control";
+		$this->nomer->EditCustomAttributes = "";
+		$this->nomer->EditValue = $this->nomer->CurrentValue;
+		$this->nomer->PlaceHolder = ew_RemoveHtml($this->nomer->FldCaption());
+
 		// createon
 		$this->createon->EditAttrs["class"] = "form-control";
-		$this->createon->EditCustomAttributes = "";
+		$this->createon->EditCustomAttributes = "style='width: 115px;'";
 		$this->createon->EditValue = ew_FormatDateTime($this->createon->CurrentValue, 7);
 		$this->createon->PlaceHolder = ew_RemoveHtml($this->createon->FldCaption());
 
@@ -784,18 +796,6 @@ class cjurnal extends cTable {
 		$this->keterangan->EditCustomAttributes = "";
 		$this->keterangan->EditValue = $this->keterangan->CurrentValue;
 		$this->keterangan->PlaceHolder = ew_RemoveHtml($this->keterangan->FldCaption());
-
-		// person_id
-		$this->person_id->EditAttrs["class"] = "form-control";
-		$this->person_id->EditCustomAttributes = "";
-		$this->person_id->EditValue = $this->person_id->CurrentValue;
-		$this->person_id->PlaceHolder = ew_RemoveHtml($this->person_id->FldCaption());
-
-		// nomer
-		$this->nomer->EditAttrs["class"] = "form-control";
-		$this->nomer->EditCustomAttributes = "";
-		$this->nomer->EditValue = $this->nomer->CurrentValue;
-		$this->nomer->PlaceHolder = ew_RemoveHtml($this->nomer->FldCaption());
 
 		// Call Row Rendered event
 		$this->Row_Rendered();
@@ -825,17 +825,17 @@ class cjurnal extends cTable {
 				$Doc->BeginExportRow();
 				if ($ExportPageType == "view") {
 					if ($this->tipejurnal_id->Exportable) $Doc->ExportCaption($this->tipejurnal_id);
+					if ($this->nomer->Exportable) $Doc->ExportCaption($this->nomer);
 					if ($this->createon->Exportable) $Doc->ExportCaption($this->createon);
 					if ($this->keterangan->Exportable) $Doc->ExportCaption($this->keterangan);
-					if ($this->nomer->Exportable) $Doc->ExportCaption($this->nomer);
 				} else {
 					if ($this->id->Exportable) $Doc->ExportCaption($this->id);
-					if ($this->tipejurnal_id->Exportable) $Doc->ExportCaption($this->tipejurnal_id);
 					if ($this->period_id->Exportable) $Doc->ExportCaption($this->period_id);
+					if ($this->person_id->Exportable) $Doc->ExportCaption($this->person_id);
+					if ($this->tipejurnal_id->Exportable) $Doc->ExportCaption($this->tipejurnal_id);
+					if ($this->nomer->Exportable) $Doc->ExportCaption($this->nomer);
 					if ($this->createon->Exportable) $Doc->ExportCaption($this->createon);
 					if ($this->keterangan->Exportable) $Doc->ExportCaption($this->keterangan);
-					if ($this->person_id->Exportable) $Doc->ExportCaption($this->person_id);
-					if ($this->nomer->Exportable) $Doc->ExportCaption($this->nomer);
 				}
 				$Doc->EndExportRow();
 			}
@@ -868,17 +868,17 @@ class cjurnal extends cTable {
 					$Doc->BeginExportRow($RowCnt); // Allow CSS styles if enabled
 					if ($ExportPageType == "view") {
 						if ($this->tipejurnal_id->Exportable) $Doc->ExportField($this->tipejurnal_id);
+						if ($this->nomer->Exportable) $Doc->ExportField($this->nomer);
 						if ($this->createon->Exportable) $Doc->ExportField($this->createon);
 						if ($this->keterangan->Exportable) $Doc->ExportField($this->keterangan);
-						if ($this->nomer->Exportable) $Doc->ExportField($this->nomer);
 					} else {
 						if ($this->id->Exportable) $Doc->ExportField($this->id);
-						if ($this->tipejurnal_id->Exportable) $Doc->ExportField($this->tipejurnal_id);
 						if ($this->period_id->Exportable) $Doc->ExportField($this->period_id);
+						if ($this->person_id->Exportable) $Doc->ExportField($this->person_id);
+						if ($this->tipejurnal_id->Exportable) $Doc->ExportField($this->tipejurnal_id);
+						if ($this->nomer->Exportable) $Doc->ExportField($this->nomer);
 						if ($this->createon->Exportable) $Doc->ExportField($this->createon);
 						if ($this->keterangan->Exportable) $Doc->ExportField($this->keterangan);
-						if ($this->person_id->Exportable) $Doc->ExportField($this->person_id);
-						if ($this->nomer->Exportable) $Doc->ExportField($this->nomer);
 					}
 					$Doc->EndExportRow();
 				}
