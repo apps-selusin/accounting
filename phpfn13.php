@@ -4700,7 +4700,7 @@ function Database_Connecting(&$info) {
 		$info["port"] = "3307";
 	}
 	elseif ($info["id"] == "DB" && ew_CurrentUserIP() == "acc.selusin.web.id") { // Testing on web
-		$info["host"] = "server52.hostinger.co.id";
+		$info["host"] = "localhost";
 		$info["user"] = "u591406990_acc";
 		$info["pass"] = "PresarioCQ43";
 		$info["port"] = "3306";
