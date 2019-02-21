@@ -898,6 +898,9 @@ function MenuItem_Adding(&$Item) {
 	//var_dump($Item);
 	// Return FALSE if menu item not allowed
 
+	if ($Item->Url == "jurnallist.php") {
+		$Item->Url = "jurnaladd.php?showdetail=jurnald";
+	}
 	return TRUE;
 }
 
