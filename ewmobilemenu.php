@@ -13,8 +13,11 @@ $RootMenu->AddMenuItem(18, "mmi_subgrup", $Language->MenuPhrase("18", "MenuText"
 $RootMenu->AddMenuItem(1, "mmi_akun", $Language->MenuPhrase("1", "MenuText"), "akunlist.php", 48, "", TRUE, FALSE, FALSE);
 $RootMenu->AddMenuItem(16, "mmi_saldoawal", $Language->MenuPhrase("16", "MenuText"), "saldoawallist.php", 23, "", TRUE, FALSE, FALSE);
 $RootMenu->AddMenuItem(19, "mmi_tipejurnal", $Language->MenuPhrase("19", "MenuText"), "tipejurnallist.php", 23, "", TRUE, FALSE, FALSE);
-$RootMenu->AddMenuItem(4, "mmi_jurnal", $Language->MenuPhrase("4", "MenuText"), "jurnallist.php", -1, "", TRUE, FALSE, FALSE);
-$RootMenu->AddMenuItem(49, "mmi_cf02_labarugi_php", $Language->MenuPhrase("49", "MenuText"), "cf02_labarugi.php", -1, "", TRUE, FALSE, TRUE);
+$RootMenu->AddMenuItem(77, "mmci_Transaksi", $Language->MenuPhrase("77", "MenuText"), "", -1, "", TRUE, FALSE, TRUE);
+$RootMenu->AddMenuItem(4, "mmi_jurnal", $Language->MenuPhrase("4", "MenuText"), "jurnallist.php", 77, "", TRUE, FALSE, FALSE);
+$RootMenu->AddMenuItem(78, "mmci_Laporan", $Language->MenuPhrase("78", "MenuText"), "", -1, "", TRUE, FALSE, TRUE);
+$RootMenu->AddMenuItem(49, "mmi_cf02_labarugi_php", $Language->MenuPhrase("49", "MenuText"), "cf02_labarugi.php", 78, "", TRUE, FALSE, TRUE);
+$RootMenu->AddMenuItem(50, "mmi_cf03_neraca_php", $Language->MenuPhrase("50", "MenuText"), "cf03_neraca.php", 78, "", TRUE, FALSE, TRUE);
 $RootMenu->Render();
 ?>
 <!-- End Main Menu -->

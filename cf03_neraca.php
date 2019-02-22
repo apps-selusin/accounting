@@ -13,9 +13,9 @@ ob_start(); // Turn on output buffering
 // Page class
 //
 
-$cf01_home_php = NULL; // Initialize page object first
+$cf03_neraca_php = NULL; // Initialize page object first
 
-class ccf01_home_php {
+class ccf03_neraca_php {
 
 	// Page ID
 	var $PageID = 'custom';
@@ -24,10 +24,10 @@ class ccf01_home_php {
 	var $ProjectID = "{994C6BDE-6323-4115-98D0-9A87BE039368}";
 
 	// Table name
-	var $TableName = 'cf01_home.php';
+	var $TableName = 'cf03_neraca.php';
 
 	// Page object name
-	var $PageObjName = 'cf01_home_php';
+	var $PageObjName = 'cf03_neraca_php';
 
 	// Page name
 	function PageName() {
@@ -193,7 +193,7 @@ class ccf01_home_php {
 
 		// Table name (for backward compatibility)
 		if (!defined("EW_TABLE_NAME"))
-			define("EW_TABLE_NAME", 'cf01_home.php', TRUE);
+			define("EW_TABLE_NAME", 'cf03_neraca.php', TRUE);
 
 		// Start timer
 		if (!isset($GLOBALS["gTimer"])) $GLOBALS["gTimer"] = new cTimer();
@@ -259,7 +259,7 @@ class ccf01_home_php {
 		global $Breadcrumb;
 		$Breadcrumb = new cBreadcrumb();
 		$url = substr(ew_CurrentUrl(), strrpos(ew_CurrentUrl(), "/")+1);
-		$Breadcrumb->Add("custom", "cf01_home_php", $url, "", "cf01_home_php", TRUE);
+		$Breadcrumb->Add("custom", "cf03_neraca_php", $url, "", "cf03_neraca_php", TRUE);
 	}
 }
 ?>
@@ -267,13 +267,13 @@ class ccf01_home_php {
 <?php
 
 // Create page object
-if (!isset($cf01_home_php)) $cf01_home_php = new ccf01_home_php();
+if (!isset($cf03_neraca_php)) $cf03_neraca_php = new ccf03_neraca_php();
 
 // Page init
-$cf01_home_php->Page_Init();
+$cf03_neraca_php->Page_Init();
 
 // Page main
-$cf01_home_php->Page_Main();
+$cf03_neraca_php->Page_Main();
 
 // Global Page Rendering event (in userfn*.php)
 Page_Rendering();
@@ -286,25 +286,106 @@ Page_Rendering();
 <div class="clearfix"></div>
 </div>
 <?php } ?>
-<!-- periode -->
-<div class="panel panel-default">
-	<div class="panel-heading"><strong><a class='collapsed' data-toggle="collapse" href="#periode">Periode</a></strong></div>
-	<div id="periode" class="panel-collapse collapse in">
-		<div class="panel-body">
-			<div>
-				<table class='table table-striped table-hover table-condensed'>
-					<tbody>
-					<tr>
-						<td><?php echo "Periode: ".date_format(date_create(ew_ExecuteScalar("select `start` from periode")), "d-m-Y")." s.d. ".date_format(date_create(ew_ExecuteScalar("select `end` from periode")), "d-m-Y"); ?></td>
-					</tr>
-					</tbody>
-				</table>
-			</div>
+<?php
+
+$rs = ew_Execute("call spNeraca");
+
+	echo "
+		<div class='panel panel-default'>
+		<div>
+		<table class='table table-striped table-hover table-condensed'>
+		<tbody>";
+
+	/*echo "
+		<tr>
+			<th>Aktiva</th>
+			<th>&nbsp;</th>
+			<th>&nbsp;</th>
+			<th>&nbsp;</th>
+			<th>&nbsp;</th>
+			<th>&nbsp;</th>
+		</tr>";*/
+
+	echo "
+		<tr>
+			<th>Akun</th>
+			<th align='right'>Saldo Awal</th>
+			<th align='right'>Debet</th>
+			<th align='right'>Kredit</th>
+			<th align='right'>Saldo Akhir</th>
+			<th align='right'>Laba Rugi</th>
+		</tr>";
+	while (!$rs->EOF) {
+		echo "
+		<tr>
+			<td>" . $rs->fields["nama"] . "</td>
+			<td align='right'>" . number_format($rs->fields["saldoAwal"]) . "</td>
+			<td align='right'>" . number_format($rs->fields["jDebet"]) . "</td>
+			<td align='right'>" . number_format($rs->fields["jKredit"]) . "</td>
+			<td align='right'>" . number_format($rs->fields["SaldoAkhir"]) . "</td>
+			<td align='right'>" . number_format($rs->fields["labarugi"]) . "</td>
+		</tr>";
+		$rs->MoveNext();
+	}
+	$rs->Close();
+	echo "
+		</tbody>
+		</table>
 		</div>
-	</div>
-</div>
+		</div>";
+/*
+//Conn()->next_result();
+
+//$rs2 = Conn()->Execute("call spPASIVA");
+$rs2 = ew_Execute("call spPASIVA");
+
+	echo "
+		<div class='panel panel-default'>
+		<div>
+		<table class='table table-striped table-hover table-condensed'>
+		<tbody>";
+
+	echo "
+		<tr>
+			<th>Pasiva</th>
+			<th>&nbsp;</th>
+			<th>&nbsp;</th>
+			<th>&nbsp;</th>
+			<th>&nbsp;</th>
+			<th>&nbsp;</th>
+		</tr>";
+
+	echo "
+		<tr>
+			<th>Akun</th>
+			<th align='right'>Saldo Awal</th>
+			<th align='right'>Debet</th>
+			<th align='right'>Kredit</th>
+			<th align='right'>Saldo Akhir</th>
+			<th align='right'>Laba Rugi</th>
+		</tr>";
+	while (!$rs2->EOF) {
+		echo "
+		<tr>
+			<td>" . $rs2->fields["nama"] . "</td>
+			<td align='right'>" . number_format($rs2->fields["saldoAwal"]) . "</td>
+			<td align='right'>" . number_format($rs2->fields["jDebet"]) . "</td>
+			<td align='right'>" . number_format($rs2->fields["jKredit"]) . "</td>
+			<td align='right'>" . number_format($rs2->fields["SaldoAkhir"]) . "</td>
+			<td align='right'>" . number_format($rs2->fields["labarugi"]) . "</td>
+		</tr>";
+		$rs2->MoveNext();
+	}
+	$rs2->Close();
+	echo "
+		</tbody>
+		</table>
+		</div>
+		</div>";
+*/
+?>
 <?php if (EW_DEBUG_ENABLED) echo ew_DebugMsg(); ?>
 <?php include_once "footer.php" ?>
 <?php
-$cf01_home_php->Page_Terminate();
+$cf03_neraca_php->Page_Terminate();
 ?>

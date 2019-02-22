@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
-<configuration date="2019/02/21" author="e.World Technology Ltd.">
-  <project id="{994C6BDE-6323-4115-98D0-9A87BE039368}" file="C:\xampp\htdocs\accounting\accounting_prj.pmp" name="accounting_prj" product="PHPMaker" version="13.0" datetime="2019/02/21 16:16:51" languagefolder="phplang" userlevel="-2,&quot;Anonymous&quot;,0;">
+<configuration date="2019/02/22" author="e.World Technology Ltd.">
+  <project id="{994C6BDE-6323-4115-98D0-9A87BE039368}" file="C:\xampp\htdocs\accounting\accounting_prj.pmp" name="accounting_prj" product="PHPMaker" version="13.0" datetime="2019/02/22 11:23:36" languagefolder="phplang" userlevel="-2,&quot;Anonymous&quot;,0;">
     <table id="akun" name="akun" caption="Akun" userlevel="-2,&quot;Anonymous&quot;,0;" priv="1" />
     <table id="grup" name="grup" caption="Group" userlevel="-2,&quot;Anonymous&quot;,0;" priv="1" />
     <table id="gudang" name="gudang" caption="gudang" userlevel="-2,&quot;Anonymous&quot;,0;" priv="1" />
@@ -25,5 +25,6 @@
     <table id="type" name="type" caption="type" userlevel="-2,&quot;Anonymous&quot;,0;" priv="1" />
     <table id="cf01_home_php" name="cf01_home.php" caption="Home" userlevel="-2,&quot;Anonymous&quot;,0;" priv="1" />
     <table id="cf02_labarugi_php" name="cf02_labarugi.php" caption="Laba Rugi" userlevel="-2,&quot;Anonymous&quot;,0;" priv="1" />
+    <table id="cf03_neraca_php" name="cf03_neraca.php" caption="Neraca" userlevel="-2,&quot;Anonymous&quot;,0;" priv="1" />
   </project>
 </configuration>
