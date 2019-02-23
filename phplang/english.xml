@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<ew-language date="2019/2/22" version="13.0.0" id="en" name="English" desc="English" author="e.World Technology Ltd.">
+<ew-language date="2019/2/23" version="13.0.0" id="en" name="English" desc="English" author="e.World Technology Ltd.">
   <!-- 
 	*** Important Notes:
 	1. Language ID should follow: https://developers.google.com/recaptcha/docs/language,
@@ -634,6 +634,9 @@
     <menu id="50">
       <phrase id="menutext" value="Neraca" />
     </menu>
+    <menu id="79">
+      <phrase id="menutext" value="Jurnal" />
+    </menu>
     <menu id="3">
       <phrase id="menutext" value="gudang" />
     </menu>
@@ -1140,6 +1143,9 @@
     </table>
     <table id="cf03_neraca_php">
       <phrase id="tblcaption" value="Neraca" />
+    </table>
+    <table id="cf04_jurnal_php">
+      <phrase id="tblcaption" value="Jurnal" />
     </table>
   </project>
 </ew-language>

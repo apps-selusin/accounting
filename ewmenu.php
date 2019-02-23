@@ -19,6 +19,7 @@ $RootMenu->AddMenuItem(4, "mi_jurnal", $Language->MenuPhrase("4", "MenuText"), "
 $RootMenu->AddMenuItem(78, "mci_Laporan", $Language->MenuPhrase("78", "MenuText"), "", -1, "", TRUE, FALSE, TRUE);
 $RootMenu->AddMenuItem(49, "mi_cf02_labarugi_php", $Language->MenuPhrase("49", "MenuText"), "cf02_labarugi.php", 78, "", TRUE, FALSE, TRUE);
 $RootMenu->AddMenuItem(50, "mi_cf03_neraca_php", $Language->MenuPhrase("50", "MenuText"), "cf03_neraca.php", 78, "", TRUE, FALSE, TRUE);
+$RootMenu->AddMenuItem(79, "mi_cf04_jurnal_php", $Language->MenuPhrase("79", "MenuText"), "cf04_jurnal.php", 78, "", TRUE, FALSE, TRUE);
 $RootMenu->Render();
 ?>
 <!-- End Main Menu -->
