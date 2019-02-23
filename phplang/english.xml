@@ -640,6 +640,9 @@
     <menu id="80">
       <phrase id="menutext" value="COA" />
     </menu>
+    <menu id="81">
+      <phrase id="menutext" value="Saldo Awal" />
+    </menu>
     <menu id="3">
       <phrase id="menutext" value="gudang" />
     </menu>
@@ -1152,6 +1155,9 @@
     </table>
     <table id="cf05_coa_php">
       <phrase id="tblcaption" value="COA" />
+    </table>
+    <table id="cf06_saldoawal_php">
+      <phrase id="tblcaption" value="Saldo Awal" />
     </table>
   </project>
 </ew-language>

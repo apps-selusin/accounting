@@ -180,6 +180,9 @@
     <Table TblSchema="" TblName="cf01_home.php" TblType="REPORT" TblGen="1" TblGenList="custom=0" TblList="1" TblView="0" TblInlineEdit="0" TblGridEdit="0" TblEdit="0" TblEditConfirm="0" TblEditCaptcha="0" TblGridAdd="0" TblAdd="0" TblAddReturnPage="" TblAddOpt="0" TblAddConfirm="0" TblAddCaptcha="0" TblInlineAdd="0" TblInlineCopy="0" TblMultiUpdate="0" TblMultiUpdateConfirm="0" TblAnonymous="0" TblIsMaster="0" TblIsDetail="0" TblDelete="0" TblCaption="Home" TblUpdatable="0" TblSQL="" TblError="" TblSrchType="NONE" TblSearchHighlight="0" TblSearchColor="" TblSearch="0" TblBasicSearch="1" TblExtendedBasicSearch="1" TblBasicSearchDefault="" TblBasicSearchTypeDefault="" TblExtSearchFldPerRow="0" TblDefault="1" TblCopy="0" TblFilter="" TblUserIDFld="" TblSecurity="" TblUserIDAllow="0" TblExpanded="0" TblLoaded="1" TblRptShowDetails="0" TblRptShowGrandTotal="0" OutputFolder="" IncludeFiles="1" TblReportType="custom" TblCustomSQL="" TblCustomError="" TblRptSrc="" TblRptIndent="0" TblUseGlobal="1" TblRecPerPage="20" TblRecPerPageList="" TblPrinterFriendly="0" TblExportHtml="0" TblExportWord="0" TblExportExcel="0" TblExportXml="0" TblExportCsv="0" TblExportEmail="0" TblExportPDF="0" TblExportType="" TblRecPerRow="0" TblMultiDelete="0" TblSortType="0" TblPagerStyle="2" TblTopPageLink="0" TblBottomPageLink="1" TblViewExport="0" TblListExport="0" TblLinkOnLeft="0" TblInlineDelete="0" TblDetailViewPaging="0" TblDetailEditPaging="0" TblModalSearch="0" TblModalAdd="0" TblModalEdit="0" TblModalUpdate="0" TblModalView="0" TblAuditTrail="0" TblSendMailOnAdd="0" TblSendMailOnEdit="0" TblSendMailOnDelete="0" TblShowBlankListPage="0" TblDetailShowCount="0" TblDetailAdd="0" TblDetailEdit="0" TblDetailView="0" TblShowMultipleDetails="0" TblEditReturnPage="" TblMultiPageAdd="0" TblMultiPageEdit="0" TblMultiPageView="0" TblMultiPageSearch="0" TblCheckConcurrentUpdate="0" TblUserLevelPriv="1" TblDisplayRowCount="0" TblUseButtonsForLinks="1" TblUseDropDownForAction="1" TblUseDropDownForListOptions="1" TblMultiPageType="" TblUseDropDownForExport="1" LinkDBID="" LinkTableName="" LinkTableType="" TblPageCaptions="" />
     <Table TblSchema="" TblName="cf02_labarugi.php" TblType="REPORT" TblGen="1" TblGenList="custom=0" TblList="1" TblView="0" TblInlineEdit="0" TblGridEdit="0" TblEdit="0" TblEditConfirm="0" TblEditCaptcha="0" TblGridAdd="0" TblAdd="0" TblAddReturnPage="" TblAddOpt="0" TblAddConfirm="0" TblAddCaptcha="0" TblInlineAdd="0" TblInlineCopy="0" TblMultiUpdate="0" TblMultiUpdateConfirm="0" TblAnonymous="0" TblIsMaster="0" TblIsDetail="0" TblDelete="0" TblCaption="Laba Rugi" TblUpdatable="0" TblSQL="" TblError="" TblSrchType="NONE" TblSearchHighlight="0" TblSearchColor="" TblSearch="0" TblBasicSearch="1" TblExtendedBasicSearch="1" TblBasicSearchDefault="" TblBasicSearchTypeDefault="" TblExtSearchFldPerRow="0" TblDefault="0" TblCopy="0" TblFilter="" TblUserIDFld="" TblSecurity="" TblUserIDAllow="0" TblExpanded="0" TblLoaded="1" TblRptShowDetails="0" TblRptShowGrandTotal="0" OutputFolder="" IncludeFiles="1" TblReportType="custom" TblCustomSQL="" TblCustomError="" TblRptSrc="" TblRptIndent="0" TblUseGlobal="1" TblRecPerPage="20" TblRecPerPageList="" TblPrinterFriendly="0" TblExportHtml="0" TblExportWord="0" TblExportExcel="0" TblExportXml="0" TblExportCsv="0" TblExportEmail="0" TblExportPDF="0" TblExportType="" TblRecPerRow="0" TblMultiDelete="0" TblSortType="0" TblPagerStyle="2" TblTopPageLink="0" TblBottomPageLink="1" TblViewExport="0" TblListExport="0" TblLinkOnLeft="0" TblInlineDelete="0" TblDetailViewPaging="0" TblDetailEditPaging="0" TblModalSearch="0" TblModalAdd="0" TblModalEdit="0" TblModalUpdate="0" TblModalView="0" TblAuditTrail="0" TblSendMailOnAdd="0" TblSendMailOnEdit="0" TblSendMailOnDelete="0" TblShowBlankListPage="0" TblDetailShowCount="0" TblDetailAdd="0" TblDetailEdit="0" TblDetailView="0" TblShowMultipleDetails="0" TblEditReturnPage="" TblMultiPageAdd="0" TblMultiPageEdit="0" TblMultiPageView="0" TblMultiPageSearch="0" TblCheckConcurrentUpdate="0" TblUserLevelPriv="1" TblDisplayRowCount="0" TblUseButtonsForLinks="1" TblUseDropDownForAction="1" TblUseDropDownForListOptions="1" TblMultiPageType="" TblUseDropDownForExport="1" LinkDBID="" LinkTableName="" LinkTableType="" TblPageCaptions="" />
     <Table TblSchema="" TblName="cf03_neraca.php" TblType="REPORT" TblGen="1" TblGenList="custom=1" TblList="1" TblView="0" TblInlineEdit="0" TblGridEdit="0" TblEdit="0" TblEditConfirm="0" TblEditCaptcha="0" TblGridAdd="0" TblAdd="0" TblAddReturnPage="" TblAddOpt="0" TblAddConfirm="0" TblAddCaptcha="0" TblInlineAdd="0" TblInlineCopy="0" TblMultiUpdate="0" TblMultiUpdateConfirm="0" TblAnonymous="0" TblIsMaster="0" TblIsDetail="0" TblDelete="0" TblCaption="Neraca" TblUpdatable="0" TblSQL="" TblError="" TblSrchType="NONE" TblSearchHighlight="0" TblSearchColor="" TblSearch="0" TblBasicSearch="1" TblExtendedBasicSearch="1" TblBasicSearchDefault="" TblBasicSearchTypeDefault="" TblExtSearchFldPerRow="0" TblDefault="0" TblCopy="0" TblFilter="" TblUserIDFld="" TblSecurity="" TblUserIDAllow="0" TblExpanded="0" TblLoaded="1" TblRptShowDetails="0" TblRptShowGrandTotal="0" OutputFolder="" IncludeFiles="1" TblReportType="custom" TblCustomSQL="" TblCustomError="" TblRptSrc="" TblRptIndent="0" TblUseGlobal="1" TblRecPerPage="20" TblRecPerPageList="" TblPrinterFriendly="0" TblExportHtml="0" TblExportWord="0" TblExportExcel="0" TblExportXml="0" TblExportCsv="0" TblExportEmail="0" TblExportPDF="0" TblExportType="" TblRecPerRow="0" TblMultiDelete="0" TblSortType="0" TblPagerStyle="2" TblTopPageLink="0" TblBottomPageLink="1" TblViewExport="0" TblListExport="0" TblLinkOnLeft="0" TblInlineDelete="0" TblDetailViewPaging="0" TblDetailEditPaging="0" TblModalSearch="0" TblModalAdd="0" TblModalEdit="0" TblModalUpdate="0" TblModalView="0" TblAuditTrail="0" TblSendMailOnAdd="0" TblSendMailOnEdit="0" TblSendMailOnDelete="0" TblShowBlankListPage="0" TblDetailShowCount="0" TblDetailAdd="0" TblDetailEdit="0" TblDetailView="0" TblShowMultipleDetails="0" TblEditReturnPage="" TblMultiPageAdd="0" TblMultiPageEdit="0" TblMultiPageView="0" TblMultiPageSearch="0" TblCheckConcurrentUpdate="0" TblUserLevelPriv="1" TblDisplayRowCount="0" TblUseButtonsForLinks="1" TblUseDropDownForAction="1" TblUseDropDownForListOptions="1" TblMultiPageType="" TblUseDropDownForExport="1" LinkDBID="" LinkTableName="" LinkTableType="" TblPageCaptions="" />
+    <Table TblSchema="" TblName="cf04_jurnal.php" TblType="REPORT" TblGen="1" TblGenList="custom=1" TblList="1" TblView="0" TblInlineEdit="0" TblGridEdit="0" TblEdit="0" TblEditConfirm="0" TblEditCaptcha="0" TblGridAdd="0" TblAdd="0" TblAddReturnPage="" TblAddOpt="0" TblAddConfirm="0" TblAddCaptcha="0" TblInlineAdd="0" TblInlineCopy="0" TblMultiUpdate="0" TblMultiUpdateConfirm="0" TblAnonymous="0" TblIsMaster="0" TblIsDetail="0" TblDelete="0" TblCaption="Jurnal" TblUpdatable="0" TblSQL="" TblError="" TblSrchType="NONE" TblSearchHighlight="0" TblSearchColor="" TblSearch="0" TblBasicSearch="1" TblExtendedBasicSearch="1" TblBasicSearchDefault="" TblBasicSearchTypeDefault="" TblExtSearchFldPerRow="0" TblDefault="0" TblCopy="0" TblFilter="" TblUserIDFld="" TblSecurity="" TblUserIDAllow="0" TblExpanded="0" TblLoaded="1" TblRptShowDetails="0" TblRptShowGrandTotal="0" OutputFolder="" IncludeFiles="1" TblReportType="custom" TblCustomSQL="" TblCustomError="" TblRptSrc="" TblRptIndent="0" TblUseGlobal="1" TblRecPerPage="20" TblRecPerPageList="" TblPrinterFriendly="0" TblExportHtml="0" TblExportWord="0" TblExportExcel="0" TblExportXml="0" TblExportCsv="0" TblExportEmail="0" TblExportPDF="0" TblExportType="" TblRecPerRow="0" TblMultiDelete="0" TblSortType="0" TblPagerStyle="2" TblTopPageLink="0" TblBottomPageLink="1" TblViewExport="0" TblListExport="0" TblLinkOnLeft="0" TblInlineDelete="0" TblDetailViewPaging="0" TblDetailEditPaging="0" TblModalSearch="0" TblModalAdd="0" TblModalEdit="0" TblModalUpdate="0" TblModalView="0" TblAuditTrail="0" TblSendMailOnAdd="0" TblSendMailOnEdit="0" TblSendMailOnDelete="0" TblShowBlankListPage="0" TblDetailShowCount="0" TblDetailAdd="0" TblDetailEdit="0" TblDetailView="0" TblShowMultipleDetails="0" TblEditReturnPage="" TblMultiPageAdd="0" TblMultiPageEdit="0" TblMultiPageView="0" TblMultiPageSearch="0" TblCheckConcurrentUpdate="0" TblUserLevelPriv="1" TblDisplayRowCount="0" TblUseButtonsForLinks="1" TblUseDropDownForAction="1" TblUseDropDownForListOptions="1" TblMultiPageType="" TblUseDropDownForExport="1" LinkDBID="" LinkTableName="" LinkTableType="" TblPageCaptions="" />
+    <Table TblSchema="" TblName="cf05_coa.php" TblType="REPORT" TblGen="1" TblGenList="custom=1" TblList="1" TblView="0" TblInlineEdit="0" TblGridEdit="0" TblEdit="0" TblEditConfirm="0" TblEditCaptcha="0" TblGridAdd="0" TblAdd="0" TblAddReturnPage="" TblAddOpt="0" TblAddConfirm="0" TblAddCaptcha="0" TblInlineAdd="0" TblInlineCopy="0" TblMultiUpdate="0" TblMultiUpdateConfirm="0" TblAnonymous="0" TblIsMaster="0" TblIsDetail="0" TblDelete="0" TblCaption="COA" TblUpdatable="0" TblSQL="" TblError="" TblSrchType="NONE" TblSearchHighlight="0" TblSearchColor="" TblSearch="0" TblBasicSearch="1" TblExtendedBasicSearch="1" TblBasicSearchDefault="" TblBasicSearchTypeDefault="" TblExtSearchFldPerRow="0" TblDefault="0" TblCopy="0" TblFilter="" TblUserIDFld="" TblSecurity="" TblUserIDAllow="0" TblExpanded="0" TblLoaded="1" TblRptShowDetails="0" TblRptShowGrandTotal="0" OutputFolder="" IncludeFiles="1" TblReportType="custom" TblCustomSQL="" TblCustomError="" TblRptSrc="" TblRptIndent="0" TblUseGlobal="1" TblRecPerPage="20" TblRecPerPageList="" TblPrinterFriendly="0" TblExportHtml="0" TblExportWord="0" TblExportExcel="0" TblExportXml="0" TblExportCsv="0" TblExportEmail="0" TblExportPDF="0" TblExportType="" TblRecPerRow="0" TblMultiDelete="0" TblSortType="0" TblPagerStyle="2" TblTopPageLink="0" TblBottomPageLink="1" TblViewExport="0" TblListExport="0" TblLinkOnLeft="0" TblInlineDelete="0" TblDetailViewPaging="0" TblDetailEditPaging="0" TblModalSearch="0" TblModalAdd="0" TblModalEdit="0" TblModalUpdate="0" TblModalView="0" TblAuditTrail="0" TblSendMailOnAdd="0" TblSendMailOnEdit="0" TblSendMailOnDelete="0" TblShowBlankListPage="0" TblDetailShowCount="0" TblDetailAdd="0" TblDetailEdit="0" TblDetailView="0" TblShowMultipleDetails="0" TblEditReturnPage="" TblMultiPageAdd="0" TblMultiPageEdit="0" TblMultiPageView="0" TblMultiPageSearch="0" TblCheckConcurrentUpdate="0" TblUserLevelPriv="1" TblDisplayRowCount="0" TblUseButtonsForLinks="1" TblUseDropDownForAction="1" TblUseDropDownForListOptions="1" TblMultiPageType="" TblUseDropDownForExport="1" LinkDBID="" LinkTableName="" LinkTableType="" TblPageCaptions="" />
+    <Table TblSchema="" TblName="cf06_saldoawal.php" TblType="REPORT" TblGen="1" TblGenList="custom=1" TblList="1" TblView="0" TblInlineEdit="0" TblGridEdit="0" TblEdit="0" TblEditConfirm="0" TblEditCaptcha="0" TblGridAdd="0" TblAdd="0" TblAddReturnPage="" TblAddOpt="0" TblAddConfirm="0" TblAddCaptcha="0" TblInlineAdd="0" TblInlineCopy="0" TblMultiUpdate="0" TblMultiUpdateConfirm="0" TblAnonymous="0" TblIsMaster="0" TblIsDetail="0" TblDelete="0" TblCaption="Saldo Awal" TblUpdatable="0" TblSQL="" TblError="" TblSrchType="NONE" TblSearchHighlight="0" TblSearchColor="" TblSearch="0" TblBasicSearch="1" TblExtendedBasicSearch="1" TblBasicSearchDefault="" TblBasicSearchTypeDefault="" TblExtSearchFldPerRow="0" TblDefault="0" TblCopy="0" TblFilter="" TblUserIDFld="" TblSecurity="" TblUserIDAllow="0" TblExpanded="0" TblLoaded="1" TblRptShowDetails="0" TblRptShowGrandTotal="0" OutputFolder="" IncludeFiles="1" TblReportType="custom" TblCustomSQL="" TblCustomError="" TblRptSrc="" TblRptIndent="0" TblUseGlobal="1" TblRecPerPage="20" TblRecPerPageList="" TblPrinterFriendly="0" TblExportHtml="0" TblExportWord="0" TblExportExcel="0" TblExportXml="0" TblExportCsv="0" TblExportEmail="0" TblExportPDF="0" TblExportType="" TblRecPerRow="0" TblMultiDelete="0" TblSortType="0" TblPagerStyle="2" TblTopPageLink="0" TblBottomPageLink="1" TblViewExport="0" TblListExport="0" TblLinkOnLeft="0" TblInlineDelete="0" TblDetailViewPaging="0" TblDetailEditPaging="0" TblModalSearch="0" TblModalAdd="0" TblModalEdit="0" TblModalUpdate="0" TblModalView="0" TblAuditTrail="0" TblSendMailOnAdd="0" TblSendMailOnEdit="0" TblSendMailOnDelete="0" TblShowBlankListPage="0" TblDetailShowCount="0" TblDetailAdd="0" TblDetailEdit="0" TblDetailView="0" TblShowMultipleDetails="0" TblEditReturnPage="" TblMultiPageAdd="0" TblMultiPageEdit="0" TblMultiPageView="0" TblMultiPageSearch="0" TblCheckConcurrentUpdate="0" TblUserLevelPriv="1" TblDisplayRowCount="0" TblUseButtonsForLinks="1" TblUseDropDownForAction="1" TblUseDropDownForListOptions="1" TblMultiPageType="" TblUseDropDownForExport="1" LinkDBID="" LinkTableName="" LinkTableType="" TblPageCaptions="" />
   </Database>
   <Extension Name="Audit Trail" Template="" XmlFile="audittrail.xml" Enabled="1">
     <ExtProject>
@@ -188,6 +191,15 @@
           <Properties><![CDATA[[{"Id":"Add","Type":"Boolean","Value":"1"},{"Id":"Edit","Type":"Boolean","Value":"1"},{"Id":"Delete","Type":"Boolean","Value":"1"},{"Id":"View","Type":"Boolean","Value":"0"},{"Id":"ViewData","Type":"Boolean","Value":"0"},{"Id":"Search","Type":"Boolean","Value":"0"}]]]></Properties>
         </ExtTable>
         <ExtTable TblName="cf03_neraca.php">
+          <Properties><![CDATA[[{"Id":"Add","Type":"Boolean","Value":"1"},{"Id":"Edit","Type":"Boolean","Value":"1"},{"Id":"Delete","Type":"Boolean","Value":"1"},{"Id":"View","Type":"Boolean","Value":"0"},{"Id":"ViewData","Type":"Boolean","Value":"0"},{"Id":"Search","Type":"Boolean","Value":"0"}]]]></Properties>
+        </ExtTable>
+        <ExtTable TblName="cf04_jurnal.php">
+          <Properties><![CDATA[[{"Id":"Add","Type":"Boolean","Value":"1"},{"Id":"Edit","Type":"Boolean","Value":"1"},{"Id":"Delete","Type":"Boolean","Value":"1"},{"Id":"View","Type":"Boolean","Value":"0"},{"Id":"ViewData","Type":"Boolean","Value":"0"},{"Id":"Search","Type":"Boolean","Value":"0"}]]]></Properties>
+        </ExtTable>
+        <ExtTable TblName="cf05_coa.php">
+          <Properties><![CDATA[[{"Id":"Add","Type":"Boolean","Value":"1"},{"Id":"Edit","Type":"Boolean","Value":"1"},{"Id":"Delete","Type":"Boolean","Value":"1"},{"Id":"View","Type":"Boolean","Value":"0"},{"Id":"ViewData","Type":"Boolean","Value":"0"},{"Id":"Search","Type":"Boolean","Value":"0"}]]]></Properties>
+        </ExtTable>
+        <ExtTable TblName="cf06_saldoawal.php">
           <Properties><![CDATA[[{"Id":"Add","Type":"Boolean","Value":"1"},{"Id":"Edit","Type":"Boolean","Value":"1"},{"Id":"Delete","Type":"Boolean","Value":"1"},{"Id":"View","Type":"Boolean","Value":"0"},{"Id":"ViewData","Type":"Boolean","Value":"0"},{"Id":"Search","Type":"Boolean","Value":"0"}]]]></Properties>
         </ExtTable>
         <Properties><![CDATA[[]]]></Properties>
@@ -279,6 +291,15 @@
           <Properties><![CDATA[[{"Id":"ExportList","Type":"Boolean","Value":"0"},{"Id":"ExportView","Type":"Boolean","Value":"1"},{"Id":"PageBreakRecordCount","Type":"Integer","Value":0},{"Id":"PageOrientation","Type":"String","Value":"portrait"},{"Id":"PageSize","Type":"String","Value":"a4"}]]]></Properties>
         </ExtTable>
         <ExtTable TblName="cf03_neraca.php">
+          <Properties><![CDATA[[{"Id":"ExportList","Type":"Boolean","Value":"0"},{"Id":"ExportView","Type":"Boolean","Value":"1"},{"Id":"PageBreakRecordCount","Type":"Integer","Value":0},{"Id":"PageOrientation","Type":"String","Value":"portrait"},{"Id":"PageSize","Type":"String","Value":"a4"}]]]></Properties>
+        </ExtTable>
+        <ExtTable TblName="cf04_jurnal.php">
+          <Properties><![CDATA[[{"Id":"ExportList","Type":"Boolean","Value":"0"},{"Id":"ExportView","Type":"Boolean","Value":"1"},{"Id":"PageBreakRecordCount","Type":"Integer","Value":0},{"Id":"PageOrientation","Type":"String","Value":"portrait"},{"Id":"PageSize","Type":"String","Value":"a4"}]]]></Properties>
+        </ExtTable>
+        <ExtTable TblName="cf05_coa.php">
+          <Properties><![CDATA[[{"Id":"ExportList","Type":"Boolean","Value":"0"},{"Id":"ExportView","Type":"Boolean","Value":"1"},{"Id":"PageBreakRecordCount","Type":"Integer","Value":0},{"Id":"PageOrientation","Type":"String","Value":"portrait"},{"Id":"PageSize","Type":"String","Value":"a4"}]]]></Properties>
+        </ExtTable>
+        <ExtTable TblName="cf06_saldoawal.php">
           <Properties><![CDATA[[{"Id":"ExportList","Type":"Boolean","Value":"0"},{"Id":"ExportView","Type":"Boolean","Value":"1"},{"Id":"PageBreakRecordCount","Type":"Integer","Value":0},{"Id":"PageOrientation","Type":"String","Value":"portrait"},{"Id":"PageSize","Type":"String","Value":"a4"}]]]></Properties>
         </ExtTable>
         <Properties><![CDATA[[]]]></Properties>
@@ -515,6 +536,189 @@ $rs2 = ew_Execute("call spPASIVA");
 */
 ?>
 ]]></CustomScript>
+  <CustomScript ScriptType="Template" ScriptCodeType="Table" ScriptName="Content" ScriptCtrlID="custom" ScriptL1Key="cf04_jurnal.php" ScriptL2Key=""><![CDATA[<?php
+$q = "
+	SELECT
+		j.id,
+		tj.kode as kodejurnal,
+		j.createon,
+		a.id,
+		a.kode as kodeakun,
+		a.nama,
+		IFNULL(jd.debet,0) as debet,
+		IFNULL(jd.kredit,0) as kredit from jurnal as j
+	join jurnald as jd on jd.jurnal_id=j.id
+	join tipejurnal as tj on tj.id=j.tipejurnal_id
+	left join akun as a on a.id=jd.akun_id
+	ORDER BY
+		j.createon";
+//#where a.id=63
+
+$rs = ew_Execute($q);
+
+	echo "
+		<div class='panel panel-default'>
+		<div>
+		<table class='table table-striped table-hover table-condensed'>
+		<tbody>";
+
+	/*echo "
+		<tr>
+			<th>Aktiva</th>
+			<th>&nbsp;</th>
+			<th>&nbsp;</th>
+			<th>&nbsp;</th>
+			<th>&nbsp;</th>
+			<th>&nbsp;</th>
+		</tr>";*/
+
+	echo "
+		<tr>
+			<th>Kode Jurnal</th>
+			<th>Tanggal</th>
+			<th>Kode Akun</th>
+			<th>Akun</th>
+			<th align='right'>Debet</th>
+			<th align='right'>Kredit</th>
+		</tr>";
+	while (!$rs->EOF) {
+		echo "
+		<tr>
+			<td>" . $rs->fields["kodejurnal"] . "</td>
+			<td>" . $rs->fields["createon"] . "</td>
+			<td>" . $rs->fields["kodeakun"] . "</td>
+			<td>" . $rs->fields["nama"] . "</td>
+			<td align='right'>" . number_format($rs->fields["debet"]) . "</td>
+			<td align='right'>" . number_format($rs->fields["kredit"]) . "</td>
+		</tr>";
+		$rs->MoveNext();
+	}
+	$rs->Close();
+	echo "
+		</tbody>
+		</table>
+		</div>
+		</div>";
+
+?>
+]]></CustomScript>
+  <CustomScript ScriptType="Template" ScriptCodeType="Table" ScriptName="Content" ScriptCtrlID="custom" ScriptL1Key="cf05_coa.php" ScriptL2Key=""><![CDATA[<?php
+$q = "
+	SELECT
+		a.id,
+		a.kode as kodeakun,
+		a.nama as namaakun,
+		sg.nama as subgrup,
+		g.`name` as grupAkun,
+		m.nama as matauang
+	from
+		`grup` as g
+		join subgrup as sg on sg.grup_id=g.id
+		join akun as a on a.subgrup_id=sg.id
+		left join matauang as m on m.id=a.matauang_id
+";
+
+$rs = ew_Execute($q);
+
+	echo "
+		<div class='panel panel-default'>
+		<div>
+		<table class='table table-striped table-hover table-condensed'>
+		<tbody>";
+
+	/*echo "
+		<tr>
+			<th>Akun</th>
+			<th>&nbsp;</th>
+			<th>&nbsp;</th>
+			<th>&nbsp;</th>
+			<th>&nbsp;</th>
+			<th>&nbsp;</th>
+		</tr>";*/
+
+	echo "
+		<tr>
+			<th>Group</th>
+			<th>Sub-Group</th>
+			<th>Kode</th>
+			<th>Akun</th>
+			<th>Mata Uang</th>
+		</tr>";
+	while (!$rs->EOF) {
+		echo "
+		<tr>
+			<td>" . $rs->fields["grupAkun"] . "</td>
+			<td>" . $rs->fields["subgrup"] . "</td>
+			<td>" . $rs->fields["kodeakun"] . "</td>
+			<td>" . $rs->fields["namaakun"] . "</td>
+			<td>" . $rs->fields["matauang"] . "</td>
+		</tr>";
+		$rs->MoveNext();
+	}
+	$rs->Close();
+	echo "
+		</tbody>
+		</table>
+		</div>
+		</div>";
+?>
+]]></CustomScript>
+  <CustomScript ScriptType="Template" ScriptCodeType="Table" ScriptName="Content" ScriptCtrlID="custom" ScriptL1Key="cf06_saldoawal.php" ScriptL2Key=""><![CDATA[<?php
+$q = "
+	SELECT
+		p.`start`,
+		a.id,
+		a.kode,
+		a.nama,
+		s.saldo
+	from
+		akun as a
+		LEFT join saldoawal as s on s.akun_id=a.id
+		left join periode as p on p.id=s.periode_id";
+
+$rs = ew_Execute($q);
+
+	echo "
+		<div class='panel panel-default'>
+		<div>
+		<table class='table table-striped table-hover table-condensed'>
+		<tbody>";
+
+	/*echo "
+		<tr>
+			<th>Akun</th>
+			<th>&nbsp;</th>
+			<th>&nbsp;</th>
+			<th>&nbsp;</th>
+			<th>&nbsp;</th>
+			<th>&nbsp;</th>
+		</tr>";*/
+
+	echo "
+		<tr>
+			<th>Start</th>
+			<th>Kode</th>
+			<th>Akun</th>
+			<th>Saldo</th>
+		</tr>";
+	while (!$rs->EOF) {
+		echo "
+		<tr>
+			<td>" . $rs->fields["start"] . "</td>
+			<td>" . $rs->fields["kode"] . "</td>
+			<td>" . $rs->fields["nama"] . "</td>
+			<td>" . $rs->fields["saldo"] . "</td>
+		</tr>";
+		$rs->MoveNext();
+	}
+	$rs->Close();
+	echo "
+		</tbody>
+		</table>
+		</div>
+		</div>";
+?>
+]]></CustomScript>
   <Menu MenuID="24" MenuText="Home" MenuParentID="-1" MenuGroup="0" MenuSource="" MenuExtUrl="" MenuAnonymous="0" MenuSecurity="" MenuUrl="cf01_home.php" MenuCustomUrl="0" MenuLevel="0" MenuShow="1" MenuDisplayOrder="100" />
   <Menu MenuID="23" MenuText="Setup" MenuParentID="-1" MenuGroup="0" MenuSource="" MenuExtUrl="" MenuAnonymous="0" MenuSecurity="" MenuUrl="" MenuCustomUrl="1" MenuLevel="0" MenuShow="1" MenuDisplayOrder="200" />
   <Menu MenuID="13" MenuText="Periode" MenuParentID="23" MenuGroup="0" MenuSource="" MenuExtUrl="" MenuAnonymous="0" MenuSecurity="" MenuUrl="periode" MenuCustomUrl="0" MenuLevel="1" MenuShow="1" MenuDisplayOrder="100" />
@@ -529,9 +733,12 @@ $rs2 = ew_Execute("call spPASIVA");
   <Menu MenuID="11" MenuText="pajak" MenuParentID="23" MenuGroup="0" MenuSource="" MenuExtUrl="" MenuAnonymous="0" MenuSecurity="" MenuUrl="pajak" MenuCustomUrl="0" MenuLevel="1" MenuShow="0" MenuDisplayOrder="700" />
   <Menu MenuID="77" MenuText="Transaksi" MenuParentID="-1" MenuGroup="0" MenuSource="" MenuExtUrl="" MenuAnonymous="0" MenuSecurity="" MenuUrl="" MenuCustomUrl="1" MenuLevel="0" MenuShow="1" MenuDisplayOrder="300" />
   <Menu MenuID="4" MenuText="Jurnal" MenuParentID="77" MenuGroup="0" MenuSource="" MenuExtUrl="" MenuAnonymous="0" MenuSecurity="" MenuUrl="jurnal" MenuCustomUrl="0" MenuLevel="1" MenuShow="1" MenuDisplayOrder="100" />
-  <Menu MenuID="78" MenuText="Laporan" MenuParentID="-1" MenuGroup="0" MenuSource="" MenuExtUrl="" MenuAnonymous="8" MenuSecurity="" MenuUrl="" MenuCustomUrl="1" MenuLevel="0" MenuShow="1" MenuDisplayOrder="400" />
+  <Menu MenuID="78" MenuText="Laporan" MenuParentID="-1" MenuGroup="0" MenuSource="" MenuExtUrl="" MenuAnonymous="0" MenuSecurity="" MenuUrl="" MenuCustomUrl="1" MenuLevel="0" MenuShow="1" MenuDisplayOrder="400" />
   <Menu MenuID="49" MenuText="Laba Rugi" MenuParentID="78" MenuGroup="0" MenuSource="" MenuExtUrl="" MenuAnonymous="0" MenuSecurity="" MenuUrl="cf02_labarugi.php" MenuCustomUrl="0" MenuLevel="1" MenuShow="1" MenuDisplayOrder="100" />
   <Menu MenuID="50" MenuText="Neraca" MenuParentID="78" MenuGroup="0" MenuSource="" MenuExtUrl="" MenuAnonymous="0" MenuSecurity="" MenuUrl="cf03_neraca.php" MenuCustomUrl="0" MenuLevel="1" MenuShow="1" MenuDisplayOrder="200" />
+  <Menu MenuID="79" MenuText="Jurnal" MenuParentID="78" MenuGroup="0" MenuSource="" MenuExtUrl="" MenuAnonymous="0" MenuSecurity="" MenuUrl="cf04_jurnal.php" MenuCustomUrl="0" MenuLevel="1" MenuShow="1" MenuDisplayOrder="300" />
+  <Menu MenuID="80" MenuText="COA" MenuParentID="78" MenuGroup="0" MenuSource="" MenuExtUrl="" MenuAnonymous="0" MenuSecurity="" MenuUrl="cf05_coa.php" MenuCustomUrl="0" MenuLevel="1" MenuShow="1" MenuDisplayOrder="400" />
+  <Menu MenuID="81" MenuText="Saldo Awal" MenuParentID="78" MenuGroup="0" MenuSource="" MenuExtUrl="" MenuAnonymous="0" MenuSecurity="" MenuUrl="cf06_saldoawal.php" MenuCustomUrl="0" MenuLevel="1" MenuShow="1" MenuDisplayOrder="500" />
   <Menu MenuID="3" MenuText="gudang" MenuParentID="-1" MenuGroup="0" MenuSource="" MenuExtUrl="" MenuAnonymous="0" MenuSecurity="" MenuUrl="gudang" MenuCustomUrl="0" MenuLevel="0" MenuShow="0" MenuDisplayOrder="500" />
   <Menu MenuID="5" MenuText="Detail" MenuParentID="-1" MenuGroup="0" MenuSource="" MenuExtUrl="" MenuAnonymous="0" MenuSecurity="" MenuUrl="jurnald" MenuCustomUrl="0" MenuLevel="0" MenuShow="0" MenuDisplayOrder="600" />
   <Menu MenuID="6" MenuText="kelompok" MenuParentID="-1" MenuGroup="0" MenuSource="" MenuExtUrl="" MenuAnonymous="0" MenuSecurity="" MenuUrl="kelompok" MenuCustomUrl="0" MenuLevel="0" MenuShow="0" MenuDisplayOrder="700" />
