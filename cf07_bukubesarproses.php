@@ -335,7 +335,11 @@ $rs = ew_Execute("call spBukuBesar('".$_POST["akun"]."')");
 		</tbody>
 		</table>
 		</div>
-		</div>";
+		</div>
+	<div id='xsr_2' class='ewRow'>
+		<button class='btn btn-primary ewButton' name='btnsubmit' id='btnsubmit' type='button' onclick=\"window.location.href='cf07_bukubesar.php'\">Selesai</button>
+	</div>
+		";
 /*
 //Conn()->next_result();
 

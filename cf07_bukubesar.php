@@ -308,6 +308,7 @@ Page_Rendering();
 	</div>
 	<div id="xsr_2" class="ewRow">
 		<button class="btn btn-primary ewButton" name="btnsubmit" id="btnsubmit" type="submit">Proses</button>
+		<button class='btn btn-primary ewButton' name='btnsubmit' id='btnsubmit' type='button' onclick="window.location.href='.'">Selesai</button>
 	</div>
 </form>
 <?php if (EW_DEBUG_ENABLED) echo ew_DebugMsg(); ?>
