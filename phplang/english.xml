@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<ew-language date="2019/2/23" version="13.0.0" id="en" name="English" desc="English" author="e.World Technology Ltd.">
+<ew-language date="2019/2/25" version="13.0.0" id="en" name="English" desc="English" author="e.World Technology Ltd.">
   <!-- 
 	*** Important Notes:
 	1. Language ID should follow: https://developers.google.com/recaptcha/docs/language,
@@ -628,6 +628,12 @@
     <menu id="78">
       <phrase id="menutext" value="Laporan" />
     </menu>
+    <menu id="82">
+      <phrase id="menutext" value="Buku Besar" />
+    </menu>
+    <menu id="83">
+      <phrase id="menutext" value="Buku Besar" />
+    </menu>
     <menu id="49">
       <phrase id="menutext" value="Laba Rugi" />
     </menu>
@@ -1158,6 +1164,12 @@
     </table>
     <table id="cf06_saldoawal_php">
       <phrase id="tblcaption" value="Saldo Awal" />
+    </table>
+    <table id="cf07_bukubesar_php">
+      <phrase id="tblcaption" value="Buku Besar" />
+    </table>
+    <table id="cf07_bukubesarproses_php">
+      <phrase id="tblcaption" value="Buku Besar" />
     </table>
   </project>
 </ew-language>
