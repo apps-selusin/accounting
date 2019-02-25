@@ -1,0 +1,37 @@
+set @st := 0;
+
+select
+	*
+    , @st := @st + (bb.debet - bb.kredit) as saldo2
+from (
+select
+	ak.id
+    , ak.kode
+    , ak.nama
+    , '0000-00-00 00:00:00' as tanggal
+    , '' as no_tran
+    , 'Saldo Awal' as keterangan
+    , 0 as debet
+    , 0 as kredit
+    , saldo
+from
+	akun ak
+	left join saldoawal sa on ak.id = sa.akun_id
+    
+union
+
+select
+	ak.id
+    , ak.kode
+    , ak.nama
+    , j.createon as tanggal
+    , j.nomer as no_tran
+    , j.keterangan as keterangan
+    , case when isnull(jd.debet) then 0 else jd.debet end as debet
+    , case when isnull(jd.kredit) then 0 else jd.kredit end as kredit
+    , case when isnull(jd.debet) then 0 else jd.debet end - case when isnull(jd.kredit) then 0 else jd.kredit end as saldo
+from
+	akun ak
+	left join jurnald jd on ak.id = jd.akun_id
+    left join jurnal j on jd.jurnal_id = j.id
+) bb
